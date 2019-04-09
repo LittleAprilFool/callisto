@@ -1,18 +1,26 @@
 {
-  "name": "jupyter-dev-test",
+  "name": "jupyter-sharing",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "watch": "NODE_ENV=development webpack --config webpack.config.js --watch",
+    "test": "mocha test/test.js",
+    "watch": "tsc-watch --onSuccess 'sh ./deployment/jupyter/update.sh'",
+    "lint": "tslint --project tsconfig.json src/**.ts"
   },
   "author": "",
   "license": "ISC",
   "devDependencies": {
     "@babel/core": "^7.4.0",
+    "awesome-typescript-loader": "^5.2.1",
     "babel-loader": "^8.0.5",
-    "ts-loader": "^5.3.3",
+    "tsc-watch": "^2.1.2",
+    "tslint-config-prettier": "^1.18.0",
     "typescript": "^3.3.4000"
+  },
+  "dependencies": {
+    "@types/node": "^11.11.5",
+    "mocha": "^6.0.2",
+    "tslint": "^5.14.0"
   }
 }

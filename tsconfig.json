@@ -3,18 +3,17 @@
         "alwaysStrict": true,
         "module": "amd",
         "noImplicitAny": true,
-        "target": "es5",
-        "sourceMap": true,
-        "moduleResolution": "node",
-        "typeRoots": ["src/index.d.ts"],
+        "target": "es6",
+        "baseUrl": ".",
+        "sourceMap": false,
+        "outDir": "./extensions/",
+        // "moduleResolution": "node",
+        "allowUnreachableCode": false,
+        "types": [
+            // add node as an option
+            "node"
+         ],
+        // "allowUnusedLabels": false,
+        "allowSyntheticDefaultImports": false,
     },
-    "files": [
-        "src/index.d.ts"
-    ],
-     "exclude":[
-         "../node_modules"
-     ],
-    "include": [
-        "src/**/*",
-    ],
 }
