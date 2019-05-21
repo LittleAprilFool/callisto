@@ -2,18 +2,19 @@
     "compilerOptions": {
         "alwaysStrict": true,
         "module": "amd",
-        "noImplicitAny": true,
         "target": "es6",
         "baseUrl": ".",
         "sourceMap": false,
         "outDir": "./extensions/",
         // "moduleResolution": "node",
         "allowUnreachableCode": false,
+        "moduleResolution": "node",
+        "noImplicitAny": false,
         "types": [
             // add node as an option
             "node"
-         ],
+        ],
         // "allowUnusedLabels": false,
-        "allowSyntheticDefaultImports": false,
-    },
+        "allowSyntheticDefaultImports": false
+    }
 }
