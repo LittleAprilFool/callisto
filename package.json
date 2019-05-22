@@ -8,7 +8,7 @@
     "watch": "tsc-watch --onSuccess 'sh ./deployment/jupyter/update.sh'",
     "build": "",
     "watchify": "browserify src/colab.ts -p [ tsify ] > build/bundle.js",
-    "lint": "tslint --project tsconfig.json src/**.ts"
+    "lint": "tslint --project tsconfig.json src/*.ts src/**/*.ts"
   },
   "author": "",
   "license": "ISC",

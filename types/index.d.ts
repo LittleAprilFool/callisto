@@ -1,4 +1,3 @@
- 
 interface Dialog {
     title: string;
     body: HTMLElement;
@@ -28,11 +27,11 @@ interface Notebook {
 }
 
 interface Cell{
-    cell_type: string;
-    execution_count: number;
-    metadata: any;
-    outputs: Array<any>;
-    source: Array<any>;
+    cell_type?: string;
+    execution_count?: number;
+    metadata?: any;
+    outputs?: Array<any>;
+    source?: Array<any>;
 }
 
 interface Button {

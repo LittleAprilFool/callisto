@@ -1,6 +1,6 @@
-import { SharedButton } from './sharedButton';
 import { expect } from 'chai';
 import 'mocha';
+import { SharedButton } from './sharedButton';
 
 describe('SharedButton Class', () => {
 

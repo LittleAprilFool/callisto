@@ -1,10 +1,10 @@
+import { createDoc } from '../action/sharedbAction';
+import { generateUUID } from '../action/utils';
+import { SharedNotebook } from './sharedNotebook';
+
 const Jupyter = require('base/js/namespace');
 const i18n = require('base/js/i18n');
 const dialog = require('base/js/dialog');
-
-import { generateUUID } from '../action/utils';
-import { createDoc } from '../action/sharedbAction';
-import { SharedNotebook } from './sharedNotebook';
 
 export class SharedButton {
     public button: Button;
@@ -17,24 +17,24 @@ export class SharedButton {
             id: 'share-notebook',
             callback: this.displaySharedDialog.bind(this)
         };
-    };
+    }
 
 
     private displaySharedDialog(): void {
         // If the notebook is already shared, display the code, allow for canceling
-        if (Jupyter.notebook.metadata.shared == true) {
-            let code_dialog = this.createCodeDialog(Jupyter.notebook.metadata.doc_name, this.cancelHandler);
+        if (Jupyter.notebook.metadata.shared) {
+            const code_dialog = this.createCodeDialog(Jupyter.notebook.metadata.doc_name, this.cancelHandler);
             dialog.modal(code_dialog);
         }
         // If the notebook is not shared, establish the sharing process
         else {
-            let new_code_dialog = this.createNewCodeDialog(this.shareHandler.bind(this));
+            const new_code_dialog = this.createNewCodeDialog(this.shareHandler.bind(this));
             dialog.modal(new_code_dialog);
-        };
-    };
+        }
+    }
 
-    private createNewCodeDialog(shareHandler:()=>void): Dialog {
-        let form = document.createElement('form');
+    private createNewCodeDialog(shareHandler: ()=>void): Dialog {
+        const form = document.createElement('form');
         form.setAttribute('id', 'share_nb');
         form.innerHTML += '<h4> Would you like to share this notebook?</h4>';
         return {
@@ -45,22 +45,22 @@ export class SharedButton {
                     'id': 'yes-btn',
                     'class': 'btn-primary', 
                     'click': () => {
-                        shareHandler()
+                        shareHandler();
                     }
                 },
                 'No': {
                     'class': 'btn-default',
                     'click': () => {
-                        console.log('cancelled sharing')
+                        console.log('cancelled sharing');
                     }
                 }
             },
             keyboard_manager: Jupyter.keyboard_manager
         };
-    };
+    }
 
     private createCodeDialog(code: string, cancelHandler: ()=>void): Dialog {
-        let form = document.createElement('div');
+        const form = document.createElement('div');
         form.setAttribute('id', 'code_dialog');
         form.innerHTML += '<h4>Send the following code to other users to enable collaborative editing:';
         form.innerHTML += '<h4 align="center">' + code + '</h4>';
@@ -75,32 +75,32 @@ export class SharedButton {
                 'Cancel Sharing': {
                     'id': 'cancel-btn',
                     'click': () => {
-                        cancelHandler()
+                        cancelHandler();
                     }
                 }
             },
             keyboard_manager: Jupyter.keyboard_manager
         };
-    };
+    }
 
     private cancelHandler(): void {
         console.log('cancel share!!');
         
         // set share variable to false
-        Jupyter.notebook.metadata.shared = false
+        Jupyter.notebook.metadata.shared = false;
 
         // remove doc name
-        Jupyter.notebook.metadata.doc_name = ''
+        Jupyter.notebook.metadata.doc_name = '';
         
         // share after changing metadata
-        Jupyter.notebook.save_notebook()
+        Jupyter.notebook.save_notebook();
 
         // close websocket
         // ws.close()
-    };
+    }
 
     private shareHandler(): void {
-        console.log('start sharing!!')
+        console.log('start sharing!!');
        
         // set share flag to true
         Jupyter.notebook.metadata.shared = true;
@@ -111,24 +111,24 @@ export class SharedButton {
         // save after changing metadata
         Jupyter.notebook.save_notebook();   
 
-        let code_dialog = this.createCodeDialog(Jupyter.notebook.metadata.doc_name, this.cancelHandler);
+        const code_dialog = this.createCodeDialog(Jupyter.notebook.metadata.doc_name, this.cancelHandler);
         dialog.modal(code_dialog);
 
-        createDoc(Jupyter.notebook.metadata.doc_name).then(sdbDoc=>{
+        createDoc(Jupyter.notebook.metadata.doc_name).then(sdbDoc=> {
                 this.sharedNotebook = new SharedNotebook(sdbDoc);
-        }) 
-        //this.binding = new SharedbBinding(Jupyter.notebook.metadata.doc_name);
+        });
+        // this.binding = new SharedbBinding(Jupyter.notebook.metadata.doc_name);
         updateSharedButton(true);
-    };
+    }
 }
-export function updateSharedButton(flag: boolean):void{
-    let share_button = document.querySelector('#share-notebook');
+export function updateSharedButton(flag: boolean): void {
+    const share_button = document.querySelector('#share-notebook');
     share_button.firstElementChild.classList.toggle("fa-share");
     share_button.firstElementChild.classList.toggle("fa-check");
     if (flag) {
-        share_button.setAttribute("style", "background-color:#d4edda; color:#155724; border-color: #c3e6cb")
+        share_button.setAttribute("style", "background-color:#d4edda; color:#155724; border-color: #c3e6cb");
     }
     else {
-        share_button.setAttribute("style", "background-color:#fff; border-color: #ccc")
-    };
-};
+        share_button.setAttribute("style", "background-color:#fff; border-color: #ccc");
+    }
+}
