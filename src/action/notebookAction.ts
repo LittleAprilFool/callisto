@@ -1,6 +1,6 @@
 import { SDBDoc } from 'sdb-ts';
+import { NotebookBinding } from '../component/notebookBinding';
 import { updateSharedButton } from '../component/sharedButton';
-import { SharedNotebook } from '../component/sharedNotebook';
 import { joinDoc } from './sharedbAction';
 
 const Jupyter = require('base/js/namespace');
@@ -10,7 +10,7 @@ const config = require('services/config');
 
 export function loadNotebook(): void {
     joinDoc(Jupyter.notebook.metadata.doc_name).then(sdbDoc => {
-        this.sharedNotebook = new SharedNotebook(sdbDoc);
+        this.sharedNotebook = new NotebookBinding(sdbDoc, false);
     });
     updateSharedButton(true); 
 }

@@ -8,6 +8,9 @@ interface Dialog {
 interface SharedDoc {
     count: number; 
     notebook: Notebook;
+    event: {
+        render_markdown: number;
+    }
 }
 
 interface Notebook {
@@ -32,6 +35,7 @@ interface Cell{
     metadata?: any;
     outputs?: Array<any>;
     source?: Array<any>;
+    rendered?: boolean;
 }
 
 interface Button {

@@ -12,7 +12,7 @@ export function generateUUID(): string {
 
 export function openWS(port: number): WebSocket {
     let url = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
-    url += + document.domain + ':' + port;
+    url += document.domain + ':' + port;
     const ws = new WebSocket(url);
     return ws;
 }
@@ -45,6 +45,6 @@ export function getTime(): string {
     const minutes = d.getMinutes();
     time = minutes < 10? time + ':0' + minutes : time + ':' + minutes;
     time = pm ? time + 'PM': time + 'AM';
-    
+
     return time;
 }

@@ -19,6 +19,7 @@
       "semicolon": [true, "always"],
       "object-literal-sort-keys": false,
       "no-console": false,
+      "curly": [true, "ignore-same-line"],
       "typedef-whitespace": [
         true,
         {

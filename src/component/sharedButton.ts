@@ -1,6 +1,6 @@
 import { createDoc } from '../action/sharedbAction';
 import { generateUUID } from '../action/utils';
-import { SharedNotebook } from './sharedNotebook';
+import { NotebookBinding } from './notebookBinding';
 
 const Jupyter = require('base/js/namespace');
 const i18n = require('base/js/i18n');
@@ -115,12 +115,13 @@ export class SharedButton {
         dialog.modal(code_dialog);
 
         createDoc(Jupyter.notebook.metadata.doc_name).then(sdbDoc=> {
-                this.sharedNotebook = new SharedNotebook(sdbDoc);
+                this.sharedNotebook = new NotebookBinding(sdbDoc, true);
         });
         // this.binding = new SharedbBinding(Jupyter.notebook.metadata.doc_name);
         updateSharedButton(true);
     }
 }
+
 export function updateSharedButton(flag: boolean): void {
     const share_button = document.querySelector('#share-notebook');
     share_button.firstElementChild.classList.toggle("fa-share");

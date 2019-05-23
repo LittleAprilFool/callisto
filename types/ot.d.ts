@@ -4,12 +4,9 @@ type CellEditOpComponent = {
     p: number
 }
 
-type CellEditOp = CellEditOpComponent[]
 
-type CellEditDocComponent = {
-    p: any[],
-    t: string,
-    o: CellEditOp
+type CellEditOp = {
+    p: ['source'],
+    t: 'text0',
+    o: CellEditOpComponent[]
 }
-
-type CellEditDocOp = CellEditDocComponent[]
