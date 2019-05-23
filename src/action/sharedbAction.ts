@@ -26,7 +26,11 @@ export function createDoc(doc_name: string): Promise<SDBDoc<SharedDoc>> {
         const sdbDoc = sdbClient.get('doc', doc_name);
         sdbDoc.createIfEmpty({
             count: 0,
-            notebook: JSON.parse(JSON.stringify(Jupyter.notebook))
+            notebook: JSON.parse(JSON.stringify(Jupyter.notebook)),
+            event: {
+                render_markdown: 0,
+                unrender_markdown: 0,
+            }
         });
         resolve(sdbDoc);
     });

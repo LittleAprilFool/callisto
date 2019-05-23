@@ -17,12 +17,18 @@ function checkOpType(op): string {
     if (op.p.length === 4 && op.p[0] === 'notebook' && op.p[1] === 'cells' && typeof op.p[2] === 'number' && op.p[3] === 'execution_count' && op.oi) return 'ExecutionCount';
 
     // Outputs
-    // { p:['notebook', 'cells', index, 'execution_count'], od, oi }
+    // { p:['notebook', 'cells', index, 'outputs'], od, oi }
     if (op.p.length === 4 && op.p[0] === 'notebook' && op.p[1] === 'cells' && typeof op.p[2] === 'number' && op.p[3] === 'outputs' && op.oi) return 'Outputs';
 
     // TypeChange
-    // { p: ['notebook', 'cells'], index, li, ld]}
+    // { p: ['notebook', 'cells', index], li, ld]}
     if (op.p.length === 3 && op.p[0] === 'notebook' && op.p[1] === 'cells' && typeof op.p[2] === 'number' && op.li && op.ld) return 'TypeChange';
+
+
+    // RenderMarkdown and UnrenderMarkdown
+    // {p: ['event', 'render_markdown'], na]}
+    if (op.p.length === 2 && op.p[0] === 'event' && op.p[1] === 'render_markdown' && (op.na!==null)) return 'RenderMarkdown';
+    if (op.p.length === 2 && op.p[0] === 'event' && op.p[1] === 'unrender_markdown' && (op.na!==null)) return 'UnrenderMarkdown';
 
     return 'Else';
 }
@@ -126,7 +132,7 @@ export class NotebookBinding {
             }
             case 'TypeChange': {
                 const {p, li, ld} = op;
-                const [, , index, ] = p;
+                const [, , index] = p;
                 Jupyter.ignoreInsert = true;
 
                 switch (li.cell_type) {
@@ -146,6 +152,23 @@ export class NotebookBinding {
                         console.log("Unrecognized cell type: " + li.cell_type);
                 }
                 Jupyter.ignoreInsert = false;
+                break;
+            }
+            case 'RenderMarkdown': {
+                Jupyter.ignoreRender = true;
+                const index = this.sdbDoc.getData().event.render_markdown;
+                Jupyter.notebook.get_cell(index).render();
+                Jupyter.ignoreRender = false;
+                break;
+            }
+            case 'UnrenderMarkdown': {
+                Jupyter.ignoreRender = true;
+                const index = this.sdbDoc.getData().event.unrender_markdown;
+                Jupyter.notebook.get_cell(index).unrender();
+                Jupyter.ignoreRender = false;
+                break;
+            }
+            default: {
                 break;
             }
         }
@@ -223,17 +246,32 @@ export class NotebookBinding {
     }
 
     private onRenderedMarkdownCell = (evt, info): void => {
-        console.log('render');
-        console.log(info);
+        const index = info.cell.code_mirror.index;
+        // when cell type changes to markdown, Jupyter will render once. 
+        // In this case, index will be undefined.
+        if(index!==null && !Jupyter.ignoreRender) {
+            const old_number = this.sdbDoc.getData().event.render_markdown;
+            const op = {
+                p: ['event', 'render_markdown'],
+                na: index - old_number 
+            };
+            this.sdbDoc.submitOp([op], this);
+        }
     }
 
     private onUnrenderedMarkdownCell = (evt, info): void => {
-        console.log('unrendered');
-        console.log(info);
+        const index = info.code_mirror.index;
+        if(index!==null && !Jupyter.ignoreRender) {
+            const old_number = this.sdbDoc.getData().event.unrender_markdown;
+            const op = {
+                p: ['event', 'unrender_markdown'],
+                na: index - old_number 
+            };
+            this.sdbDoc.submitOp([op], this);
+        }
     }
 
     private onTypeChange = (evt, index): void => {
-        console.log('OnTypeChange');
 
         // replace the cell with the new cell
         const remoteCell = this.sharedCells[index].doc.getData(); 
@@ -243,6 +281,9 @@ export class NotebookBinding {
             ld: remoteCell,
             li: newCell
         };
+
+        this.deleteSharedCell(index);
+        this.insertSharedCell(index, newCell.code_mirror);
 
         this.sdbDoc.submitOp([op], this);
     }
@@ -267,6 +308,7 @@ export class NotebookBinding {
         Jupyter.ignoreInsert = false;
 
         // to markdown
+        // https://github.com/jupyter/notebook/blob/master/notebook/static/notebook/js/notebook.js#L1470
         Notebook.Notebook.prototype.cells_to_markdown = function (indices) {
             Jupyter.ignoreInsert = true;
 
@@ -280,10 +322,6 @@ export class NotebookBinding {
                 this.to_markdown(indice);
                 this.events.trigger('type.Change', indice);
             });
-            // for (let i=0; i < indices.length; i++) {
-            //     this.to_markdown(indices[i]);
-            //     this.events.trigger('type.Change', indices[i]);
-            // }
 
             Jupyter.ignoreInsert = false;
         };
@@ -325,13 +363,13 @@ export class NotebookBinding {
 
     private createUnrenderedMarkdownCellEvent(): void {
         const TextCell = require('notebook/js/textcell');
-        // TODO
-        // TextCell.MarkdownCell.prototype.unrender = function () {
-        //     console.log(TextCell)
-        //     var cont = TextCell.prototype.unrender.apply(this);
-        //     this.notebook.set_insert_image_enabled(true);
-        // //    this.events.trigger('unrendered.Markdown', this);
-        // }
+        Jupyter.ignoreRender = false;
+
+        TextCell.MarkdownCell.prototype.unrender = function () {
+            const cont = TextCell.TextCell.prototype.unrender.apply(this);
+            this.notebook.set_insert_image_enabled(true);
+            this.events.trigger('unrendered.MarkdownCell', this);
+        };
     }
 
     // update shared cell bindings

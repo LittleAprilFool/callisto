@@ -10,6 +10,7 @@ interface SharedDoc {
     notebook: Notebook;
     event: {
         render_markdown: number;
+        unrender_markdown: number;
     }
 }
 
