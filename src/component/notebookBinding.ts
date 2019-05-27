@@ -99,6 +99,11 @@ export class NotebookBinding {
                 const [, , index] = p;
                 const cell = Jupyter.notebook.insert_cell_above(li.cell_type, index);            
                 this.insertSharedCell(index, cell.code_mirror);
+                // when deleting the only cell, Jupyter will automatically insert a cell
+                // when a remote notebook deletes the only cell, the current notebook will first delete its only cell. Then the current notebook will automatically insert a cell. Then the remote notebook will insert a cell as well.
+                if(index === 0) {
+                    Jupyter.notebook.delete_cell(1);
+                }
                 break;
             }
             case 'DeleteCell': {
@@ -116,7 +121,9 @@ export class NotebookBinding {
                 
                 // if host receives the execution operation from the client
                 if(oi==="*" && this.isHost) {
-                    Jupyter.notebook.execute_cell(index);
+                    // Jupyter.notebook.execute_cell(index) wouldn't call event trigger 'onExecuteCodeCell'
+                    // change it to Jupyter.notebook.get_cell(index).execute()
+                    Jupyter.notebook.get_cell(index).execute();
                 }
                 break;
             }
@@ -239,9 +246,11 @@ export class NotebookBinding {
             // the input_prompt_number is not updated the same time as the output
             // thus we need to update it from the current Jupyter notebook after 20 msec
             // need a better solution rather than setTimeout
-            setTimeout(()=> {
-                this.onSyncInputPrompt(Jupyter.notebook.get_cell(index));
-            }, 20);
+            if(this.isHost) {
+                setTimeout(()=> {
+                    this.onSyncInputPrompt(Jupyter.notebook.get_cell(index));
+                }, 20);    
+            }
         }
     }
 
@@ -249,57 +258,65 @@ export class NotebookBinding {
         const index = info.cell.code_mirror.index;
         // when cell type changes to markdown, Jupyter will render once. 
         // In this case, index will be undefined.
-        if(index!==null && !Jupyter.ignoreRender) {
-            const old_number = this.sdbDoc.getData().event.render_markdown;
-            const op = {
-                p: ['event', 'render_markdown'],
-                na: index - old_number 
-            };
-            this.sdbDoc.submitOp([op], this);
+        if(!this.suppressChanges) {
+            if(index!==null && !Jupyter.ignoreRender) {
+                const old_number = this.sdbDoc.getData().event.render_markdown;
+                const op = {
+                    p: ['event', 'render_markdown'],
+                    na: index - old_number 
+                };
+                this.sdbDoc.submitOp([op], this);
+            }
         }
     }
 
     private onUnrenderedMarkdownCell = (evt, info): void => {
         const index = info.code_mirror.index;
-        if(index!==null && !Jupyter.ignoreRender) {
-            const old_number = this.sdbDoc.getData().event.unrender_markdown;
-            const op = {
-                p: ['event', 'unrender_markdown'],
-                na: index - old_number 
-            };
-            this.sdbDoc.submitOp([op], this);
+        if(!this.suppressChanges) {
+            if(index!==null && !Jupyter.ignoreRender) {
+                const old_number = this.sdbDoc.getData().event.unrender_markdown;
+                const op = {
+                    p: ['event', 'unrender_markdown'],
+                    na: index - old_number 
+                };
+                this.sdbDoc.submitOp([op], this);
+            }
         }
     }
 
     private onTypeChange = (evt, index): void => {
+        if(!this.suppressChanges) {
+            // replace the cell with the new cell
+            const remoteCell = this.sharedCells[index].doc.getData(); 
+            const newCell = Jupyter.notebook.get_cell(index);
+            const op = {
+                p: ['notebook', 'cells', index],
+                ld: remoteCell,
+                li: newCell
+            };
 
-        // replace the cell with the new cell
-        const remoteCell = this.sharedCells[index].doc.getData(); 
-        const newCell = Jupyter.notebook.get_cell(index);
-        const op = {
-            p: ['notebook', 'cells', index],
-            ld: remoteCell,
-            li: newCell
-        };
+            this.deleteSharedCell(index);
+            this.insertSharedCell(index, newCell.code_mirror);
 
-        this.deleteSharedCell(index);
-        this.insertSharedCell(index, newCell.code_mirror);
-
-        this.sdbDoc.submitOp([op], this);
+            this.sdbDoc.submitOp([op], this);
+        }
     }
 
     private onSyncInputPrompt(cell): void {
-        // update the execution_count of the cell
-        const index = cell.code_mirror.index;
-        const remoteExecutionCount = this.sharedCells[index].doc.getData().execution_count;
-        const newCount = cell.input_prompt_number;
-        const op = {
-            p:['notebook', 'cells', index, 'execution_count'], 
-            od: remoteExecutionCount, 
-            oi: newCount
-        };
+        if(!this.suppressChanges) {
+
+            // update the execution_count of the cell
+            const index = cell.code_mirror.index;
+            const remoteExecutionCount = this.sharedCells[index].doc.getData().execution_count;
+            const newCount = cell.input_prompt_number;
+            const op = {
+                p:['notebook', 'cells', index, 'execution_count'], 
+                od: remoteExecutionCount, 
+                oi: newCount
+            };
         
-        this.sdbDoc.submitOp([op], this);
+            this.sdbDoc.submitOp([op], this);
+        }
     }
 
     // when change type, Jupyter Notebook would delete the original cell, and insert a new cell
