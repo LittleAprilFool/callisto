@@ -10,7 +10,34 @@ const config = require('services/config');
 
 export function loadNotebook(): void {
     joinDoc(Jupyter.notebook.metadata.doc_name).then(sdbDoc => {
-        this.sharedNotebook = new NotebookBinding(sdbDoc, false);
+        deleteNotebook().then(()=> {
+            const cells = sdbDoc.getData().notebook.cells;
+            cells.forEach(cell=> {
+                // insert cell
+                const new_cell = Jupyter.notebook.insert_cell_above(cell.cell_type);
+                // set value
+                new_cell.code_mirror.setValue(cell.source);
+                // set input_prompt
+                if(cell.execution_count) {
+                    new_cell.set_input_prompt(cell.execution_count);
+                }
+                // show output if it exists
+                if(cell.outputs) {
+                    cell.outputs.forEach(output=> {
+                        new_cell.output_area.append_output(output);
+                    });
+                }
+                // render all markdown cells
+                if(cell.cell_type === 'markdown') {
+                    new_cell.unrender();
+                    new_cell.render();
+                }
+            });
+            // delete the extra code cell
+            const num_cells = Jupyter.notebook.get_cells().length;
+            Jupyter.notebook.delete_cell(num_cells-1);
+            this.sharedNotebook = new NotebookBinding(sdbDoc, false);
+        });
     });
     updateSharedButton(true); 
 }
