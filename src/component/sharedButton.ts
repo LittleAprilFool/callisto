@@ -8,7 +8,8 @@ const dialog = require('base/js/dialog');
 
 export class SharedButton {
     public button: Button;
-    public sharedNotebook: any;
+    private sharedNotebook: any;
+    private ws: WebSocket;
 
     constructor() {
         this.button = {
@@ -19,11 +20,16 @@ export class SharedButton {
         };
     }
 
+    public attachNotebook(notebook): void {
+        console.log('attach to notebook');
+        this.sharedNotebook = notebook;
+        disableFeatures();
+    }
 
     private displaySharedDialog(): void {
         // If the notebook is already shared, display the code, allow for canceling
         if (Jupyter.notebook.metadata.shared) {
-            const code_dialog = this.createCodeDialog(Jupyter.notebook.metadata.doc_name, this.cancelHandler);
+            const code_dialog = this.createCodeDialog(Jupyter.notebook.metadata.doc_name, this.cancelHandler.bind(this));
             dialog.modal(code_dialog);
         }
         // If the notebook is not shared, establish the sharing process
@@ -96,7 +102,8 @@ export class SharedButton {
         Jupyter.notebook.save_notebook();
 
         // close websocket
-        // ws.close()
+        this.sharedNotebook.destroy();
+        updateSharedButton(false);
     }
 
     private shareHandler(): void {
@@ -114,11 +121,12 @@ export class SharedButton {
         const code_dialog = this.createCodeDialog(Jupyter.notebook.metadata.doc_name, this.cancelHandler);
         dialog.modal(code_dialog);
 
-        createDoc(Jupyter.notebook.metadata.doc_name).then(({doc, ws})=> {
+        createDoc(Jupyter.notebook.metadata.doc_name).then(({doc, ws}) => {
                 this.sharedNotebook = new NotebookBinding(doc, ws);
         });
         // this.binding = new SharedbBinding(Jupyter.notebook.metadata.doc_name);
         updateSharedButton(true);
+        disableFeatures();
     }
 }
 
@@ -131,5 +139,22 @@ export function updateSharedButton(flag: boolean): void {
     }
     else {
         share_button.setAttribute("style", "background-color:#fff; border-color: #ccc");
+    }
+}
+
+export function disableFeatures(): void {
+    // disable move cells up and down
+    const moveButton = document.getElementById('move_up_down');
+    if(moveButton) moveButton.remove();
+
+    // disable insert above
+    const insertAbove = document.getElementById('insert_cell_above');
+    if(insertAbove) insertAbove.remove();
+
+    // disable copy and paste
+    const cpButton = document.getElementById('cut_copy_paste').childNodes;
+    if(cpButton.length === 3) {
+        cpButton[2].remove();
+        cpButton[1].remove();
     }
 }

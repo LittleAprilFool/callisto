@@ -66,6 +66,10 @@ export class NotebookBinding {
     public destroy = (): void => {
         this.sdbDoc.unsubscribe(this.onSDBDocEvent);
         this.eventsOff();
+        this.sharedCells.forEach(cell => {
+            cell.destroy();
+        });
+        this.ws.close();
     }
 
     private eventsOn = (): void => {
@@ -78,8 +82,6 @@ export class NotebookBinding {
         Jupyter.notebook.events.on('execute.CodeCell', this.onExecuteCodeCell);
         Jupyter.notebook.events.on('finished_execute.CodeCell', this.onFinishedExecuteCodeCell);
         Jupyter.notebook.events.on('rendered.MarkdownCell', this.onRenderedMarkdownCell);
-
-        this.disableFeatures();
 
         this.createUnrenderedMarkdownCellEvent();
         Jupyter.notebook.events.on('unrendered.MarkdownCell', this.onUnrenderedMarkdownCell);
@@ -456,21 +458,6 @@ export class NotebookBinding {
             this.notebook.set_insert_image_enabled(true);
             this.events.trigger('unrendered.MarkdownCell', this);
         };
-    }
-
-    private disableFeatures(): void {
-        // disable move cells up and down
-        const moveButton = document.getElementById('move_up_down');
-        moveButton.remove();
-
-        // disable insert above
-        const insertAbove = document.getElementById('insert_cell_above');
-        insertAbove.remove();
-
-        // disable copy and paste
-        const cpButton = document.getElementById('cut_copy_paste').childNodes;
-        cpButton[2].remove();
-        cpButton[1].remove();
     }
 
     // update shared cell bindings

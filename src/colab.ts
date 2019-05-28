@@ -8,7 +8,9 @@ function load_ipython_extension() {
     const sharedButton = new SharedButton;
     Jupyter.toolbar.add_buttons_group([sharedButton.button]);
     if (Jupyter.notebook.metadata.shared === true) {
-        loadNotebook();
+        loadNotebook().then(notebook => {
+            sharedButton.attachNotebook(notebook);
+        });
     }
 }
 

@@ -8,39 +8,42 @@ const utils = require('base/js/utils');
 const contents_service = require('contents');
 const config = require('services/config');
 
-export function loadNotebook(): void {
-    joinDoc(Jupyter.notebook.metadata.doc_name).then(({doc, ws}) => {
-        console.log('Loading shared notebook ' + Jupyter.notebook.metadata.doc_name);
-        deleteNotebook().then(()=> {
-            const cells = doc.getData().notebook.cells;
-            cells.forEach(cell=> {
-                // insert cell
-                const new_cell = Jupyter.notebook.insert_cell_above(cell.cell_type);
-                // set value
-                new_cell.code_mirror.setValue(cell.source);
-                // set input_prompt
-                if(cell.execution_count) {
-                    new_cell.set_input_prompt(cell.execution_count);
-                }
-                // show output if it exists
-                if(cell.outputs) {
-                    cell.outputs.forEach(output=> {
-                        new_cell.output_area.append_output(output);
-                    });
-                }
-                // render all markdown cells
-                if(cell.cell_type === 'markdown') {
-                    new_cell.unrender();
-                    new_cell.render();
-                }
+export function loadNotebook(): Promise<any> {
+    return new Promise<any> (resolve => {
+        joinDoc(Jupyter.notebook.metadata.doc_name).then(({doc, ws}) => {
+            console.log('Loading shared notebook ' + Jupyter.notebook.metadata.doc_name);
+            updateSharedButton(true); 
+            deleteNotebook().then(()=> {
+                const cells = doc.getData().notebook.cells;
+                cells.forEach(cell=> {
+                    // insert cell
+                    const new_cell = Jupyter.notebook.insert_cell_above(cell.cell_type);
+                    // set value
+                    new_cell.code_mirror.setValue(cell.source);
+                    // set input_prompt
+                    if(cell.execution_count) {
+                        new_cell.set_input_prompt(cell.execution_count);
+                    }
+                    // show output if it exists
+                    if(cell.outputs) {
+                        cell.outputs.forEach(output=> {
+                            new_cell.output_area.append_output(output);
+                        });
+                    }
+                    // render all markdown cells
+                    if(cell.cell_type === 'markdown') {
+                        new_cell.unrender();
+                        new_cell.render();
+                    }
+                });
+                // delete the extra code cell
+                const num_cells = Jupyter.notebook.get_cells().length;
+                Jupyter.notebook.delete_cell(num_cells-1);
+                const notebookBinding = new NotebookBinding(doc, ws);
+                resolve(notebookBinding);
             });
-            // delete the extra code cell
-            const num_cells = Jupyter.notebook.get_cells().length;
-            Jupyter.notebook.delete_cell(num_cells-1);
-            this.sharedNotebook = new NotebookBinding(doc, ws);
         });
     });
-    updateSharedButton(true); 
 }
 
 export function openNotebook(doc_name: string, sdbDoc: SDBDoc<SharedDoc>): void {
