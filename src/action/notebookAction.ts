@@ -9,9 +9,10 @@ const contents_service = require('contents');
 const config = require('services/config');
 
 export function loadNotebook(): void {
-    joinDoc(Jupyter.notebook.metadata.doc_name).then(sdbDoc => {
+    joinDoc(Jupyter.notebook.metadata.doc_name).then(({doc, ws}) => {
+        console.log('Loading shared notebook ' + Jupyter.notebook.metadata.doc_name);
         deleteNotebook().then(()=> {
-            const cells = sdbDoc.getData().notebook.cells;
+            const cells = doc.getData().notebook.cells;
             cells.forEach(cell=> {
                 // insert cell
                 const new_cell = Jupyter.notebook.insert_cell_above(cell.cell_type);
@@ -36,7 +37,7 @@ export function loadNotebook(): void {
             // delete the extra code cell
             const num_cells = Jupyter.notebook.get_cells().length;
             Jupyter.notebook.delete_cell(num_cells-1);
-            this.sharedNotebook = new NotebookBinding(sdbDoc, false);
+            this.sharedNotebook = new NotebookBinding(doc, ws);
         });
     });
     updateSharedButton(true); 

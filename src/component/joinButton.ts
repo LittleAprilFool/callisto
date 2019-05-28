@@ -30,10 +30,10 @@ export class JoinButton {
 
     private joinHandler(doc_name: string): void {
         // check if doc exists
-        joinDoc(doc_name).then(sdbDoc => {
+        joinDoc(doc_name).then(({doc, ws}) => {
             // if exists, open notebook
-            if(sdbDoc) {
-                openNotebook(doc_name, sdbDoc);
+            if(doc) {
+                openNotebook(doc_name, doc);
                 const close_button: HTMLButtonElement = document.querySelector('#join-close');
                 close_button.click();
             }

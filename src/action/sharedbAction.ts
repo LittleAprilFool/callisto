@@ -3,26 +3,26 @@ import { openWS } from './utils';
 
 const Jupyter = require('base/js/namespace');
 
-export function joinDoc(doc_name: string): Promise<SDBDoc<SharedDoc>> {
+export function joinDoc(doc_name: string): Promise<{doc: SDBDoc<SharedDoc>, ws: WebSocket}> {
     const ws = openWS(5555);
     const sdbClient = new window['SDB'].SDBClient(ws);
-    return new Promise<SDBDoc<SharedDoc>>((resolve, reject) => {
+    return new Promise<{doc: SDBDoc<SharedDoc>, ws: WebSocket}>((resolve, reject) => {
         const sdbDoc = sdbClient.get('doc', doc_name);
         sdbDoc.fetch().then(res=> {
             if (res.type == null) {
                 reject('document does not exist');
             }
             else {
-                resolve(sdbDoc);
+                resolve({doc: sdbDoc, ws});
             }
         });
     });
 }
 
-export function createDoc(doc_name: string): Promise<SDBDoc<SharedDoc>> {
+export function createDoc(doc_name: string): Promise<{doc: SDBDoc<SharedDoc>, ws: WebSocket}> {
     const ws = openWS(5555);
     const sdbClient = new window['SDB'].SDBClient(ws);
-    return new Promise<SDBDoc<SharedDoc>>(resolve=> {
+    return new Promise<{doc: SDBDoc<SharedDoc>, ws: WebSocket}>(resolve=> {
         const sdbDoc = sdbClient.get('doc', doc_name);
         sdbDoc.createIfEmpty({
             count: 0,
@@ -30,8 +30,11 @@ export function createDoc(doc_name: string): Promise<SDBDoc<SharedDoc>> {
             event: {
                 render_markdown: 0,
                 unrender_markdown: 0,
-            }
+            },
+            host: null,
+            users: []
+        }).then(()=> {
+            resolve({doc: sdbDoc, ws});
         });
-        resolve(sdbDoc);
     });
 }

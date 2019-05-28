@@ -1,6 +1,9 @@
 import { SDBDoc } from "sdb-ts";
 import { getNotebookMirror} from '../action/notebookAction';
+import { getUserName } from '../action/userAction';
+import { openWS } from '../action/utils';
 import { CellBinding } from './cellBinding';
+
 
 const Jupyter = require('base/js/namespace');
 
@@ -27,8 +30,16 @@ function checkOpType(op): string {
 
     // RenderMarkdown and UnrenderMarkdown
     // {p: ['event', 'render_markdown'], na]}
-    if (op.p.length === 2 && op.p[0] === 'event' && op.p[1] === 'render_markdown' && (op.na!==null)) return 'RenderMarkdown';
-    if (op.p.length === 2 && op.p[0] === 'event' && op.p[1] === 'unrender_markdown' && (op.na!==null)) return 'UnrenderMarkdown';
+    if (op.p.length === 2 && op.p[0] === 'event' && op.p[1] === 'render_markdown' && op.na!==null) return 'RenderMarkdown';
+    if (op.p.length === 2 && op.p[0] === 'event' && op.p[1] === 'unrender_markdown' && op.na!==null) return 'UnrenderMarkdown';
+
+    // Other users join the channel
+    if (op.p.length === 2 && op.p[0] === 'users' && typeof op.p[1] === 'number' && op.li!==null && !op.ld ) return 'JoinChannel';
+    if (op.p.length === 2 && op.p[0] === 'users' && typeof op.p[1] === 'number' && !op.li && op.ld!==null ) return 'LeaveChannel';
+
+    // UpdateHost
+    if (op.p.length === 1 && op.p[0] === 'host' && op.oi!==null) return 'UpdateHost';
+
 
     return 'Else';
 }
@@ -36,7 +47,9 @@ function checkOpType(op): string {
 export class NotebookBinding {
     private suppressChanges: boolean = false;
     private sharedCells: any[];
-    constructor(private sdbDoc: SDBDoc<SharedDoc>, private isHost: boolean) {
+    private userName: string;
+    private isHost: boolean;
+    constructor(private sdbDoc: SDBDoc<SharedDoc>, private ws: WebSocket) {
         this.sdbDoc.subscribe(this.onSDBDocEvent);
         this.eventsOn();
         this.sharedCells = [];
@@ -46,6 +59,8 @@ export class NotebookBinding {
             cellMirror.index = index;
             this.sharedCells.push(new CellBinding(cellMirror, subDoc));
         });
+        this.isHost = false;
+        this.onJoinChannel();
     }
 
     public destroy = (): void => {
@@ -177,11 +192,65 @@ export class NotebookBinding {
                 Jupyter.ignoreRender = false;
                 break;
             }
+            case 'JoinChannel': {
+                const {p, li} = op;
+                const [, index] = p;
+                console.log(li + ' joined the channel');
+                break;
+            }
+            case 'LeaveChannel': {
+                const {p, ld} = op;
+                const [, index] = p;
+                console.log(ld + ' leaved the channel');
+                break;
+            }
+            case 'UpdateHost': {
+                const {p, od, oi} = op;
+                console.log('The new host is ' + oi);
+                const theHost = this.sdbDoc.getData().host;
+                if (theHost === this.userName) this.isHost = true;
+                break;
+            }
             default: {
                 break;
             }
         }
         this.suppressChanges = false;
+    }
+
+    // add user into connected user
+    private onJoinChannel = (): void => {
+        if(!this.suppressChanges) {
+            const index = this.sdbDoc.getData().users.length;
+            this.userName = getUserName();
+            
+            const op_user = {
+                p: ['users', index],
+                li: this.userName
+            };
+
+            this.sdbDoc.submitOp([op_user], this);
+
+            // check if the notebook has host
+            const oldHost = this.sdbDoc.getData().host;
+            if(oldHost == null) {
+                this.isHost = true;
+                console.log('This is the host');
+                const op_host = {
+                    p: ['host'],
+                    od: oldHost,
+                    oi: this.userName
+                };
+                this.sdbDoc.submitOp([op_host], this);
+            }
+
+            // send the client doc and client name to server
+            this.ws.send(JSON.stringify({
+                'type': 'join_room',
+                'doc_name': this.sdbDoc.getIdentifier(), 
+                'username': this.userName 
+            }));
+        }
     }
 
     // when the local notebook deletes a cell

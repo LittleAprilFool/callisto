@@ -114,8 +114,8 @@ export class SharedButton {
         const code_dialog = this.createCodeDialog(Jupyter.notebook.metadata.doc_name, this.cancelHandler);
         dialog.modal(code_dialog);
 
-        createDoc(Jupyter.notebook.metadata.doc_name).then(sdbDoc=> {
-                this.sharedNotebook = new NotebookBinding(sdbDoc, true);
+        createDoc(Jupyter.notebook.metadata.doc_name).then(({doc, ws})=> {
+                this.sharedNotebook = new NotebookBinding(doc, ws);
         });
         // this.binding = new SharedbBinding(Jupyter.notebook.metadata.doc_name);
         updateSharedButton(true);

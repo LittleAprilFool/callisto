@@ -11,7 +11,9 @@ interface SharedDoc {
     event: {
         render_markdown: number;
         unrender_markdown: number;
-    }
+    };
+    host: string;
+    users: string[];
 }
 
 interface Notebook {
