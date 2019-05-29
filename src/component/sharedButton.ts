@@ -107,7 +107,7 @@ export class SharedButton {
     }
 
     private shareHandler(): void {
-        console.log('start sharing!!');
+        console.log('start sharing!!hahahq');
        
         // set share flag to true
         Jupyter.notebook.metadata.shared = true;

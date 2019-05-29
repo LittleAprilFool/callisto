@@ -1,7 +1,7 @@
 import { SDBDoc } from "sdb-ts";
 import { getNotebookMirror} from '../action/notebookAction';
 import { getUserName } from '../action/userAction';
-import { openWS } from '../action/utils';
+import { AnnotationWidget } from './annotationWidget';
 import { CellBinding } from './cellBinding';
 
 
@@ -21,7 +21,7 @@ function checkOpType(op): string {
 
     // Outputs
     // { p:['notebook', 'cells', index, 'outputs'], od, oi }
-    if (op.p.length === 4 && op.p[0] === 'notebook' && op.p[1] === 'cells' && typeof op.p[2] === 'number' && op.p[3] === 'outputs' && op.oi) return 'Outputs';
+    if (op.p.length === 4 && op.p[0] === 'notebook' && op.p[1] === 'cells' && typeof op.p[2] === 'number' && op.p[3] === 'outputs' && op.oi) return 'UpdateOutputs';
 
     // TypeChange
     // { p: ['notebook', 'cells', index], li, ld]}
@@ -40,6 +40,9 @@ function checkOpType(op): string {
     // UpdateHost
     if (op.p.length === 1 && op.p[0] === 'host' && op.oi!==null) return 'UpdateHost';
 
+    // UpdateAnnotation
+    // { p:['notebook', 'cells', index, 'outputs', outputs.length-1, 'metadata'], od, oi}
+    if (op.p.length === 6 && op.p[0] === 'notebook' && op.p[1] === 'cells' && typeof op.p[2] === 'number' && op.p[3] === 'outputs' && typeof op.p[4] === 'number' && op.p[5] === 'metadata' && op.oi) return 'UpdateAnnotation';
 
     return 'Else';
 }
@@ -57,7 +60,13 @@ export class NotebookBinding {
             const p = ['notebook', 'cells', index];
             const subDoc = this.sdbDoc.subDoc(p);
             cellMirror.index = index;
-            this.sharedCells.push(new CellBinding(cellMirror, subDoc));
+            const cellBinding = new CellBinding(cellMirror, subDoc);
+
+            const cell = Jupyter.notebook.get_cell(index);
+            const widget = new AnnotationWidget(cell, this.onUpdateAnnotation.bind(this));
+            cellBinding.annotationWidget = widget;
+
+            this.sharedCells.push(cellBinding);
         });
         this.isHost = false;
         this.onJoinChannel();
@@ -89,6 +98,9 @@ export class NotebookBinding {
         // customized event type change
         this.createTypeChangeEvent();
         Jupyter.notebook.events.on('type.Change', this.onTypeChange);
+
+        // onUpdateAnnotation
+        // this recall function is passed into each annotation widget
     }
 
     private eventsOff = (): void => {
@@ -146,7 +158,7 @@ export class NotebookBinding {
                 }
                 break;
             }
-            case 'Outputs': {
+            case 'UpdateOutputs': {
                 const {p, od, oi} = op;
                 const [, , index, ] = p;
                 const cell = Jupyter.notebook.get_cell(index);
@@ -154,6 +166,14 @@ export class NotebookBinding {
                 oi.forEach(element => {
                     cell.output_area.append_output(element);
                 });
+                const widget = new AnnotationWidget(cell, this.onUpdateAnnotation.bind(this));
+                this.sharedCells[index].annotationWidget = widget;
+                break;
+            }
+            case 'UpdateAnnotation': {
+                const {p, od, oi} = op;
+                const [, , index, , output_index, ] = p;
+                this.sharedCells[index].annotationWidget.reloadCanvas(oi);
                 break;
             }
             case 'TypeChange': {
@@ -323,6 +343,8 @@ export class NotebookBinding {
                 this.onSyncInputPrompt(Jupyter.notebook.get_cell(index));
             }, 20);
         }
+
+        this.addAnnotation(info.cell);
     }
 
     private onRenderedMarkdownCell = (evt, info): void => {
@@ -387,6 +409,25 @@ export class NotebookBinding {
             };
         
             this.sdbDoc.submitOp([op], this);
+        }
+    }
+
+    private onUpdateAnnotation(cell): void {
+        if(!this.suppressChanges) {
+            const index = cell.code_mirror.index;
+            const outputs = this.sharedCells[index].doc.getData().outputs;
+            const last_output = outputs[outputs.length - 1];
+
+            const remoteMetadata = last_output.metadata;
+            const newMetadata = cell.metadata;    
+            
+            const op = {
+                p:['notebook', 'cells', index, 'outputs', outputs.length-1, 'metadata'], 
+                od: remoteMetadata, 
+                oi: newMetadata
+            };
+            
+            this.sdbDoc.submitOp([op], this);        
         }
     }
 
@@ -490,5 +531,11 @@ export class NotebookBinding {
             cell.index = newIndex;
             cell.updateDoc(newDoc);
         });
+    }
+
+    private addAnnotation(cell): void {
+        const index = cell.code_mirror.index;
+        const widget = new AnnotationWidget(cell, this.onUpdateAnnotation.bind(this));
+        this.sharedCells[index].annotationWidget = widget;
     }
 }

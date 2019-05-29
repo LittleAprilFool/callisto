@@ -9,6 +9,7 @@ function checkOpType(op): string {
 
 export class CellBinding {
     public index: number = 0;
+    public annotationWidget?: any;
     private suppressChanges: boolean = false;
     constructor(private codeMirror: any, public doc: SDBSubDoc<Cell>) {
         this.doc.subscribe(this.onSDBDocEvent);

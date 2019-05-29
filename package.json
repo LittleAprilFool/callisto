@@ -8,9 +8,10 @@
     "watch": "tsc-watch --onSuccess 'sh ./deployment/jupyter/update.sh'",
     "build": "",
     "watchify": "browserify src/colab.ts -p [ tsify ] > build/bundle.js",
-    "lint": "tslint --project tsconfig.json src/*.ts src/**/*.ts"
+    "lint": "tslint --project tsconfig.json src/*.ts src/**/*.ts",
+    "clean": "sh ./deployment/jupyter/uninstall.sh"
   },
-  "author": "",
+  "author": "April Wang",
   "license": "ISC",
   "devDependencies": {
     "@babel/core": "^7.4.0",

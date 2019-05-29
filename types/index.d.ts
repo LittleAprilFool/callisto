@@ -17,7 +17,7 @@ interface SharedDoc {
 }
 
 interface Notebook {
-    cells: Array<Cell>,
+    cells: Cell[],
     metadata: {
         doc_name: string,
         kernelspec: {
@@ -30,15 +30,28 @@ interface Notebook {
     },
     nbformat: number,
     nbformat_minor: number,
+    annotation: Annotation[],
+}
+interface Annotation{
+    widget_index: number,
+    
 }
 
 interface Cell{
     cell_type?: string;
     execution_count?: number;
     metadata?: any;
-    outputs?: Array<any>;
-    source?: Array<any>;
+    outputs?: Output[];
+    source?: string[];
     rendered?: boolean;
+}
+
+interface Output{
+    name?: string,
+    output_type?: string,
+    text?: string[],
+    data?: any,
+    metadata?: any
 }
 
 interface Button {
