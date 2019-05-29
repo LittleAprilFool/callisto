@@ -8,7 +8,7 @@ const dialog = require('base/js/dialog');
 
 export class SharedButton {
     public button: Button;
-    private sharedNotebook: any;
+    private sharedNotebook: NotebookSDB;
     private ws: WebSocket;
 
     constructor() {

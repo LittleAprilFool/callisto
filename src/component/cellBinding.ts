@@ -1,3 +1,4 @@
+import {CodeMirror} from 'codemirror';
 import { SDBSubDoc } from "sdb-ts";
 
 function checkOpType(op): string {
@@ -7,11 +8,11 @@ function checkOpType(op): string {
     return 'Else';
 }
 
-export class CellBinding {
+export class CellBinding implements CellSDB {
     public index: number = 0;
-    public annotationWidget?: any;
+    public annotationWidget?: AnnotationInterface;
     private suppressChanges: boolean = false;
-    constructor(private codeMirror: any, public doc: SDBSubDoc<Cell>) {
+    constructor(private codeMirror: CodeMirror, public doc: SDBSubDoc<Cell>) {
         this.doc.subscribe(this.onSDBDocEvent);
         this.codeMirror.on('change', this.onCodeMirrorChange);
     }
@@ -25,14 +26,6 @@ export class CellBinding {
         this.doc.unsubscribe(this.onSDBDocEvent);
         this.doc = newDoc;
         this.doc.subscribe(this.onSDBDocEvent);
-    }
-
-    public onExecuteCodeCell(newCount: number): void {
-        if(!this.suppressChanges) {
-            const remoteExecutionCount = this.doc.getData().execution_count;
-            const op = remoteExecutionCount? [{p:['execution_count'], na: newCount - remoteExecutionCount}]:[{p:['execution_count'], na: newCount}];
-            this.doc.submitOp(op, this);
-        }
     }
 
     private onSDBDocEvent = (type, ops, source): void => {

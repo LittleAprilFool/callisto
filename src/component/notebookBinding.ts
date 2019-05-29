@@ -47,12 +47,15 @@ function checkOpType(op): string {
     return 'Else';
 }
 
-export class NotebookBinding {
+export class NotebookBinding implements NotebookSDB {
     private suppressChanges: boolean = false;
-    private sharedCells: any[];
+    private sharedCells: CellSDB[];
     private userName: string;
     private isHost: boolean;
-    constructor(private sdbDoc: SDBDoc<SharedDoc>, private ws: WebSocket) {
+    constructor(private sdbDoc: SDBDoc<SharedDoc>, private ws: WebSocket, private option: SharedDocOption = {
+        annotation: true,
+        chat: true
+    }) {
         this.sdbDoc.subscribe(this.onSDBDocEvent);
         this.eventsOn();
         this.sharedCells = [];

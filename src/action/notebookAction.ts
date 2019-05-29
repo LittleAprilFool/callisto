@@ -1,3 +1,4 @@
+import { CodeMirror } from 'codemirror';
 import { SDBDoc } from 'sdb-ts';
 import { NotebookBinding } from '../component/notebookBinding';
 import { updateSharedButton } from '../component/sharedButton';
@@ -8,8 +9,8 @@ const utils = require('base/js/utils');
 const contents_service = require('contents');
 const config = require('services/config');
 
-export function loadNotebook(): Promise<any> {
-    return new Promise<any> (resolve => {
+export function loadNotebook(): Promise<NotebookSDB> {
+    return new Promise<NotebookSDB> (resolve => {
         joinDoc(Jupyter.notebook.metadata.doc_name).then(({doc, ws}) => {
             console.log('Loading shared notebook ' + Jupyter.notebook.metadata.doc_name);
             updateSharedButton(true); 
@@ -89,8 +90,8 @@ export function openNotebook(doc_name: string, sdbDoc: SDBDoc<SharedDoc>): void 
 
 }
 
-export function getNotebookMirror(): any {
-    const notebook_mirror = [];
+export function getNotebookMirror(): CodeMirror[] {
+    const notebook_mirror: CodeMirror[] = [];
     const num_cells = Jupyter.notebook.get_cells().length;
     for (let i = 0; i < num_cells; i++) {
         notebook_mirror.push(Jupyter.notebook.get_cell(i).code_mirror);

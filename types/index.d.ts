@@ -1,8 +1,17 @@
+// import { SDBSubDoc } from "sdb-ts";
+
 interface Dialog {
     title: string;
     body: HTMLElement;
     buttons: any;
     keyboard_manager: any;
+}
+
+interface Button {
+    readonly label: string;
+    readonly icon: string;
+    readonly id: string;
+    callback(): any;
 }
 
 interface SharedDoc {
@@ -14,6 +23,11 @@ interface SharedDoc {
     };
     host: string;
     users: string[];
+}
+
+interface SharedDocOption {
+    annotation?: boolean;
+    chat?: boolean;
 }
 
 interface Notebook {
@@ -34,10 +48,9 @@ interface Notebook {
 }
 interface Annotation{
     widget_index: number,
-    
 }
 
-interface Cell{
+interface Cell {
     cell_type?: string;
     execution_count?: number;
     metadata?: any;
@@ -54,9 +67,18 @@ interface Output{
     metadata?: any
 }
 
-interface Button {
-    readonly label: string;
-    readonly icon: string;
-    readonly id: string;
-    callback(): any;
+interface NotebookSDB{
+    destroy(): void, 
+}
+
+interface CellSDB{
+    index: number;
+    doc: any;
+    annotationWidget?: AnnotationInterface;
+    destroy(): void;
+    updateDoc(newDoc: any): void;
+}
+
+interface AnnotationInterface{
+    reloadCanvas(any): void;
 }

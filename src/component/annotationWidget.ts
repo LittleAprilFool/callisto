@@ -1,18 +1,35 @@
 import * as fabric from '../external/fabric';
 
-export class AnnotationWidget {
+export class AnnotationWidget implements AnnotationInterface {
     private canvas: any;
     private paintTool: HTMLButtonElement;
     private clearTool: HTMLButtonElement;
-    constructor(private cell: any, private updateFunc: any) {
-        const cellEl: HTMLDivElement = cell.output_area.element[0];
-        const outputEl = cellEl.getElementsByClassName('output_area');
-        if(outputEl.length===0) {
-            return null;
-        }
-        const targetOutput = outputEl[outputEl.length-1];
+    constructor(private cell: any, private updateFunc: (recall: any)=> void) {
+        if(!this.checkValid()) return null;
+        // init canvas container
+        const [canvasEl, canvasContainer] = this.initCanvasContainer();
 
-        const subArea = targetOutput.getElementsByClassName('output_subarea')[0];
+        // init fabric canvas
+        this.canvas = new fabric.Canvas(canvasEl, {
+            width: canvasContainer.offsetWidth,
+            height: canvasContainer.offsetHeight,
+        });
+        if(this.cell.metadata.annotation) {
+            this.canvas.loadFromJSON(this.cell.metadata.annotation, this.canvas.renderAll.bind(this.canvas));
+        }
+        this.canvas.freeDrawingBrush.width = 4;
+        this.canvas.on('mouse:up', this.handleMouseUp.bind(this));
+
+        // init paint tool
+        this.initToolContainer();
+    }
+
+    public reloadCanvas(data): void {
+        this.canvas.loadFromJSON(data.annotation, this.canvas.renderAll.bind(this.canvas));
+    }
+
+    private initCanvasContainer(): [HTMLElement, HTMLElement] {
+        const subArea = this.getLastSubArea();
         const canvasContainer = document.createElement('div');
         const canvasEl = document.createElement('canvas');
         canvasContainer.setAttribute('id', 'annotation-container');
@@ -22,18 +39,11 @@ export class AnnotationWidget {
         canvasContainer.setAttribute('style', 'position:absolute; width: 100%; height:100%; top:0');
         subArea.setAttribute('style', 'position: relative; padding:unset');
 
-        this.canvas = new fabric.Canvas(canvasEl, {
-            width: canvasContainer.offsetWidth,
-            height: canvasContainer.offsetHeight,
-        });
+        return [canvasEl, canvasContainer];
+    }
 
-        if(this.cell.metadata.annotation) {
-            this.canvas.loadFromJSON(this.cell.metadata.annotation, this.canvas.renderAll.bind(this.canvas));
-        }
-
-        this.canvas.freeDrawingBrush.width = 4;
-        this.canvas.on('mouse:up', this.handleMouseUp.bind(this));
-
+    private initToolContainer(): void {
+        const subArea = this.getLastSubArea();
         this.paintTool = document.createElement('button');
         this.paintTool.setAttribute('class', 'btn btn-default');
 
@@ -52,12 +62,28 @@ export class AnnotationWidget {
 
         subArea.appendChild(toolContainer);
         toolContainer.setAttribute('style', 'position:absolute; top:10px; right:0');
+
         this.paintTool.addEventListener('click', this.handlePaint.bind(this));
         this.clearTool.addEventListener('click', this.handleClear.bind(this));
     }
 
-    public reloadCanvas(data): void {
-        this.canvas.loadFromJSON(data.annotation, this.canvas.renderAll.bind(this.canvas));
+    private checkValid(): boolean {
+        const subArea = this.getLastSubArea();
+        if (subArea === null || subArea.firstChild.nodeName === 'PRE') return false;
+        else return true;
+    }
+
+    private getLastSubArea(): Element {
+        const cellEl: HTMLDivElement = this.cell.output_area.element[0];
+        const outputEl = cellEl.getElementsByClassName('output_area');
+        if(outputEl.length===0) {
+            return null;
+        }
+        else {
+           const targetOutput = outputEl[outputEl.length-1];
+            const subArea = targetOutput.getElementsByClassName('output_subarea')[0];
+            return subArea;
+        }
     }
 
     private handleMouseUp(options): void {
