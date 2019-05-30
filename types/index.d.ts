@@ -1,5 +1,3 @@
-// import { SDBSubDoc } from "sdb-ts";
-
 interface Dialog {
     title: string;
     body: HTMLElement;
@@ -21,13 +19,27 @@ interface SharedDoc {
         render_markdown: number;
         unrender_markdown: number;
     };
-    host: string;
-    users: string[];
+    host: User;
+    users: User[];
+    chat: Message[];
+}
+
+interface Message {
+    sender: User;
+    content: string;
+    time: string;
+}
+
+interface User {
+    user_id: string;
+    username: string;
+    color: string;
 }
 
 interface SharedDocOption {
     annotation?: boolean;
     chat?: boolean;
+    userlist?: boolean;
 }
 
 interface Notebook {
@@ -67,18 +79,27 @@ interface Output{
     metadata?: any
 }
 
-interface NotebookSDB{
+interface INotebookBinding {
     destroy(): void, 
 }
 
-interface CellSDB{
+interface ICellBinding {
     index: number;
     doc: any;
-    annotationWidget?: AnnotationInterface;
+    annotationWidget?: IAnnotationWidget;
     destroy(): void;
     updateDoc(newDoc: any): void;
 }
 
-interface AnnotationInterface{
+interface IAnnotationWidget {
     reloadCanvas(any): void;
+}
+
+interface IUserListWidget {
+    update(any): void;
+    destroy(): void;
+}
+
+interface IChatWidget {
+    destroy(): void;
 }

@@ -9,8 +9,8 @@ const utils = require('base/js/utils');
 const contents_service = require('contents');
 const config = require('services/config');
 
-export function loadNotebook(): Promise<NotebookSDB> {
-    return new Promise<NotebookSDB> (resolve => {
+export function loadNotebook(): Promise<INotebookBinding> {
+    return new Promise<INotebookBinding> (resolve => {
         joinDoc(Jupyter.notebook.metadata.doc_name).then(({doc, ws}) => {
             console.log('Loading shared notebook ' + Jupyter.notebook.metadata.doc_name);
             updateSharedButton(true); 

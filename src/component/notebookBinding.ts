@@ -1,8 +1,11 @@
 import { SDBDoc } from "sdb-ts";
 import { getNotebookMirror} from '../action/notebookAction';
 import { getUserName } from '../action/userAction';
+import { generateUUID, getRandomColor } from '../action/utils';
 import { AnnotationWidget } from './annotationWidget';
 import { CellBinding } from './cellBinding';
+import { ChatWidget } from './chatWidget';
+import { UserListWidget } from './userListWidget';
 
 
 const Jupyter = require('base/js/namespace');
@@ -47,14 +50,17 @@ function checkOpType(op): string {
     return 'Else';
 }
 
-export class NotebookBinding implements NotebookSDB {
+export class NotebookBinding implements INotebookBinding {
     private suppressChanges: boolean = false;
-    private sharedCells: CellSDB[];
-    private userName: string;
+    private sharedCells: ICellBinding[];
+    private user: User;
     private isHost: boolean;
+    private userListWidget: IUserListWidget;
+    private chatWidget: IChatWidget;
     constructor(private sdbDoc: SDBDoc<SharedDoc>, private ws: WebSocket, private option: SharedDocOption = {
         annotation: true,
-        chat: true
+        chat: true,
+        userlist: true
     }) {
         this.sdbDoc.subscribe(this.onSDBDocEvent);
         this.eventsOn();
@@ -65,14 +71,34 @@ export class NotebookBinding implements NotebookSDB {
             cellMirror.index = index;
             const cellBinding = new CellBinding(cellMirror, subDoc);
 
-            const cell = Jupyter.notebook.get_cell(index);
-            const widget = new AnnotationWidget(cell, this.onUpdateAnnotation.bind(this));
-            cellBinding.annotationWidget = widget;
+            if(option.annotation) {
+                const cell = Jupyter.notebook.get_cell(index);
+                const widget = new AnnotationWidget(cell, this.onUpdateAnnotation.bind(this));
+                cellBinding.annotationWidget = widget;    
+            }
 
             this.sharedCells.push(cellBinding);
         });
         this.isHost = false;
+        const newUser: User = {
+            user_id: generateUUID(),
+            username: getUserName(),
+            color: getRandomColor()
+        };
+        this.user = newUser;
         this.onJoinChannel();
+
+        // pull initial user list
+        if(option.userlist) {
+            this.userListWidget = new UserListWidget();
+            const user_list = this.sdbDoc.getData().users;
+            this.userListWidget.update(user_list);
+        }
+
+        if(option.chat) {
+            const subDoc = this.sdbDoc.subDoc(['chat']);
+            this.chatWidget = new ChatWidget(this.user, subDoc);
+        }
     }
 
     public destroy = (): void => {
@@ -81,6 +107,7 @@ export class NotebookBinding implements NotebookSDB {
         this.sharedCells.forEach(cell => {
             cell.destroy();
         });
+        if(this.userListWidget) this.userListWidget.destroy();
         this.ws.close();
     }
 
@@ -220,20 +247,24 @@ export class NotebookBinding implements NotebookSDB {
             case 'JoinChannel': {
                 const {p, li} = op;
                 const [, index] = p;
-                console.log(li + ' joined the channel');
+                console.log(li.username + ' joined the channel');
+                const user_list = this.sdbDoc.getData().users;
+                this.userListWidget.update(user_list);
                 break;
             }
             case 'LeaveChannel': {
                 const {p, ld} = op;
                 const [, index] = p;
-                console.log(ld + ' leaved the channel');
+                console.log(ld.username + ' leaved the channel');
+                const user_list = this.sdbDoc.getData().users;
+                this.userListWidget.update(user_list);
                 break;
             }
             case 'UpdateHost': {
                 const {p, od, oi} = op;
                 console.log('The new host is ' + oi);
                 const theHost = this.sdbDoc.getData().host;
-                if (theHost === this.userName) this.isHost = true;
+                if (theHost === this.user) this.isHost = true;
                 break;
             }
             default: {
@@ -247,11 +278,10 @@ export class NotebookBinding implements NotebookSDB {
     private onJoinChannel = (): void => {
         if(!this.suppressChanges) {
             const index = this.sdbDoc.getData().users.length;
-            this.userName = getUserName();
-            
+        
             const op_user = {
                 p: ['users', index],
-                li: this.userName
+                li: this.user
             };
 
             this.sdbDoc.submitOp([op_user], this);
@@ -264,7 +294,7 @@ export class NotebookBinding implements NotebookSDB {
                 const op_host = {
                     p: ['host'],
                     od: oldHost,
-                    oi: this.userName
+                    oi: this.user
                 };
                 this.sdbDoc.submitOp([op_host], this);
             }
@@ -273,7 +303,7 @@ export class NotebookBinding implements NotebookSDB {
             this.ws.send(JSON.stringify({
                 'type': 'join_room',
                 'doc_name': this.sdbDoc.getIdentifier(), 
-                'username': this.userName 
+                'user': this.user 
             }));
         }
     }

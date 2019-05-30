@@ -1,6 +1,6 @@
 import * as fabric from '../external/fabric';
 
-export class AnnotationWidget implements AnnotationInterface {
+export class AnnotationWidget implements IAnnotationWidget {
     private canvas: any;
     private paintTool: HTMLButtonElement;
     private clearTool: HTMLButtonElement;

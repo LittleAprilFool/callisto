@@ -18,7 +18,7 @@ export function openWS(port: number): WebSocket {
 }
 
 export function getRandomColor(): string {
-    const letters = 'BCDEF'.split('');
+    const letters = '579B'.split('');
     let color = '#';
     for (let i = 0; i < 6; i++ ) {
         color += letters[Math.floor(Math.random() * letters.length)];

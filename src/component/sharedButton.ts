@@ -8,7 +8,7 @@ const dialog = require('base/js/dialog');
 
 export class SharedButton {
     public button: Button;
-    private sharedNotebook: NotebookSDB;
+    private sharedNotebook: INotebookBinding;
     private ws: WebSocket;
 
     constructor() {
@@ -107,7 +107,7 @@ export class SharedButton {
     }
 
     private shareHandler(): void {
-        console.log('start sharing!!hahahq');
+        console.log('start sharing!!');
        
         // set share flag to true
         Jupyter.notebook.metadata.shared = true;
@@ -124,7 +124,6 @@ export class SharedButton {
         createDoc(Jupyter.notebook.metadata.doc_name).then(({doc, ws}) => {
                 this.sharedNotebook = new NotebookBinding(doc, ws);
         });
-        // this.binding = new SharedbBinding(Jupyter.notebook.metadata.doc_name);
         updateSharedButton(true);
         disableFeatures();
     }

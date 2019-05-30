@@ -32,7 +32,8 @@ export function createDoc(doc_name: string): Promise<{doc: SDBDoc<SharedDoc>, ws
                 unrender_markdown: 0,
             },
             host: null,
-            users: []
+            users: [],
+            chat: []
         }).then(()=> {
             resolve({doc: sdbDoc, ws});
         });

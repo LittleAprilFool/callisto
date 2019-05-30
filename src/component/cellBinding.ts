@@ -8,9 +8,9 @@ function checkOpType(op): string {
     return 'Else';
 }
 
-export class CellBinding implements CellSDB {
+export class CellBinding implements ICellBinding {
     public index: number = 0;
-    public annotationWidget?: AnnotationInterface;
+    public annotationWidget?: IAnnotationWidget;
     private suppressChanges: boolean = false;
     constructor(private codeMirror: CodeMirror, public doc: SDBSubDoc<Cell>) {
         this.doc.subscribe(this.onSDBDocEvent);
