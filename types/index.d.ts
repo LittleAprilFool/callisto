@@ -113,9 +113,10 @@ interface IUserListWidget {
 
 interface IChatWidget {
     destroy(): void;
+    broadcastMessage(message: string): void;
 }
 
 interface ICursorWidget {
-    deleteCursor(User): void;
+    deleteCursor(user: User): void;
     destroy(): void;
 }

@@ -253,7 +253,7 @@ export class NotebookBinding implements INotebookBinding {
             case 'JoinChannel': {
                 const {p, li} = op;
                 const [, index] = p;
-                console.log(li.username + ' joined the channel');
+                this.chatWidget.broadcastMessage(li.username + ' joined the channel');
                 const user_list = this.sdbDoc.getData().users;
                 this.userListWidget.update(user_list);
                 break;
@@ -261,7 +261,7 @@ export class NotebookBinding implements INotebookBinding {
             case 'LeaveChannel': {
                 const {p, ld} = op;
                 const [, index] = p;
-                console.log(ld.username + ' leaved the channel');
+                this.chatWidget.broadcastMessage(ld.username + ' leaved the channel');
                 const user_list = this.sdbDoc.getData().users;
                 this.userListWidget.update(user_list);
                 this.cursorWidget.deleteCursor(ld);
@@ -269,7 +269,7 @@ export class NotebookBinding implements INotebookBinding {
             }
             case 'UpdateHost': {
                 const {p, od, oi} = op;
-                console.log('The new host is ' + oi);
+                this.chatWidget.broadcastMessage('The new host is ' + oi.username);
                 const theHost = this.sdbDoc.getData().host;
                 if (theHost === this.user) this.isHost = true;
                 break;

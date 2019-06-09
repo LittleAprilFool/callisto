@@ -39,6 +39,13 @@ export class ChatWidget implements IChatWidget {
         this.doc.unsubscribe(this.onSDBDocEvent);
     }
 
+    public broadcastMessage(message: string): void {
+        const broadcastMessageEL = document.createElement('div');
+        broadcastMessageEL.innerText = message;
+        broadcastMessageEL.setAttribute('style', 'text-align: center; font-size: 12px; color: #b7b7b7');
+        this.messageContainer.appendChild(broadcastMessageEL);
+    }
+
     private onSDBDocEvent = (type, ops, source): void => {
         if(type === 'op') {
             ops.forEach(op => this.applyOp(op));
