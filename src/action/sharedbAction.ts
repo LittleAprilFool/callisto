@@ -24,7 +24,7 @@ export function createDoc(doc_name: string): Promise<{doc: SDBDoc<SharedDoc>, ws
     const sdbClient = new window['SDB'].SDBClient(ws);
     return new Promise<{doc: SDBDoc<SharedDoc>, ws: WebSocket}>(resolve=> {
         const sdbDoc = sdbClient.get('doc', doc_name);
-        sdbDoc.createIfEmpty({
+        const emptyDoc: SharedDoc = {
             count: 0,
             notebook: JSON.parse(JSON.stringify(Jupyter.notebook)),
             event: {
@@ -33,8 +33,10 @@ export function createDoc(doc_name: string): Promise<{doc: SDBDoc<SharedDoc>, ws
             },
             host: null,
             users: [],
-            chat: []
-        }).then(()=> {
+            chat: [],
+            cursor: []
+        };
+        sdbDoc.createIfEmpty(emptyDoc).then(()=> {
             resolve({doc: sdbDoc, ws});
         });
     });

@@ -12,7 +12,7 @@ export class CellBinding implements ICellBinding {
     public index: number = 0;
     public annotationWidget?: IAnnotationWidget;
     private suppressChanges: boolean = false;
-    constructor(private codeMirror: CodeMirror, public doc: SDBSubDoc<Cell>) {
+    constructor(public codeMirror: CodeMirror, public doc: SDBSubDoc<Cell>) {
         this.doc.subscribe(this.onSDBDocEvent);
         this.codeMirror.on('change', this.onCodeMirrorChange);
     }

@@ -22,6 +22,15 @@ interface SharedDoc {
     host: User;
     users: User[];
     chat: Message[];
+    cursor: Cursor[];
+}
+
+
+interface Cursor {
+    user: User;
+    cm_index: number;
+    from: number;
+    to: number;
 }
 
 interface Message {
@@ -40,6 +49,7 @@ interface SharedDocOption {
     annotation?: boolean;
     chat?: boolean;
     userlist?: boolean;
+    cursor?: boolean;
 }
 
 interface Notebook {
@@ -87,6 +97,7 @@ interface ICellBinding {
     index: number;
     doc: any;
     annotationWidget?: IAnnotationWidget;
+    codeMirror: any;
     destroy(): void;
     updateDoc(newDoc: any): void;
 }
@@ -101,5 +112,10 @@ interface IUserListWidget {
 }
 
 interface IChatWidget {
+    destroy(): void;
+}
+
+interface ICursorWidget {
+    deleteCursor(User): void;
     destroy(): void;
 }

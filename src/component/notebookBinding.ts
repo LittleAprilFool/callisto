@@ -5,6 +5,7 @@ import { generateUUID, getRandomColor } from '../action/utils';
 import { AnnotationWidget } from './annotationWidget';
 import { CellBinding } from './cellBinding';
 import { ChatWidget } from './chatWidget';
+import { CursorWidget } from "./cursorWidget";
 import { UserListWidget } from './userListWidget';
 
 
@@ -57,10 +58,12 @@ export class NotebookBinding implements INotebookBinding {
     private isHost: boolean;
     private userListWidget: IUserListWidget;
     private chatWidget: IChatWidget;
+    private cursorWidget: ICursorWidget;
     constructor(private sdbDoc: SDBDoc<SharedDoc>, private ws: WebSocket, private option: SharedDocOption = {
         annotation: true,
         chat: true,
-        userlist: true
+        userlist: true,
+        cursor: true
     }) {
         this.sdbDoc.subscribe(this.onSDBDocEvent);
         this.eventsOn();
@@ -96,8 +99,13 @@ export class NotebookBinding implements INotebookBinding {
         }
 
         if(option.chat) {
-            const subDoc = this.sdbDoc.subDoc(['chat']);
-            this.chatWidget = new ChatWidget(this.user, subDoc);
+            const chatDoc = this.sdbDoc.subDoc(['chat']);
+            this.chatWidget = new ChatWidget(this.user, chatDoc);
+        }
+
+        if(option.cursor) {
+            const cursorDoc = this.sdbDoc.subDoc(['cursor']);
+            this.cursorWidget = new CursorWidget(this.user, this.sharedCells, cursorDoc);
         }
     }
 
@@ -128,7 +136,6 @@ export class NotebookBinding implements INotebookBinding {
         // customized event type change
         this.createTypeChangeEvent();
         Jupyter.notebook.events.on('type.Change', this.onTypeChange);
-
         // onUpdateAnnotation
         // this recall function is passed into each annotation widget
     }
@@ -153,7 +160,6 @@ export class NotebookBinding implements INotebookBinding {
     // apply the operations to the local Code Mirror Cells
     private applyOp = (op): void => {
         this.suppressChanges = true;
-        console.log(checkOpType(op));
         switch(checkOpType(op)) {
             case 'InsertCell': {
                 const {p, li} = op;
@@ -258,6 +264,7 @@ export class NotebookBinding implements INotebookBinding {
                 console.log(ld.username + ' leaved the channel');
                 const user_list = this.sdbDoc.getData().users;
                 this.userListWidget.update(user_list);
+                this.cursorWidget.deleteCursor(ld);
                 break;
             }
             case 'UpdateHost': {
@@ -277,14 +284,23 @@ export class NotebookBinding implements INotebookBinding {
     // add user into connected user
     private onJoinChannel = (): void => {
         if(!this.suppressChanges) {
-            const index = this.sdbDoc.getData().users.length;
+            // update user list
+            const user_index = this.sdbDoc.getData().users.length;
         
             const op_user = {
-                p: ['users', index],
+                p: ['users', user_index],
                 li: this.user
             };
 
             this.sdbDoc.submitOp([op_user], this);
+
+            // update cursor list
+            const cursor_index = this.sdbDoc.getData().cursor.length;
+            const op_cursor = {
+                p: ['cursor', cursor_index],
+                li: {user: this.user}
+            };
+            this.sdbDoc.submitOp([op_cursor], this);
 
             // check if the notebook has host
             const oldHost = this.sdbDoc.getData().host;
