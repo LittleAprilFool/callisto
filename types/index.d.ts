@@ -114,9 +114,13 @@ interface IUserListWidget {
 interface IChatWidget {
     destroy(): void;
     broadcastMessage(message: string): void;
+    onCursorChange(cursor: Cursor): void;
+    bindCursorAction(callback: any): void;
 }
 
 interface ICursorWidget {
     deleteCursor(user: User): void;
     destroy(): void;
+    updateLineRefCursor(flag: boolean, cm_index: number, from: number, to: number): void;
+    bindChatAction(callback: any): void;
 }

@@ -8,13 +8,30 @@ function checkOpType(op): string {
 
 export class CursorWidget implements ICursorWidget {
     private markers;
+    private mouseDown: number;
+    private lineref: any;
+    private chatCallback: any;
     constructor(private user: User, private sharedCells: ICellBinding[], private doc: any) {
         this.initCursorListener();
         this.doc.subscribe(this.onSDBDocEvent);
         this.markers = {};
+        this.initMouseDown();
     }
     public destroy(): void {
         this.doc.unsubscribe(this.onSDBDocEvent);
+    }
+
+    public updateLineRefCursor(flag, cm_index, from, to): void {
+        if(flag) {
+            if(this.lineref) this.lineref.clear();
+            console.log("haha");
+            const cm: CodeMirror = this.sharedCells[cm_index].codeMirror;
+            const stPos = cm.posFromIndex(from);
+            const edPos = cm.posFromIndex(to);
+            const cursor_type = 'line_highlight';
+            this.lineref= cm.markText(stPos, edPos, {className: cursor_type});
+        }
+
     }
 
     public deleteCursor(user: User): void {
@@ -28,6 +45,20 @@ export class CursorWidget implements ICursorWidget {
         const old_cell_container = document.querySelector('#cell-users-' + user.user_id);
         if(old_cell_container) old_cell_container.parentNode.removeChild(old_cell_container);
         // todo: delete style
+    }
+    public bindChatAction(callback) {
+        this.chatCallback = callback;
+    }
+
+    private initMouseDown() {
+        this.mouseDown = 0;
+        document.body.onmousedown = ()=> {
+            ++this.mouseDown;
+            if(this.lineref) this.lineref.clear();
+        };
+        document.body.onmouseup = ()=> {
+            --this.mouseDown;
+        };
     }
 
     private initCursorListener() {
@@ -172,14 +203,13 @@ export class CursorWidget implements ICursorWidget {
                 from: stindex,
                 to: edindex
             };
-
             const op = {
                 p: [targetIndex],
                 ld: targetCursor,
                 li: newCursor
             };
-
             this.doc.submitOp([op], this);
+            if(this.mouseDown===0) this.chatCallback(newCursor);
         }
     }
 }

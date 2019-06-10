@@ -1,4 +1,3 @@
-import { SDBSubDoc } from 'sdb-ts';
 import { getTime } from '../action/utils';
 const Jupyter = require('base/js/namespace');
 
@@ -17,6 +16,8 @@ export class ChatWidget implements IChatWidget {
     private isNew: boolean;
     private toolContainer: HTMLElement;
     private messageContainer: HTMLElement;
+    private lastCursor: Cursor;
+    private cursorCallback: any;
 
     constructor(private user: User, private doc: any) {
         this.container = document.createElement('div');
@@ -32,6 +33,7 @@ export class ChatWidget implements IChatWidget {
         this.doc.subscribe(this.onSDBDocEvent);
 
         this.loadHistory();
+        this.initStyle();
     }
 
     public destroy(): void {
@@ -46,6 +48,27 @@ export class ChatWidget implements IChatWidget {
         this.messageContainer.appendChild(broadcastMessageEL);
     }
 
+    public bindCursorAction(callback): void {
+        this.cursorCallback = callback;
+    }
+
+    public onCursorChange(cursor: Cursor): void {
+        if(JSON.stringify(cursor) === JSON.stringify(this.lastCursor)) {
+            return;
+        }
+        else {
+            this.lastCursor = cursor;
+        }
+        if(!this.folded) {
+            if(cursor.from!==cursor.to) {
+                const cell = Jupyter.notebook.get_cell(cursor.cm_index);
+                const text = cell.code_mirror.getSelection();
+                const appended_text = '['+text+'](C'+cursor.cm_index+'L'+cursor.from+'L'+cursor.to+') ';
+                this.messageBox.value = this.messageBox.value + appended_text;
+            }
+        }
+    }
+
     private onSDBDocEvent = (type, ops, source): void => {
         if(type === 'op') {
             ops.forEach(op => this.applyOp(op));
@@ -58,6 +81,7 @@ export class ChatWidget implements IChatWidget {
             this.messageContainer.appendChild(newMessageEL);
             newMessageEL.scrollIntoView();
             if(this.folded) this.notifyNewMessage(true);
+            this.updateLineRefListener();
         }
     } 
 
@@ -99,6 +123,34 @@ export class ChatWidget implements IChatWidget {
             this.messageContainer.appendChild(newMessageEL);
             newMessageEL.scrollIntoView();
         });
+
+        this.updateLineRefListener();
+    }
+
+    private updateLineRefListener() {
+        const tag = document.getElementsByClassName('line_ref');
+        for(const item of tag) {
+            const el = item as HTMLElement;
+            if(!el.onclick) el.addEventListener('click', this.handleLineRef.bind(this));
+        }
+    }
+
+    private handleLineRef(e) {
+        const line_url = e.target.getAttribute('line_ref');
+        const re = /C(.*)L(.*)L(.*)/;
+        const result = line_url.match(re);
+        this.cursorCallback(true, result[1], result[2], result[3]);
+    }
+
+
+    private initStyle() {
+        // update style
+        const sheet = document.createElement('style');
+        sheet.innerHTML += '.line_highlight {background-color: yellow }\n';
+        sheet.innerHTML += '.line_ref { color: #aa1111; cursor: pointer; font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace}\n';
+        sheet.innerHTML += '.line_ref:hover { color: #971616; text-decoration: underline; }\n';
+        sheet.innerHTML += '.message_content { display: inline-block; background: #e8e8e8; padding: 10px; border-radius: 12px; min-width: 100px; font-size: 12px; } \n';
+        document.body.appendChild(sheet);
     }
 
     private createNewMessage(message: Message): HTMLDivElement {
@@ -108,10 +160,18 @@ export class ChatWidget implements IChatWidget {
         if(this.user.user_id === message.sender.user_id) {
             message_container.style.textAlign = 'right';
         }
-        
+
+        // replace the original text into formatted text
+        // [text](URL)
+        // [text](C0L1L5)
+        const re = /\[(.*?)\]\((.*?)\)/g;
+        const origin_text = message.content;
+        const timestamp = getTime();
+        const formated_text = origin_text.replace(re, "<span class='line_ref' line_ref=$2 timestamp="+timestamp+" source="+message.sender.user_id+" >$1</span>");
+
         const message_content = document.createElement('div');
-        message_content.innerText = message.content;
-        message_content.setAttribute('style', 'display: inline-block; background: #e8e8e8; padding: 10px; border-radius: 12px; min-width: 100px; font-size: 12px');
+        message_content.innerHTML = formated_text;
+        message_content.classList.add('message_content');
         
         const message_sender = document.createElement('div');
         message_sender.innerText = message.sender.username;
@@ -127,6 +187,7 @@ export class ChatWidget implements IChatWidget {
 
         message_container.appendChild(time_sender);
         message_container.appendChild(message_content);
+
         return message_container;
     }
 

@@ -107,6 +107,11 @@ export class NotebookBinding implements INotebookBinding {
             const cursorDoc = this.sdbDoc.subDoc(['cursor']);
             this.cursorWidget = new CursorWidget(this.user, this.sharedCells, cursorDoc);
         }
+
+        if(option.chat && option.cursor) {
+            this.cursorWidget.bindChatAction(this.chatWidget.onCursorChange.bind(this.chatWidget));
+            this.chatWidget.bindCursorAction(this.cursorWidget.updateLineRefCursor.bind(this.cursorWidget));
+        }
     }
 
     public destroy = (): void => {
