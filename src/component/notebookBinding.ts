@@ -55,7 +55,7 @@ export class NotebookBinding implements INotebookBinding {
     private suppressChanges: boolean = false;
     private sharedCells: ICellBinding[];
     private user: User;
-    private isHost: boolean;
+    private isHost: boolean = false;
     private userListWidget: IUserListWidget;
     private chatWidget: IChatWidget;
     private cursorWidget: ICursorWidget;
@@ -67,6 +67,19 @@ export class NotebookBinding implements INotebookBinding {
     }) {
         this.sdbDoc.subscribe(this.onSDBDocEvent);
         this.eventsOn();
+        
+        const newUser: User = {
+            user_id: generateUUID(),
+            username: getUserName(),
+            color: getRandomColor()
+        };
+        this.user = newUser;
+
+        if(option.chat) {
+            const chatDoc = this.sdbDoc.subDoc(['chat']);
+            this.chatWidget = new ChatWidget(this.user, chatDoc);
+        }
+
         this.sharedCells = [];
         getNotebookMirror().map((cellMirror, index) => {
             const p = ['notebook', 'cells', index];
@@ -76,20 +89,27 @@ export class NotebookBinding implements INotebookBinding {
 
             if(option.annotation) {
                 const cell = Jupyter.notebook.get_cell(index);
-                const widget = new AnnotationWidget(cell, this.onUpdateAnnotation.bind(this));
+                const doc_data = subDoc.getData();
+                const output_data = doc_data['outputs'];
+                let widget_data = null;
+                if(output_data.length >= 1) {
+                    const last_output = output_data[output_data.length - 1];
+                    if (last_output.hasOwnProperty('metadata')) {
+                        if (last_output.metadata.hasOwnProperty('annotation')) {
+                            widget_data = last_output.metadata;
+                        }
+                    }
+                }
+                const widget = new AnnotationWidget(cell, this.onUpdateAnnotation.bind(this), widget_data);
+                widget.bindChatAction(this.chatWidget.onSelectAnnotation.bind(this.chatWidget));
                 cellBinding.annotationWidget = widget;    
             }
 
             this.sharedCells.push(cellBinding);
         });
-        this.isHost = false;
-        const newUser: User = {
-            user_id: generateUUID(),
-            username: getUserName(),
-            color: getRandomColor()
-        };
-        this.user = newUser;
+
         this.onJoinChannel();
+
 
         // pull initial user list
         if(option.userlist) {
@@ -98,10 +118,7 @@ export class NotebookBinding implements INotebookBinding {
             this.userListWidget.update(user_list);
         }
 
-        if(option.chat) {
-            const chatDoc = this.sdbDoc.subDoc(['chat']);
-            this.chatWidget = new ChatWidget(this.user, chatDoc);
-        }
+
 
         if(option.cursor) {
             const cursorDoc = this.sdbDoc.subDoc(['cursor']);
@@ -113,7 +130,9 @@ export class NotebookBinding implements INotebookBinding {
             this.chatWidget.bindCursorAction(this.cursorWidget.updateLineRefCursor.bind(this.cursorWidget));
         }
 
-
+        if(option.chat && option.annotation) {
+            this.chatWidget.bindAnnotationAction(this.annotationHighlight.bind(this));
+        }
     }
 
     public destroy = (): void => {
@@ -209,7 +228,7 @@ export class NotebookBinding implements INotebookBinding {
                 oi.forEach(element => {
                     cell.output_area.append_output(element);
                 });
-                const widget = new AnnotationWidget(cell, this.onUpdateAnnotation.bind(this));
+                const widget = new AnnotationWidget(cell, this.onUpdateAnnotation.bind(this), null);
                 this.sharedCells[index].annotationWidget = widget;
                 break;
             }
@@ -591,7 +610,17 @@ export class NotebookBinding implements INotebookBinding {
 
     private addAnnotation(cell): void {
         const index = cell.code_mirror.index;
-        const widget = new AnnotationWidget(cell, this.onUpdateAnnotation.bind(this));
+        const widget = new AnnotationWidget(cell, this.onUpdateAnnotation.bind(this), null);
+        widget.bindChatAction(this.chatWidget.onSelectAnnotation.bind(this.chatWidget));
         this.sharedCells[index].annotationWidget = widget;
+    }
+
+    private annotationHighlight(flag, cell_index, object_index): void {
+        const widget = this.sharedCells[cell_index].annotationWidget;
+        widget.highlight(flag, object_index);
+        if(flag) {
+            const focus_cell = document.querySelectorAll('.cell')[cell_index];
+            focus_cell.scrollIntoView();
+        }
     }
 }

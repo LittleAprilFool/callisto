@@ -33,6 +33,10 @@ export class CursorWidget implements ICursorWidget {
             const focus_cell = document.querySelectorAll('.cell')[cm_index];
             focus_cell.scrollIntoView();
         }
+        else {
+            if(this.lineref) this.lineref.clear();
+            ++this.mouseDown;
+        }
 
     }
 
@@ -54,10 +58,6 @@ export class CursorWidget implements ICursorWidget {
 
     private initMouseDown() {
         this.mouseDown = 0;
-        document.body.onmousedown = ()=> {
-            ++this.mouseDown;
-            if(this.lineref) this.lineref.clear();
-        };
         document.body.onmouseup = ()=> {
             --this.mouseDown;
         };

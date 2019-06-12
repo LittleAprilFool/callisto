@@ -111,6 +111,7 @@ interface ICellBinding {
 
 interface IAnnotationWidget {
     reloadCanvas(any): void;
+    highlight(flag: boolean, to: number): void;
 }
 
 interface IUserListWidget {
@@ -122,7 +123,9 @@ interface IChatWidget {
     destroy(): void;
     broadcastMessage(message: string): void;
     onCursorChange(cursor: Cursor): void;
+    onSelectAnnotation(cell_index: number, object_index: number): void;
     bindCursorAction(callback: any): void;
+    bindAnnotationAction(callback: any): void;
 }
 
 interface ICursorWidget {

@@ -20,7 +20,9 @@ export class ChatWidget implements IChatWidget {
     private messageContainer: HTMLElement;
     private lastCursor: Cursor;
     private cursorCallback: any;
+    private annotationCallback: any;
     private currentSelectCellIndex: number;
+    private currentAnnotationHighlight: any;
 
     constructor(private user: User, private doc: any) {
         this.initContainer();
@@ -31,6 +33,7 @@ export class ChatWidget implements IChatWidget {
         Jupyter.keyboard_manager.register_events(this.container);
         Jupyter.notebook.events.on('select.Cell', this.onSelectCell.bind(this));
         this.doc.subscribe(this.onSDBDocEvent);
+        this.initMouseListener();
     }
 
     public destroy(): void {
@@ -50,8 +53,15 @@ export class ChatWidget implements IChatWidget {
         this.cursorCallback = callback;
     }
 
-    public onSelectAnnotation(): void {
-        console.log('select annotation');
+    public bindAnnotationAction(callback): void {
+        this.annotationCallback = callback;
+    }
+
+    public onSelectAnnotation(cell_index: number, object_index: number): void {
+        if(!this.isFold) {
+            const appended_text = '[marker](C' + cell_index + ', L*, L' + object_index + ') ';
+            this.messageBox.value = this.messageBox.value + appended_text;
+        }
     }
 
     public onCursorChange(cursor: Cursor): void {
@@ -96,10 +106,18 @@ export class ChatWidget implements IChatWidget {
     } 
 
     private handleLineRef(e) {
-        const cell_index = e.target.getAttribute('cell_index');
+        const cell = e.target.getAttribute('cell_index');
+        const cell_index = parseInt(cell, 2);
         const from = e.target.getAttribute('from');
         const to = e.target.getAttribute('to');
-        this.cursorCallback(true, cell_index, from, to);
+        if (from ==='*') {
+            const object_index = parseInt(to, 2);
+            this.currentAnnotationHighlight = {cell_index, object_index};
+            this.annotationCallback(true, cell_index, object_index);
+        }
+        else {
+            this.cursorCallback(true, cell_index, from, to);
+        }
     }
 
     private handleFolding(): void {
@@ -316,6 +334,16 @@ export class ChatWidget implements IChatWidget {
                     break;
             default:
         }
+    }
+
+    private initMouseListener(): void {
+        document.body.onmousedown = ()=> {
+            this.cursorCallback(false);
+            if(this.currentAnnotationHighlight) {
+                this.annotationCallback(false, this.currentAnnotationHighlight.cell_index, this.currentAnnotationHighlight.object_index);
+                this.currentAnnotationHighlight = null;
+            }
+        };
     }
 
     private initContainer(): void {

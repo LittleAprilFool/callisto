@@ -4,13 +4,31 @@ export class AnnotationWidget implements IAnnotationWidget {
     private canvas: any;
     private paintTool: HTMLButtonElement;
     private clearTool: HTMLButtonElement;
-    constructor(private cell: any, private updateFunc: (recall: any)=> void) {
+    private chatCallback: any;
+
+    constructor(private cell: any, private updateFunc: (recall: any)=> void, private init_data: any) {
         if(!this.checkValid()) return null;
         this.initView();
     }
 
     public reloadCanvas(data): void {
-        this.canvas.loadFromJSON(data.annotation, this.canvas.renderAll.bind(this.canvas));
+        if(data) this.canvas.loadFromJSON(data.annotation, this.canvas.renderAll.bind(this.canvas));
+    }
+
+    public bindChatAction(callback) {
+        this.chatCallback = callback;
+    }
+
+    public highlight(flag, index) {
+        const object_list = this.canvas.getObjects();
+        const object = object_list[index];
+        if(flag) {
+            object.set('fill', 'yellow');
+        }
+        else {
+            object.set('fill', null);
+        }
+        this.canvas.renderAll();
     }
 
     private initView(): void {
@@ -30,6 +48,7 @@ export class AnnotationWidget implements IAnnotationWidget {
 
         // init paint tool
         this.initToolContainer();
+        this.reloadCanvas(this.init_data);
     }
 
     private initCanvasContainer(): [HTMLElement, HTMLElement] {
@@ -100,6 +119,10 @@ export class AnnotationWidget implements IAnnotationWidget {
         }
         if (options.target) {
             this.saveDrawing();
+            const object_list = this.canvas.getObjects();
+            const object_index = object_list.indexOf(options.target);
+            const cell_index = this.cell.code_mirror.index;
+            this.chatCallback(cell_index, object_index);
         }
     }
 
