@@ -33,10 +33,17 @@ interface Cursor {
     to: number;
 }
 
+interface LineRef {
+    cm_index: number;
+    from: number;
+    to: number;
+}
+
 interface Message {
     sender: User;
     content: string;
     time: string;
+    cells: string[];
 }
 
 interface User {

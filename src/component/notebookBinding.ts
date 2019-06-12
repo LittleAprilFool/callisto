@@ -112,6 +112,8 @@ export class NotebookBinding implements INotebookBinding {
             this.cursorWidget.bindChatAction(this.chatWidget.onCursorChange.bind(this.chatWidget));
             this.chatWidget.bindCursorAction(this.cursorWidget.updateLineRefCursor.bind(this.cursorWidget));
         }
+
+
     }
 
     public destroy = (): void => {

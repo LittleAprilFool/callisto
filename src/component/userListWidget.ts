@@ -17,6 +17,7 @@ export class UserListWidget implements IUserListWidget {
             this.container.appendChild(display);
         });
     }
+
     private cleanContainer(): void {
         while(this.container.firstChild) {
             this.container.removeChild(this.container.firstChild);

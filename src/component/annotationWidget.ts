@@ -6,6 +6,14 @@ export class AnnotationWidget implements IAnnotationWidget {
     private clearTool: HTMLButtonElement;
     constructor(private cell: any, private updateFunc: (recall: any)=> void) {
         if(!this.checkValid()) return null;
+        this.initView();
+    }
+
+    public reloadCanvas(data): void {
+        this.canvas.loadFromJSON(data.annotation, this.canvas.renderAll.bind(this.canvas));
+    }
+
+    private initView(): void {
         // init canvas container
         const [canvasEl, canvasContainer] = this.initCanvasContainer();
 
@@ -22,10 +30,6 @@ export class AnnotationWidget implements IAnnotationWidget {
 
         // init paint tool
         this.initToolContainer();
-    }
-
-    public reloadCanvas(data): void {
-        this.canvas.loadFromJSON(data.annotation, this.canvas.renderAll.bind(this.canvas));
     }
 
     private initCanvasContainer(): [HTMLElement, HTMLElement] {
@@ -74,6 +78,8 @@ export class AnnotationWidget implements IAnnotationWidget {
     }
 
     private getLastSubArea(): Element {
+        // if this is a markdown cell, it doesn't contain output_area
+        if(this.cell.output_area == null) return null;
         const cellEl: HTMLDivElement = this.cell.output_area.element[0];
         const outputEl = cellEl.getElementsByClassName('output_area');
         if(outputEl.length===0) {

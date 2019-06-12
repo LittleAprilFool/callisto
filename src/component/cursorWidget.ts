@@ -24,12 +24,14 @@ export class CursorWidget implements ICursorWidget {
     public updateLineRefCursor(flag, cm_index, from, to): void {
         if(flag) {
             if(this.lineref) this.lineref.clear();
-            console.log("haha");
             const cm: CodeMirror = this.sharedCells[cm_index].codeMirror;
             const stPos = cm.posFromIndex(from);
             const edPos = cm.posFromIndex(to);
             const cursor_type = 'line_highlight';
             this.lineref= cm.markText(stPos, edPos, {className: cursor_type});
+            // scroll to the line
+            const focus_cell = document.querySelectorAll('.cell')[cm_index];
+            focus_cell.scrollIntoView();
         }
 
     }
@@ -88,7 +90,7 @@ export class CursorWidget implements ICursorWidget {
         sheet.innerHTML += '.selectedtext-' + user.user_id + '{ background-color:' + user.color + '}\n';
         sheet.innerHTML += '.cursor-right-' + user.user_id + '{ border-right: 2px solid'+ user.color + '}\n';
         // todo: 2 more users, overlap
-        sheet.innerHTML += '#cell-users-' + user.user_id + '{position: absolute; right: 8px; top: 10px; width: 20px; text-align: center; font-weight: bold; z-index:100;} \n';
+        sheet.innerHTML += '#cell-users-' + user.user_id + '{position: absolute; right: 8px; top: 10px; width: 20px; text-align: center; font-weight: bold; z-index:2;} \n';
         sheet.innerHTML += '#active-cell-' + user.user_id + '{width:100%; margin-left:5px; float:right; color:'+user.color+';} \n';
         sheet.innerHTML += '#tooltip-text-' + user.user_id + '{z-index: 101; position:absolute; display:none; bottom: 100%; right: 0%; padding: 5px;} \n';
         document.body.appendChild(sheet);
