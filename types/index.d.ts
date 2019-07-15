@@ -131,3 +131,7 @@ interface ICursorWidget {
     updateLineRefCursor(flag: boolean, cm_index: number, from: number, to: number): void;
     bindChatAction(callback: any): void;
 }
+
+interface IMessageBox {
+    text_area: HTMLTextAreaElement;
+}

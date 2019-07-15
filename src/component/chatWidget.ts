@@ -1,4 +1,5 @@
 import { getTime } from '../action/utils';
+import { MessageBox } from './messageBox';
 const Jupyter = require('base/js/namespace');
 
 function checkOpType(op): string {
@@ -10,7 +11,7 @@ function checkOpType(op): string {
 
 export class ChatWidget implements IChatWidget {
     private container: HTMLElement;
-    private messageBox: HTMLTextAreaElement;
+    private messageBox: MessageBox;
     private inputButton: HTMLButtonElement;
     private filterContainer: HTMLElement;
     private isFold: boolean = true;
@@ -23,6 +24,7 @@ export class ChatWidget implements IChatWidget {
     private currentSelectCellIndex: number;
 
     constructor(private user: User, private doc: any) {
+        this.messageBox = new MessageBox();
         this.initContainer();
         this.initStyle();
         this.loadHistory();
@@ -66,7 +68,7 @@ export class ChatWidget implements IChatWidget {
                 const cell = Jupyter.notebook.get_cell(cursor.cm_index);
                 const text = cell.code_mirror.getSelection();
                 const appended_text = '['+text+'](C'+cursor.cm_index + ', L'+cursor.from+', L'+cursor.to+') ';
-                this.messageBox.value = this.messageBox.value + appended_text;
+                this.messageBox.setValue(this.messageBox.getValue() + appended_text);
             }
         }
     }
@@ -146,7 +148,7 @@ export class ChatWidget implements IChatWidget {
 
         // link chat message with related cells
         const re = /\[(.*?)\]\((.*?)\)/g;
-        const origin_text = this.messageBox.value;
+        const origin_text = this.messageBox.getValue();
         const line_refs = origin_text.match(re);
 
         if(line_refs!==null) {
@@ -165,7 +167,7 @@ export class ChatWidget implements IChatWidget {
 
         const newMessage: Message = {
             sender: this.user,
-            content: this.messageBox.value,
+            content: this.messageBox.getValue(),
             time: getTime(),
             cells: related_cells
         };
@@ -176,8 +178,8 @@ export class ChatWidget implements IChatWidget {
             li: newMessage
         };
 
-        if (this.messageBox.value) this.doc.submitOp([op], this);
-        this.messageBox.value = '';
+        if (this.messageBox.getValue()) this.doc.submitOp([op], this);
+        this.messageBox.setValue('');
     }
 
     private loadFilteredMessages(): void {
@@ -340,10 +342,6 @@ export class ChatWidget implements IChatWidget {
         tool_container.appendChild(icon);
         tool_container.appendChild(el);
         
-        const input_box = document.createElement('textarea');
-        input_box.id = 'input-box';
-        input_box.placeholder = 'write your message';
-
         const button_icon = document.createElement('i');
         button_icon.innerHTML = '<i class="fa fa-paper-plane"></i>';
 
@@ -366,7 +364,7 @@ export class ChatWidget implements IChatWidget {
         filter.appendChild(filter_span);
         filter_input.addEventListener('click', this.handleFiltering.bind(this));
        
-        input_container.appendChild(input_box);
+        input_container.appendChild(this.messageBox.el);
         input_container.appendChild(input_button);
         input_container.appendChild(filter);
         
@@ -378,7 +376,6 @@ export class ChatWidget implements IChatWidget {
         main_container.appendChild(this.container);
 
         this.toolContainer = tool_container;
-        this.messageBox = input_box;
         this.inputButton = input_button;
         this.messageContainer = message_container;
         this.filterContainer = filter;
