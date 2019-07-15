@@ -348,6 +348,10 @@ export class ChatWidget implements IChatWidget {
         const input_button = document.createElement('button');
         input_button.appendChild(button_icon);
         input_button.id = 'input-button';
+
+        const input_and_button_div = document.createElement('div');
+        input_and_button_div.appendChild(this.messageBox.el);
+        input_and_button_div.appendChild(input_button);
         
         input_button.addEventListener('click', this.handleSubmitting.bind(this));
 
@@ -364,8 +368,9 @@ export class ChatWidget implements IChatWidget {
         filter.appendChild(filter_span);
         filter_input.addEventListener('click', this.handleFiltering.bind(this));
        
-        input_container.appendChild(this.messageBox.el);
-        input_container.appendChild(input_button);
+        // input_container.appendChild(this.messageBox.el);
+        // input_container.appendChild(input_button);
+        input_container.appendChild(input_and_button_div);
         input_container.appendChild(filter);
         
         this.container.appendChild(tool_container);
@@ -389,7 +394,7 @@ export class ChatWidget implements IChatWidget {
         sheet.innerHTML += '#message-container { height: 300px; background-color: whitesmoke; overflow:scroll; } \n';
         sheet.innerHTML += '#input-container { height: 50px; width: 280px; background-color: white; border: solid 2px #ececec; border-radius: 10px; margin:auto;} \n';
         sheet.innerHTML += '#input-box { padding-left: 10px; padding-right: 10px; font-size: 12px; color: #7d7d7d; width: 220px; border: none; background-color: transparent; resize: none;outline: none; } \n';
-        sheet.innerHTML += '#input-button { color: #868686; display:inline; height:46px; width: 50px; position: relative; top: -17px; background: transparent; border: none; border-left: solid 2px #ececec; } \n';
+        sheet.innerHTML += '#input-button { color: #868686; display:inline; height:46px; width: 50px; position: relative; background: transparent; border: none; border-left: solid 2px #ececec; } \n';
         sheet.innerHTML += '#input-button:hover { color: #484848;} \n';
         sheet.innerHTML += '#chat-title { display: inline; margin-left: 8px; } \n';
 
@@ -404,9 +409,10 @@ export class ChatWidget implements IChatWidget {
         sheet.innerHTML += '.line_ref { color: #aa1111; cursor: pointer; font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; } \n';
         sheet.innerHTML += '.line_ref:hover { color: #971616; text-decoration: underline; } \n';
         
+        sheet.innerHTML += '#message-box { float: left; } \n';
         sheet.innerHTML += '#slider {border-radius: 20px; position: absolute; cursor: pointer; background-color: #516666; transition: .4s; top: 0; left: 0; right: 0; bottom: 0; } \n';
         sheet.innerHTML += '#slider:before {position:absolute; content:" ";height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: #9cc4a6; transition:.4s; border-radius: 50%; } \n';
-        sheet.innerHTML += '#switch {display: none; position: relative; bottom: 395px; left: 240px; width: 40px; height: 20px; } \n';
+        sheet.innerHTML += '#switch {display: none; position: relative; bottom: 378px; left: 20px; width: 40px; height: 20px; } \n';
         sheet.innerHTML += '#switch input {opacity: 0; width: 0; height: 0; } \n';
         sheet.innerHTML += 'input:checked + #slider { background-color: #dae4dd; } \n';
         sheet.innerHTML += 'input:focus + #slider { box-shadow: 0 0 1px #dae4dd; } \n';

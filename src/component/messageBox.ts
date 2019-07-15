@@ -1,5 +1,5 @@
 export class MessageBox implements IMessageBox {
-    public el: HTMLSpanElement;
+    public el: HTMLDivElement;
     public text_area: HTMLTextAreaElement;
 
     constructor() {
@@ -16,13 +16,16 @@ export class MessageBox implements IMessageBox {
     }
 
     private initTextArea(): void {
-        this.el = document.createElement('span');
+        this.el = document.createElement('div');
+        this.el.id = 'message-box';
+        const div = document.createElement('div');
+        this.el.append(div);
 
         this.text_area = document.createElement('textarea');
         this.text_area.id = 'input-box';
         this.text_area.placeholder = 'write your message';
 
-        this.el.append(this.text_area);
+        div.append(this.text_area);
     }
 
     private initStyle(): void {
