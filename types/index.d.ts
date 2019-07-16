@@ -39,6 +39,13 @@ interface LineRef {
     to: number;
 }
 
+interface MessageLineRef {
+    line_ref: LineRef;
+    text: string;
+    from: number;
+    to: number;
+}
+
 interface Message {
     sender: User;
     content: string;

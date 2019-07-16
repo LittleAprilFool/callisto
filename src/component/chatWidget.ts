@@ -67,8 +67,12 @@ export class ChatWidget implements IChatWidget {
             if(cursor.from!==cursor.to) {
                 const cell = Jupyter.notebook.get_cell(cursor.cm_index);
                 const text = cell.code_mirror.getSelection();
-                const appended_text = '['+text+'](C'+cursor.cm_index + ', L'+cursor.from+', L'+cursor.to+') ';
-                this.messageBox.setValue(this.messageBox.getValue() + appended_text);
+                const line_ref = {
+                    cm_index: cursor.cm_index,
+                    from: cursor.from,
+                    to: cursor.to
+                }
+                this.messageBox.appendRef(text, line_ref);
             }
         }
     }
@@ -147,16 +151,12 @@ export class ChatWidget implements IChatWidget {
         // a naive way to connect cells with messages
 
         // link chat message with related cells
-        const re = /\[(.*?)\]\((.*?)\)/g;
-        const origin_text = this.messageBox.getValue();
-        const line_refs = origin_text.match(re);
-
-        if(line_refs!==null) {
-            line_refs.forEach(line_ref => {
-                const re2 = /C(.*), L(.*), L(.*)/;
-                const result = line_ref.match(re2);
-                const cell_index = Number(result[1]);
-                if(cell_index !== null) related_cells.push(cell_index);
+        if (this.messageBox.ref_list.length !== 0) {
+            // link cells in ref_list
+            this.messageBox.ref_list.forEach(message_line_ref => {
+                if (message_line_ref.line_ref.cm_index !== null) {
+                    related_cells.push(message_line_ref.line_ref.cm_index);
+                }
             });
         }
         else {
@@ -167,7 +167,7 @@ export class ChatWidget implements IChatWidget {
 
         const newMessage: Message = {
             sender: this.user,
-            content: this.messageBox.getValue(),
+            content: this.messageBox.getSubmissionValue(),
             time: getTime(),
             cells: related_cells
         };
@@ -178,8 +178,8 @@ export class ChatWidget implements IChatWidget {
             li: newMessage
         };
 
-        if (this.messageBox.getValue()) this.doc.submitOp([op], this);
-        this.messageBox.setValue('');
+        if (this.messageBox.getSubmissionValue()) this.doc.submitOp([op], this);
+        this.messageBox.clear();
     }
 
     private loadFilteredMessages(): void {
@@ -408,6 +408,8 @@ export class ChatWidget implements IChatWidget {
         sheet.innerHTML += '.line_highlight { background-color: yellow; } \n';
         sheet.innerHTML += '.line_ref { color: #aa1111; cursor: pointer; font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; } \n';
         sheet.innerHTML += '.line_ref:hover { color: #971616; text-decoration: underline; } \n';
+        sheet.innerHTML += '.line_ref_unsend { color: #aa1111; cursor: pointer; } \n';
+        sheet.innerHTML += '.line_ref_unsend:hover { color: #971616; text-decoration: underline; } \n';
         
         sheet.innerHTML += '#message-box { float: left; } \n';
         sheet.innerHTML += '#slider {border-radius: 20px; position: absolute; cursor: pointer; background-color: #516666; transition: .4s; top: 0; left: 0; right: 0; bottom: 0; } \n';
@@ -417,6 +419,7 @@ export class ChatWidget implements IChatWidget {
         sheet.innerHTML += 'input:checked + #slider { background-color: #dae4dd; } \n';
         sheet.innerHTML += 'input:focus + #slider { box-shadow: 0 0 1px #dae4dd; } \n';
         sheet.innerHTML += 'input:checked + #slider:before { transform: translateX(20px); } \n';
+        sheet.innerHTML += '.mark {color: red}';
         
         document.body.appendChild(sheet);
     }
