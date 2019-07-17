@@ -20,6 +20,7 @@
       "object-literal-sort-keys": false,
       "no-console": false,
       "curly": [true, "ignore-same-line"],
+      "only-arrow-functions": true,
       "typedef-whitespace": [
         true,
         {

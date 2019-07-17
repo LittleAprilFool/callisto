@@ -1,10 +1,10 @@
 import {CodeMirror} from 'codemirror';
 const Jupyter = require('base/js/namespace');
 
-function checkOpType(op): string {
+const checkOpType = (op): string => {
     if (op.p.length === 1 && typeof op.p[0] === 'number' && op.li && op.ld) return 'UpdateCursor';    
     return 'Else';
-}
+};
 
 export class CursorWidget implements ICursorWidget {
     private markers;
@@ -17,11 +17,11 @@ export class CursorWidget implements ICursorWidget {
         this.markers = {};
         this.initMouseDown();
     }
-    public destroy(): void {
+    public destroy = (): void => {
         this.doc.unsubscribe(this.onSDBDocEvent);
     }
 
-    public updateLineRefCursor(flag, cm_index, from, to): void {
+    public updateLineRefCursor = (flag, cm_index, from, to): void => {
         if(flag) {
             if(this.lineref) this.lineref.clear();
             const cm: CodeMirror = this.sharedCells[cm_index].codeMirror;
@@ -40,7 +40,7 @@ export class CursorWidget implements ICursorWidget {
 
     }
 
-    public deleteCursor(user: User): void {
+    public deleteCursor = (user: User): void => {
         const id = user.user_id;
         if(this.markers[id]) {
             this.markers[id].clear();
@@ -52,22 +52,22 @@ export class CursorWidget implements ICursorWidget {
         if(old_cell_container) old_cell_container.parentNode.removeChild(old_cell_container);
         // todo: delete style
     }
-    public bindChatAction(callback) {
+    public bindChatAction = (callback): void => {
         this.chatCallback = callback;
     }
 
-    private initMouseDown() {
+    private initMouseDown = (): void => {
         this.mouseDown = 0;
         document.body.onmouseup = ()=> {
             --this.mouseDown;
         };
     }
 
-    private initCursorListener() {
+    private initCursorListener = (): void => {
         this.sharedCells.forEach(sharedCell => {
-            sharedCell.codeMirror.on('cursorActivity', this.onCursorChange.bind(this));
+            sharedCell.codeMirror.on('cursorActivity', this.onCursorChange);
         });
-        Jupyter.notebook.events.on('select.Cell', this.onSelectCell.bind(this));
+        Jupyter.notebook.events.on('select.Cell', this.onSelectCell);
     }
 
     private onSDBDocEvent = (type, ops, source): void => {
@@ -78,13 +78,13 @@ export class CursorWidget implements ICursorWidget {
         }
     }
 
-    private applyOp(op): void {
+    private applyOp = (op): void => {
         if(checkOpType(op) === 'UpdateCursor') {
             this.updateCursorDisplay(op.li, op.ld);
         }
     }
 
-    private initStyle(user: User) {
+    private initStyle = (user: User): void => {
         // update style
         const sheet = document.createElement('style');
         sheet.innerHTML += '.selectedtext-' + user.user_id + '{ background-color:' + user.color + '}\n';
@@ -96,7 +96,7 @@ export class CursorWidget implements ICursorWidget {
         document.body.appendChild(sheet);
     }
 
-    private updateCursorDisplay(newCursor: Cursor, oldCursor: Cursor) {
+    private updateCursorDisplay = (newCursor: Cursor, oldCursor: Cursor): void => {
         // if have cursor information
         // remove cursor selection and cursor bar
         if(this.markers[newCursor.user.user_id])    {
@@ -119,7 +119,7 @@ export class CursorWidget implements ICursorWidget {
         }
     }
 
-    private addCursorSelection(cursor: Cursor) {
+    private addCursorSelection = (cursor: Cursor): void => {
         const cm: CodeMirror = this.sharedCells[cursor.cm_index].codeMirror;
         const stPos = cm.posFromIndex(cursor.from);
         const edPos = cm.posFromIndex(cursor.to);
@@ -128,7 +128,7 @@ export class CursorWidget implements ICursorWidget {
         this.markers[cursor.user.user_id] = cursorEl;
     }
 
-    private addCursorBar(cursor: Cursor) {
+    private addCursorBar = (cursor: Cursor): void => {
         const cm: CodeMirror = this.sharedCells[cursor.cm_index].codeMirror;
         const stPos = cm.posFromIndex(cursor.from-1);
         const edPos = cm.posFromIndex(cursor.from);
@@ -139,7 +139,7 @@ export class CursorWidget implements ICursorWidget {
         this.markers[cursor.user.user_id] = cursorEl;
     }
 
-    private addCursorLabel(cursor: Cursor) {
+    private addCursorLabel = (cursor: Cursor): void => {
         const cm: CodeMirror = this.sharedCells[cursor.cm_index].codeMirror;
 
         // delete old label, if have
@@ -176,11 +176,11 @@ export class CursorWidget implements ICursorWidget {
         cell_container.appendChild(user_box);
     }
 
-    private onSelectCell(evt, info) {
+    private onSelectCell = (evt, info): void => {
         this.onCursorChange(info.cell.code_mirror);
     }
 
-    private onCursorChange(cm: CodeMirror) {
+    private onCursorChange = (cm: CodeMirror): void => {
         // ignore cursor change if it is not in active 
         if(cm.index === Jupyter.notebook.get_selected_cells_indices()[0]) {
             const stPos = cm.getCursor('start');

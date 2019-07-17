@@ -1,4 +1,4 @@
-export function getUserName(): string {
+export const getUserName = (): string => {
     if (window.location.href.split("/")[2].substring(0, 9) === "localhost") {
         return "localhost" + Math.floor(Math.random() * 100);
     }
@@ -8,4 +8,4 @@ export function getUserName(): string {
     else {
         return window.location.href.split("/")[4].split("_")[0];
     }
-}
+};

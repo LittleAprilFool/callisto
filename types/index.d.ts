@@ -23,6 +23,15 @@ interface SharedDoc {
     users: User[];
     chat: Message[];
     cursor: Cursor[];
+    changelog: Changelog[];
+}
+
+interface Changelog {
+    user: User;
+    event: string;
+    eventName: string;
+    timestamp: number;
+    time: string;
 }
 
 
@@ -57,6 +66,7 @@ interface SharedDocOption {
     chat?: boolean;
     userlist?: boolean;
     cursor?: boolean;
+    changelog?: boolean;
 }
 
 interface Notebook {
@@ -91,7 +101,7 @@ interface Cell {
 interface Output{
     name?: string,
     output_type?: string,
-    text?: string[],
+    text?: any,
     data?: any,
     metadata?: any
 }
@@ -133,4 +143,18 @@ interface ICursorWidget {
     destroy(): void;
     updateLineRefCursor(flag: boolean, cm_index: number, from: number, to: number): void;
     bindChatAction(callback: any): void;
+}
+
+interface IDiffTabWidget {
+    destroy(): void;
+    checkTab(type: string, timestamp: number): boolean;
+    addTab(type: string, timestamp: number): void;
+}
+
+interface IChangelogWidget {
+    destroy(): void;
+}
+
+interface IDiffWidget {
+    destroy(): void;
 }

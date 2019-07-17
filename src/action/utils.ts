@@ -1,4 +1,4 @@
-export function generateUUID(): string {
+export const generateUUID = (): string => {
     let d = new Date().getTime();
     if (typeof performance !== 'undefined' && typeof performance.now === 'function') {
         d += performance.now(); // use high-precision timer if available
@@ -8,25 +8,29 @@ export function generateUUID(): string {
         d = Math.floor(d / 16);
         return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
     });
-}
+};
 
-export function openWS(port: number): WebSocket {
+export const openWS = (port: number): WebSocket => {
     let url = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
     url += document.domain + ':' + port;
     const ws = new WebSocket(url);
     return ws;
-}
+};
 
-export function getRandomColor(): string {
+export const getRandomColor = (): string => {
     const letters = '579B'.split('');
     let color = '#';
     for (let i = 0; i < 6; i++ ) {
         color += letters[Math.floor(Math.random() * letters.length)];
     }
     return color;
-}
+};
 
-export function getTime(): string {
+export const getTimestamp = (): number => {
+    return (new Date()).getTime();
+};
+
+export const getTime = (): string => {
     // returns time in 12 hour format
 
     let time = '';
@@ -47,4 +51,4 @@ export function getTime(): string {
     time = pm ? time + 'PM': time + 'AM';
 
     return time;
-}
+};
