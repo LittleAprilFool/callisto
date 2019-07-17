@@ -25,6 +25,7 @@ export class ChatWidget implements IChatWidget {
 
     constructor(private user: User, private doc: any) {
         this.messageBox = new MessageBox();
+        this.messageBox.el.addEventListener('append_ref', this.updateUnsendLineRefListener.bind(this));
         this.initContainer();
         this.initStyle();
         this.loadHistory();
@@ -241,7 +242,7 @@ export class ChatWidget implements IChatWidget {
         // [text](URL)
         // [text](C0L1L5)
 
-        const re = /\[(.*?)\]\(C(.*?), L(.*), L(.*)\)/g;
+        const re = /\[(.*?)\]\(C([0-9]*?), L([0-9]*), L([0-9]*)\)/g;
         const origin_text = message.content;
         const timestamp = getTime();
         const formated_text = origin_text.replace(re, "<span class='line_ref' cell_index=$2 from=$3 to=$4 timestamp="+timestamp+" source="+message.sender.user_id+" >$1</span>");
@@ -295,6 +296,16 @@ export class ChatWidget implements IChatWidget {
         for(const item of tag) {
             const el = item as HTMLElement;
             if(!el.onclick) el.addEventListener('click', this.handleLineRef.bind(this));
+        }
+    }
+
+    private updateUnsendLineRefListener(): void {
+        const tag_unsend = document.getElementsByClassName('line_ref_unsend');
+        for (const item of tag_unsend) {
+            const el = item as HTMLElement;
+            if (!el.onclick) {
+                el.addEventListener('click', this.handleLineRef.bind(this));
+            }
         }
     }
 

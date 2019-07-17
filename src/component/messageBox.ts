@@ -22,7 +22,7 @@ export class MessageBox implements IMessageBox {
         for (let index = this.ref_list.length - 1; index >= 0; index -= 1) {
             const message_line_ref = this.ref_list[index];
             const line_ref = message_line_ref.line_ref;
-            submission_string = submission_string.slice(0, message_line_ref.from) + ' ['+ message_line_ref.text + '](C' + line_ref.cm_index + ', L' + line_ref.from+ ', L' + line_ref.to+ ') ' + submission_string.slice(message_line_ref.to, submission_string.length) + ' ';
+            submission_string = submission_string.slice(0, message_line_ref.from - 1) + ' ['+ message_line_ref.text + '](C' + line_ref.cm_index + ', L' + line_ref.from+ ', L' + line_ref.to+ ') ' + submission_string.slice(message_line_ref.to + 1, submission_string.length) + ' ';
         }
         return submission_string;
     }
@@ -43,11 +43,13 @@ export class MessageBox implements IMessageBox {
             line_ref,
             text,
             from: this.text_area.textLength,
-            to: this.text_area.textLength + text.length
+            to: this.text_area.textLength + text.length,
+            expanded: false
         };
         this.text_area.value = this.text_area.value + text + ' ';
         this.ref_list.push(message_line_ref);
         this.updateDisplayContent();
+        this.el.dispatchEvent(new Event('append_ref'));
     }
 
     private initTextArea(): void {
@@ -64,6 +66,8 @@ export class MessageBox implements IMessageBox {
         this.text_area.id = 'input-box';
         this.text_area.addEventListener('input', this.updateDisplayContent.bind(this));
         this.text_area.addEventListener('scroll', this.handleScroll.bind(this));
+        // this.text_area.addEventListener('keyup', this.handleCaretMove.bind(this));
+        // this.text_area.addEventListener('click', this.handleCaretMove.bind(this));
         this.text_area.placeholder = 'write your message';
 
         this.el.append(this.text_area);
@@ -93,6 +97,18 @@ export class MessageBox implements IMessageBox {
     private handleScroll(): void {
         const scrollTop = this.text_area.scrollTop;
         this.highlight.scrollTop = scrollTop;
+    }
+
+    private handleCaretMove(e): void {
+        // // falls in ref area
+        // const caret = e.target.selectionStart;
+        // let in_ref = false;
+        // for (let index = 0; index < this.ref_list.length; index += 1) {
+        //     if (this.ref_list[index].from < in)
+        // }
+        // this.ref_list.forEach(message_line_ref => {
+        // })
+        // falls out of ref area
     }
 
 }

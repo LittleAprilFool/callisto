@@ -44,6 +44,7 @@ interface MessageLineRef {
     text: string;
     from: number;
     to: number;
+    expanded: boolean;
 }
 
 interface Message {
