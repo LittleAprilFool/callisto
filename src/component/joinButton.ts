@@ -18,19 +18,19 @@ export class JoinButton {
         button.setAttribute('title', 'Join Notebook');
         button.setAttribute('style', 'font-weight:bold;');
         button.innerText = 'Join Notebook';
-        button.onclick = this.displayJoinDialog.bind(this);
+        button.onclick = this.displayJoinDialog;
         form.appendChild(button);
         this.button = form;
     }
 
-    private displayJoinDialog(): void {
+    private displayJoinDialog = (): void => {
         const join_dialog = this.createJoinDialog();
         dialog.modal(join_dialog);
     }
 
-    private joinHandler(doc_name: string): void {
+    private joinHandler = (doc_name: string): void => {
         // check if doc exists
-        joinDoc(doc_name).then(({doc, ws}) => {
+        joinDoc(doc_name).then(({doc, client, ws}) => {
             // if exists, open notebook
             if(doc) {
                 openNotebook(doc_name, doc);
@@ -44,7 +44,7 @@ export class JoinButton {
         });
     }
 
-    private createErrorDialog(wrong_value: string): Dialog {
+    private createErrorDialog = (wrong_value: string): Dialog => {
         const form = document.createElement('form');
         form.setAttribute('id', 'join_form');
         form.setAttribute('onSubmit', 'return false;');
@@ -86,7 +86,7 @@ export class JoinButton {
         };
     }
 
-    private createJoinDialog(): Dialog {
+    private createJoinDialog = (): Dialog => {
         const form = document.createElement('form');
         form.setAttribute('id', 'join_form');
         form.setAttribute('onSubmit', 'return false;');

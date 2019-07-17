@@ -1,12 +1,12 @@
 import {CodeMirror} from 'codemirror';
 import { SDBSubDoc } from "sdb-ts";
 
-function checkOpType(op): string {
+const checkOpType = (op): string => {
 
     if (op.p.length === 1 && op.p[0] === 'source' && op.t === 'text0' && op.o) return 'EditCell';
     
     return 'Else';
-}
+};
 
 export class CellBinding implements ICellBinding {
     public index: number = 0;
@@ -17,12 +17,12 @@ export class CellBinding implements ICellBinding {
         this.codeMirror.on('change', this.onCodeMirrorChange);
     }
 
-    public destroy(): void {
+    public destroy = (): void => {
         this.codeMirror.off('change', this.onCodeMirrorChange);
         this.doc.unsubscribe(this.onSDBDocEvent);
     }
 
-    public updateDoc(newDoc: SDBSubDoc<Cell>): void {
+    public updateDoc = (newDoc: SDBSubDoc<Cell>): void => {
         this.doc.unsubscribe(this.onSDBDocEvent);
         this.doc = newDoc;
         this.doc.subscribe(this.onSDBDocEvent);
@@ -36,7 +36,7 @@ export class CellBinding implements ICellBinding {
         }
     }
 
-    private applyOp(op): void {
+    private applyOp = (op): void => {
         this.suppressChanges = true;
         if (checkOpType(op) === 'EditCell') {
             op.o.forEach(value => {
@@ -58,7 +58,7 @@ export class CellBinding implements ICellBinding {
     }
 
     // insert code into cellMirror
-    private assertValue() {
+    private assertValue = (): void => {
         const editorValue = this.codeMirror.getValue();
         const expectedValue = this.doc.getData().source;
         if(editorValue !== expectedValue) {
@@ -75,7 +75,7 @@ export class CellBinding implements ICellBinding {
         }
     }
 
-    private createOpFromChange(change): CellEditOpComponent[] {
+    private createOpFromChange = (change): CellEditOpComponent[] => {
         const op: CellEditOpComponent[] = [];
         const index = this.codeMirror.indexFromPos(change.from);
 

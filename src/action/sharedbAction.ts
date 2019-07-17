@@ -3,26 +3,26 @@ import { openWS } from './utils';
 
 const Jupyter = require('base/js/namespace');
 
-export function joinDoc(doc_name: string): Promise<{doc: SDBDoc<SharedDoc>, ws: WebSocket}> {
+export const joinDoc = (doc_name: string): Promise<{doc: SDBDoc<SharedDoc>, client: any, ws: WebSocket}> => {
     const ws = openWS(5555);
     const sdbClient = new window['SDB'].SDBClient(ws);
-    return new Promise<{doc: SDBDoc<SharedDoc>, ws: WebSocket}>((resolve, reject) => {
+    return new Promise<{doc: SDBDoc<SharedDoc>, client: any, ws: WebSocket}>((resolve, reject) => {
         const sdbDoc = sdbClient.get('doc', doc_name);
         sdbDoc.fetch().then(res=> {
             if (res.type == null) {
                 reject('document does not exist');
             }
             else {
-                resolve({doc: sdbDoc, ws});
+                resolve({doc: sdbDoc, client: sdbClient,ws});
             }
         });
     });
-}
+};
 
-export function createDoc(doc_name: string): Promise<{doc: SDBDoc<SharedDoc>, ws: WebSocket}> {
+export const createDoc = (doc_name: string): Promise<{doc: SDBDoc<SharedDoc>, client: any, ws: WebSocket}> => {
     const ws = openWS(5555);
     const sdbClient = new window['SDB'].SDBClient(ws);
-    return new Promise<{doc: SDBDoc<SharedDoc>, ws: WebSocket}>(resolve=> {
+    return new Promise<{doc: SDBDoc<SharedDoc>, client: any, ws: WebSocket}>(resolve=> {
         const sdbDoc = sdbClient.get('doc', doc_name);
         const emptyDoc: SharedDoc = {
             count: 0,
@@ -34,10 +34,11 @@ export function createDoc(doc_name: string): Promise<{doc: SDBDoc<SharedDoc>, ws
             host: null,
             users: [],
             chat: [],
-            cursor: []
+            cursor: [],
+            changelog:[]
         };
         sdbDoc.createIfEmpty(emptyDoc).then(()=> {
-            resolve({doc: sdbDoc, ws});
+            resolve({doc: sdbDoc, client: sdbClient, ws});
         });
     });
-}
+};

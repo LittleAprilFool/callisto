@@ -4,7 +4,7 @@ import './external/sdb';
 
 const Jupyter = require('base/js/namespace');
 
-function load_ipython_extension() {
+const load_ipython_extension = () => {
     const sharedButton = new SharedButton;
     Jupyter.toolbar.add_buttons_group([sharedButton.button]);
     if (Jupyter.notebook.metadata.shared === true) {
@@ -12,7 +12,7 @@ function load_ipython_extension() {
             sharedButton.attachNotebook(notebook);
         });
     }
-}
+};
 
 export = {
     "load_ipython_extension": load_ipython_extension

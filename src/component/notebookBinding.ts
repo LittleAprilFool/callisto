@@ -1,18 +1,19 @@
 import { SDBDoc } from "sdb-ts";
 import { getNotebookMirror} from '../action/notebookAction';
 import { getUserName } from '../action/userAction';
-import { generateUUID, getRandomColor } from '../action/utils';
+import { generateUUID, getRandomColor, getTime, getTimestamp } from '../action/utils';
 import { AnnotationWidget } from './annotationWidget';
 import { CellBinding } from './cellBinding';
+import { ChangelogWidget } from './changelogWidget';
 import { ChatWidget } from './chatWidget';
 import { CursorWidget } from "./cursorWidget";
+import { DiffTabWidget } from './diffTabWidget';
 import { UserListWidget } from './userListWidget';
-
 
 const Jupyter = require('base/js/namespace');
 
 // TODO: I need a better way to check the Op type
-function checkOpType(op): string {
+const checkOpType = (op): string => {
     // InsertCell and DeleteCell
     // { p: ['notebook', 'cells', info.index], li}
     // { p: ['notebook', 'cells', info.index], ld}
@@ -31,6 +32,8 @@ function checkOpType(op): string {
     // { p: ['notebook', 'cells', index], li, ld]}
     if (op.p.length === 3 && op.p[0] === 'notebook' && op.p[1] === 'cells' && typeof op.p[2] === 'number' && op.li && op.ld) return 'TypeChange';
 
+    // EditCell
+    if (op.p.length === 4 && op.p[0] === 'notebook' && op.p[1] === 'cells' && typeof op.p[2] === 'number' && op.p[3] === 'source' && op.t === 'text0' && op.o) return 'EditCell';
 
     // RenderMarkdown and UnrenderMarkdown
     // {p: ['event', 'render_markdown'], na]}
@@ -49,24 +52,49 @@ function checkOpType(op): string {
     if (op.p.length === 6 && op.p[0] === 'notebook' && op.p[1] === 'cells' && typeof op.p[2] === 'number' && op.p[3] === 'outputs' && typeof op.p[4] === 'number' && op.p[5] === 'metadata' && op.oi) return 'UpdateAnnotation';
 
     return 'Else';
-}
+};
 
 export class NotebookBinding implements INotebookBinding {
     private suppressChanges: boolean = false;
     private sharedCells: ICellBinding[];
     private user: User;
-    private isHost: boolean;
+    private isHost: boolean = false;
     private userListWidget: IUserListWidget;
     private chatWidget: IChatWidget;
     private cursorWidget: ICursorWidget;
-    constructor(private sdbDoc: SDBDoc<SharedDoc>, private ws: WebSocket, private option: SharedDocOption = {
+    private changelogWidget: IChangelogWidget;
+    private isChanged: boolean = false;
+    private diffTabWidget: IDiffTabWidget;
+    constructor(private sdbDoc: SDBDoc<SharedDoc>, private client: any, private ws: WebSocket, private option: SharedDocOption = {
         annotation: true,
         chat: true,
         userlist: true,
-        cursor: true
+        cursor: true,
+        changelog: true
     }) {
         this.sdbDoc.subscribe(this.onSDBDocEvent);
         this.eventsOn();
+        
+        const newUser: User = {
+            user_id: generateUUID(),
+            username: getUserName(),
+            color: getRandomColor()
+        };
+        this.user = newUser;
+
+        this.diffTabWidget = new DiffTabWidget();
+
+        if(option.chat) {
+            const chatDoc = this.sdbDoc.subDoc(['chat']);
+            this.chatWidget = new ChatWidget(this.user, chatDoc);
+        }
+
+        if(option.changelog) {
+            const changelogDoc = this.sdbDoc.subDoc(['changelog']);
+            const identifier = this.sdbDoc.getIdentifier();
+            this.changelogWidget = new ChangelogWidget(changelogDoc, this.client, identifier, this.diffTabWidget);
+        } 
+
         this.sharedCells = [];
         getNotebookMirror().map((cellMirror, index) => {
             const p = ['notebook', 'cells', index];
@@ -76,19 +104,25 @@ export class NotebookBinding implements INotebookBinding {
 
             if(option.annotation) {
                 const cell = Jupyter.notebook.get_cell(index);
-                const widget = new AnnotationWidget(cell, this.onUpdateAnnotation.bind(this));
+                const doc_data = subDoc.getData();
+                const output_data = doc_data['outputs'];
+                let widget_data = null;
+                if(output_data.length >= 1) {
+                    const last_output = output_data[output_data.length - 1];
+                    if (last_output.hasOwnProperty('metadata')) {
+                        if (last_output.metadata.hasOwnProperty('annotation')) {
+                            widget_data = last_output.metadata;
+                        }
+                    }
+                }
+                const widget = new AnnotationWidget(cell, this.onUpdateAnnotation.bind(this), widget_data);
+                widget.bindChatAction(this.chatWidget.onSelectAnnotation.bind(this.chatWidget));
                 cellBinding.annotationWidget = widget;    
             }
 
             this.sharedCells.push(cellBinding);
         });
-        this.isHost = false;
-        const newUser: User = {
-            user_id: generateUUID(),
-            username: getUserName(),
-            color: getRandomColor()
-        };
-        this.user = newUser;
+
         this.onJoinChannel();
 
         // pull initial user list
@@ -96,11 +130,6 @@ export class NotebookBinding implements INotebookBinding {
             this.userListWidget = new UserListWidget();
             const user_list = this.sdbDoc.getData().users;
             this.userListWidget.update(user_list);
-        }
-
-        if(option.chat) {
-            const chatDoc = this.sdbDoc.subDoc(['chat']);
-            this.chatWidget = new ChatWidget(this.user, chatDoc);
         }
 
         if(option.cursor) {
@@ -111,6 +140,10 @@ export class NotebookBinding implements INotebookBinding {
         if(option.chat && option.cursor) {
             this.cursorWidget.bindChatAction(this.chatWidget.onCursorChange.bind(this.chatWidget));
             this.chatWidget.bindCursorAction(this.cursorWidget.updateLineRefCursor.bind(this.cursorWidget));
+        }
+
+        if(option.chat && option.annotation) {
+            this.chatWidget.bindAnnotationAction(this.annotationHighlight);
         }
 
 
@@ -158,8 +191,90 @@ export class NotebookBinding implements INotebookBinding {
 
     private onSDBDocEvent = (type, ops, source): void => {
         if(type === 'op') {
-            if(source !== this) {
-                ops.forEach(op => this.applyOp(op));
+            ops.forEach(op => {
+                if(source !== this) this.applyOp(op);
+                if(source === this) this.applyThisOp(op);
+            });
+        }
+    }
+
+    private applyThisOp = (op): void => {
+        switch(checkOpType(op)) {
+            case 'InsertCell': {
+                // send a modification log
+                const log_index = this.sdbDoc.getData().changelog.length;
+                const log: Changelog = {
+                    user: this.user,
+                    eventName: 'inserted a cell',
+                    event: 'insert',
+                    time: getTime(),
+                    timestamp: getTimestamp() + 100
+                };
+                const op_log = {
+                    p: ['changelog', log_index],
+                    li: log
+                };
+                this.sdbDoc.submitOp([op_log], this);
+                break;
+            }
+            case 'DeleteCell': {
+                // send a delete log
+                // todo: there is a lag between sending the delete log, and changing the sharedb snapshot
+                // current solution, manually add a 100 ms delay
+                const log_index = this.sdbDoc.getData().changelog.length;
+                const log: Changelog = {
+                    user: this.user,
+                    eventName: 'deleted a cell',
+                    event: 'delete',
+                    time: getTime(),
+                    timestamp: getTimestamp() + 100
+                };
+                const op_log = {
+                    p: ['changelog', log_index],
+                    li: log
+                };
+                this.sdbDoc.submitOp([op_log], this);
+                break;
+            }
+            case 'UpdateOutputs': {
+                // todo: isChanged can be also output results changed
+                if(this.isChanged) {
+                    this.isChanged = false;
+                    const log_index = this.sdbDoc.getData().changelog.length;
+                    const log: Changelog = {
+                        user: this.user,
+                        eventName: 'edited the notebook',
+                        event: 'edit',
+                        time: getTime(),
+                        timestamp: getTimestamp() + 100
+                    };
+                    const op_log = {
+                        p: ['changelog', log_index],
+                        li: log
+                    };
+                    this.sdbDoc.submitOp([op_log], this);
+                }
+                break;
+            }
+            case 'JoinChannel': {
+                // update log
+                const log_index = this.sdbDoc.getData().changelog.length;
+                const log: Changelog = {
+                    user: this.user,
+                    eventName: 'joined the channel',
+                    event: 'join',
+                    time: getTime(),
+                    timestamp: getTimestamp()
+                };
+                const op_log = {
+                    p: ['changelog', log_index],
+                    li: log
+                };
+                this.sdbDoc.submitOp([op_log], this);
+                break;
+            }
+            default: {
+                break;
             }
         }
     }
@@ -209,7 +324,7 @@ export class NotebookBinding implements INotebookBinding {
                 oi.forEach(element => {
                     cell.output_area.append_output(element);
                 });
-                const widget = new AnnotationWidget(cell, this.onUpdateAnnotation.bind(this));
+                const widget = new AnnotationWidget(cell, this.onUpdateAnnotation.bind(this), null);
                 this.sharedCells[index].annotationWidget = widget;
                 break;
             }
@@ -279,6 +394,10 @@ export class NotebookBinding implements INotebookBinding {
                 this.chatWidget.broadcastMessage('The new host is ' + oi.username);
                 const theHost = this.sdbDoc.getData().host;
                 if (theHost === this.user) this.isHost = true;
+                break;
+            }
+            case 'EditCell': {
+                this.isChanged = true;
                 break;
             }
             default: {
@@ -451,7 +570,7 @@ export class NotebookBinding implements INotebookBinding {
         }
     }
 
-    private onSyncInputPrompt(cell): void {
+    private onSyncInputPrompt = (cell): void => {
         if(!this.suppressChanges) {
 
             // update the execution_count of the cell
@@ -488,7 +607,7 @@ export class NotebookBinding implements INotebookBinding {
     }
 
     // when change type, Jupyter Notebook would delete the original cell, and insert a new cell
-    private createTypeChangeEvent(): void {
+    private createTypeChangeEvent = (): void => {
         const Notebook = require('notebook/js/notebook');
         Jupyter.ignoreInsert = false;
 
@@ -546,7 +665,7 @@ export class NotebookBinding implements INotebookBinding {
         };
     }
 
-    private createUnrenderedMarkdownCellEvent(): void {
+    private createUnrenderedMarkdownCellEvent = (): void => {
         const TextCell = require('notebook/js/textcell');
         Jupyter.ignoreRender = false;
 
@@ -558,7 +677,7 @@ export class NotebookBinding implements INotebookBinding {
     }
 
     // update shared cell bindings
-    private insertSharedCell(index: number, codeMirror): void {
+    private insertSharedCell = (index: number, codeMirror): void => {
         const path = ['notebook', 'cells', index];
         const subDoc = this.sdbDoc.subDoc(path);
         codeMirror.index = index;
@@ -574,7 +693,7 @@ export class NotebookBinding implements INotebookBinding {
         });
     }
 
-    private deleteSharedCell(index: number): void {
+    private deleteSharedCell = (index: number): void => {
         // destroy the cell from listening
         this.sharedCells[index].destroy();
 
@@ -589,9 +708,19 @@ export class NotebookBinding implements INotebookBinding {
         });
     }
 
-    private addAnnotation(cell): void {
+    private addAnnotation = (cell): void => {
         const index = cell.code_mirror.index;
-        const widget = new AnnotationWidget(cell, this.onUpdateAnnotation.bind(this));
+        const widget = new AnnotationWidget(cell, this.onUpdateAnnotation.bind(this), null);
+        widget.bindChatAction(this.chatWidget.onSelectAnnotation.bind(this.chatWidget));
         this.sharedCells[index].annotationWidget = widget;
+    }
+
+    private annotationHighlight = (flag, cell_index, object_index): void => {
+        const widget = this.sharedCells[cell_index].annotationWidget;
+        widget.highlight(flag, object_index);
+        if(flag) {
+            const focus_cell = document.querySelectorAll('.cell')[cell_index];
+            focus_cell.scrollIntoView();
+        }
     }
 }

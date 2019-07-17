@@ -6,11 +6,11 @@ export class UserListWidget implements IUserListWidget {
         const main_container = document.querySelector('#maintoolbar-container');
         main_container.appendChild(this.container);
     }
-    public destroy(): void {
+    public destroy = (): void => {
         this.cleanContainer();
         this.container.parentNode.removeChild(this.container);
     }
-    public update(user_list: User[]): void {
+    public update = (user_list: User[]): void => {
         this.cleanContainer();
         user_list.forEach(user => {
             const display = this.createUserIcon(user);
@@ -18,12 +18,12 @@ export class UserListWidget implements IUserListWidget {
         });
     }
 
-    private cleanContainer(): void {
+    private cleanContainer = (): void => {
         while(this.container.firstChild) {
             this.container.removeChild(this.container.firstChild);
         }
     }
-    private createUserIcon(user: User): HTMLElement {
+    private createUserIcon = (user: User): HTMLElement => {
         const container = document.createElement('div');
         container.setAttribute('class', 'btn-group');
         const el = document.createElement('div');

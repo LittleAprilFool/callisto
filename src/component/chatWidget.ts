@@ -2,12 +2,10 @@ import { getTime } from '../action/utils';
 import { MessageBox } from './messageBox';
 const Jupyter = require('base/js/namespace');
 
-function checkOpType(op): string {
-
+const checkOpType = (op): string => {
     if (op.p.length === 1 && typeof op.p[0] === 'number' && op.li) return 'NewMessage';
-    
     return 'Else';
-}
+};
 
 export class ChatWidget implements IChatWidget {
     private container: HTMLElement;
@@ -21,7 +19,9 @@ export class ChatWidget implements IChatWidget {
     private messageContainer: HTMLElement;
     private lastCursor: Cursor;
     private cursorCallback: any;
+    private annotationCallback: any;
     private currentSelectCellIndex: number;
+    private currentAnnotationHighlight: any;
 
     constructor(private user: User, private doc: any) {
         this.messageBox = new MessageBox();
@@ -32,32 +32,40 @@ export class ChatWidget implements IChatWidget {
         
         // disable Jupyter notebook shortcuts while in the Chat
         Jupyter.keyboard_manager.register_events(this.container);
-        Jupyter.notebook.events.on('select.Cell', this.onSelectCell.bind(this));
+        Jupyter.notebook.events.on('select.Cell', this.onSelectCell);
         this.doc.subscribe(this.onSDBDocEvent);
+        this.initMouseListener();
     }
 
-    public destroy(): void {
+    public destroy = (): void => {
         this.container.parentNode.removeChild(this.container);
-        Jupyter.notebook.events.off('select.Cell', this.onSelectCell.bind(this));
+        Jupyter.notebook.events.off('select.Cell', this.onSelectCell);
         this.doc.unsubscribe(this.onSDBDocEvent);
     }
 
-    public broadcastMessage(message: string): void {
+    public broadcastMessage = (message: string): void => {
         const broadcastMessageEL = document.createElement('div');
         broadcastMessageEL.innerText = message;
         broadcastMessageEL.classList.add('broadcast-message');
         this.messageContainer.appendChild(broadcastMessageEL);
     }
 
-    public bindCursorAction(callback): void {
+    public bindCursorAction = (callback): void => {
         this.cursorCallback = callback;
     }
 
-    public onSelectAnnotation(): void {
-        console.log('select annotation');
+    public bindAnnotationAction = (callback): void => {
+        this.annotationCallback = callback;
     }
 
-    public onCursorChange(cursor: Cursor): void {
+    public onSelectAnnotation = (cell_index: number, object_index: number): void => {
+        if(!this.isFold) {
+            const appended_text = '[marker](C' + cell_index + ', L*, L' + object_index + ') ';
+            this.messageBox.value = this.messageBox.value + appended_text;
+        }
+    }
+
+    public onCursorChange = (cursor: Cursor): void => {
         if(JSON.stringify(cursor) === JSON.stringify(this.lastCursor)) {
             return;
         }
@@ -84,7 +92,7 @@ export class ChatWidget implements IChatWidget {
         }
     }
 
-    private onSelectCell (evt, info): void {
+    private onSelectCell = (evt, info): void => {
         // display filter
         if(this.isFilter && !this.isFold) {
             this.loadFilteredMessages();
@@ -92,7 +100,7 @@ export class ChatWidget implements IChatWidget {
         }
     }
 
-    private applyOp(op): void {
+    private applyOp = (op): void => {
         if(checkOpType(op) === 'NewMessage') {
             const newMessageEL = this.createNewMessage(op.li);
             this.messageContainer.appendChild(newMessageEL);
@@ -102,14 +110,22 @@ export class ChatWidget implements IChatWidget {
         }
     } 
 
-    private handleLineRef(e) {
-        const cell_index = e.target.getAttribute('cell_index');
+    private handleLineRef = (e): void => {
+        const cell = e.target.getAttribute('cell_index');
+        const cell_index = parseInt(cell, 2);
         const from = e.target.getAttribute('from');
         const to = e.target.getAttribute('to');
-        this.cursorCallback(true, cell_index, from, to);
+        if (from ==='*') {
+            const object_index = parseInt(to, 2);
+            this.currentAnnotationHighlight = {cell_index, object_index};
+            this.annotationCallback(true, cell_index, object_index);
+        }
+        else {
+            this.cursorCallback(true, cell_index, from, to);
+        }
     }
 
-    private handleFolding(): void {
+    private handleFolding = (): void => {
         this.isFold = !this.isFold;
         if(this.isFold) {
             // fold container, turn off filter
@@ -130,7 +146,7 @@ export class ChatWidget implements IChatWidget {
         }
     }
 
-    private handleFiltering(e): void {
+    private handleFiltering = (e): void => {
         this.isFilter = !this.isFilter;
         if(this.isFilter) {
             this.loadFilteredMessages();
@@ -144,7 +160,7 @@ export class ChatWidget implements IChatWidget {
         }
     }
 
-    private handleSubmitting(): void {
+    private handleSubmitting = (): void => {
         this.inputButton.blur();
         
         const related_cells = [];
@@ -183,7 +199,7 @@ export class ChatWidget implements IChatWidget {
         this.messageBox.clear();
     }
 
-    private loadFilteredMessages(): void {
+    private loadFilteredMessages = (): void => {
         const cell = Jupyter.notebook.get_selected_cell();
         if(cell) {
             const cell_index = cell.code_mirror.index;
@@ -207,7 +223,7 @@ export class ChatWidget implements IChatWidget {
         }
     }
 
-    private loadHistory(): void {
+    private loadHistory = (): void => {
         while(this.messageContainer.firstChild) this.messageContainer.removeChild(this.messageContainer.firstChild);
         const history = this.doc.getData();
         history.forEach(message=> {
@@ -219,7 +235,7 @@ export class ChatWidget implements IChatWidget {
         this.updateLineRefListener();
     }
 
-    private notifyNewMessage(flag: boolean): void {
+    private notifyNewMessage = (flag: boolean): void => {
         if(flag) {
             this.updateTitle('new');
             this.isRead = false;
@@ -230,7 +246,7 @@ export class ChatWidget implements IChatWidget {
         }
     }
 
-    private createNewMessage(message: Message): HTMLDivElement {
+    private createNewMessage = (message: Message): HTMLDivElement => {
         const message_wrapper = document.createElement('div');
         message_wrapper.classList.add('message-wrapper');
 
@@ -271,7 +287,7 @@ export class ChatWidget implements IChatWidget {
         return message_wrapper;
     }
 
-    private updateCellHighlight(flag: boolean): void {
+    private updateCellHighlight = (flag: boolean): void => {
         // highlight a selected cell when filter mode is on
         const old_cell = document.querySelectorAll('.cell')[this.currentSelectCellIndex] as HTMLElement;
         if(old_cell) old_cell.style.background = "";
@@ -285,17 +301,17 @@ export class ChatWidget implements IChatWidget {
         }
     }
 
-    private updateFilter(flag: boolean): void {
+    private updateFilter = (flag: boolean): void => {
         this.isFilter = flag;
         const input = this.filterContainer.firstChild as HTMLInputElement;
         input.checked = flag;
     }
 
-    private updateLineRefListener(): void {
+    private updateLineRefListener = (): void => {
         const tag = document.getElementsByClassName('line_ref');
         for(const item of tag) {
             const el = item as HTMLElement;
-            if(!el.onclick) el.addEventListener('click', this.handleLineRef.bind(this));
+            if(!el.onclick) el.addEventListener('click', this.handleLineRef);
         }
     }
 
@@ -309,7 +325,7 @@ export class ChatWidget implements IChatWidget {
         }
     }
 
-    private updateTitle(flag): void {
+    private updateTitle = (flag): void => {
         const el = this.toolContainer.childNodes[1] as HTMLElement;
         const icon = this.toolContainer.childNodes[0] as HTMLElement;
 
@@ -331,13 +347,23 @@ export class ChatWidget implements IChatWidget {
         }
     }
 
-    private initContainer(): void {
+    private initMouseListener = (): void => {
+        document.body.onmousedown = ()=> {
+            this.cursorCallback(false);
+            if(this.currentAnnotationHighlight) {
+                this.annotationCallback(false, this.currentAnnotationHighlight.cell_index, this.currentAnnotationHighlight.object_index);
+                this.currentAnnotationHighlight = null;
+            }
+        };
+    }
+
+    private initContainer = (): void => {
         this.container = document.createElement('div');
         this.container.id = 'chat-container';
 
         const tool_container = document.createElement('div');
         tool_container.id = 'tool-container';
-        tool_container.addEventListener('click', this.handleFolding.bind(this));
+        tool_container.addEventListener('click', this.handleFolding);
 
         const message_container = document.createElement('div');
         message_container.id = 'message-container';
@@ -364,7 +390,7 @@ export class ChatWidget implements IChatWidget {
         input_and_button_div.appendChild(this.messageBox.el);
         input_and_button_div.appendChild(input_button);
         
-        input_button.addEventListener('click', this.handleSubmitting.bind(this));
+        input_button.addEventListener('click', this.handleSubmitting);
 
         const filter = document.createElement('label');
         filter.id = 'switch';
@@ -377,7 +403,7 @@ export class ChatWidget implements IChatWidget {
         
         filter.appendChild(filter_input);
         filter.appendChild(filter_span);
-        filter_input.addEventListener('click', this.handleFiltering.bind(this));
+        filter_input.addEventListener('click', this.handleFiltering);
        
         // input_container.appendChild(this.messageBox.el);
         // input_container.appendChild(input_button);
@@ -397,7 +423,7 @@ export class ChatWidget implements IChatWidget {
         this.filterContainer = filter;
     }
 
-    private initStyle(): void {
+    private initStyle = (): void => {
         // update style
         const sheet = document.createElement('style');
         sheet.innerHTML += '#chat-container { height: 400px; width: 300px; float:right; margin-right: 50px; position: fixed; bottom: -360px; right: 0px; z-index:2; border-radius:10px; box-shadow: 0px 0px 12px 0px rgba(87, 87, 87, 0.2); background: whitesmoke;  transition: bottom .5s; } \n';

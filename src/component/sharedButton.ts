@@ -121,15 +121,15 @@ export class SharedButton {
         const code_dialog = this.createCodeDialog(Jupyter.notebook.metadata.doc_name, this.cancelHandler);
         dialog.modal(code_dialog);
 
-        createDoc(Jupyter.notebook.metadata.doc_name).then(({doc, ws}) => {
-                this.sharedNotebook = new NotebookBinding(doc, ws);
+        createDoc(Jupyter.notebook.metadata.doc_name).then(({doc, client, ws}) => {
+                this.sharedNotebook = new NotebookBinding(doc, client, ws);
         });
         updateSharedButton(true);
         disableFeatures();
     }
 }
 
-export function updateSharedButton(flag: boolean): void {
+export const updateSharedButton = (flag: boolean): void => {
     const share_button = document.querySelector('#share-notebook');
     share_button.firstElementChild.classList.toggle("fa-share");
     share_button.firstElementChild.classList.toggle("fa-check");
@@ -139,9 +139,9 @@ export function updateSharedButton(flag: boolean): void {
     else {
         share_button.setAttribute("style", "background-color:#fff; border-color: #ccc");
     }
-}
+};
 
-export function disableFeatures(): void {
+export const disableFeatures = (): void => {
     // disable move cells up and down
     const moveButton = document.getElementById('move_up_down');
     if(moveButton) moveButton.remove();
@@ -156,4 +156,4 @@ export function disableFeatures(): void {
         cpButton[2].remove();
         cpButton[1].remove();
     }
-}
+};
