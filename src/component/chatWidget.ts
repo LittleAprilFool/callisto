@@ -61,7 +61,12 @@ export class ChatWidget implements IChatWidget {
     public onSelectAnnotation = (cell_index: number, object_index: number): void => {
         if(!this.isFold) {
             const appended_text = '[marker](C' + cell_index + ', L*, L' + object_index + ') ';
-            this.messageBox.value = this.messageBox.value + appended_text;
+            this.messageBox.appendRef('marker', {
+                cm_index: cell_index,
+                from: -1,
+                to: -1
+            });
+            // this.messageBox.value = this.messageBox.value + appended_text;
         }
     }
 
@@ -258,7 +263,7 @@ export class ChatWidget implements IChatWidget {
         // [text](URL)
         // [text](C0L1L5)
 
-        const re = /\[(.*?)\]\(C([0-9]*?), L([0-9]*), L([0-9]*)\)/g;
+        const re = /\[(.*?)\]\(C([0-9]*?), L([0-9\*]*), L([0-9]*)\)/g;
         const origin_text = message.content;
         const timestamp = getTime();
         const formated_text = origin_text.replace(re, "<span class='line_ref' cell_index=$2 from=$3 to=$4 timestamp="+timestamp+" source="+message.sender.user_id+" >$1</span>");
@@ -320,7 +325,7 @@ export class ChatWidget implements IChatWidget {
         for (const item of tag_unsend) {
             const el = item as HTMLElement;
             if (!el.onclick) {
-                el.addEventListener('click', this.handleLineRef.bind(this));
+                el.addEventListener('click', this.handleLineRef);
             }
         }
     }

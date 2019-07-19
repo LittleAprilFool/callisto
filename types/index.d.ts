@@ -54,6 +54,7 @@ interface MessageLineRef {
     from: number;
     to: number;
     expanded: boolean;
+    span: HTMLSpanElement;
 }
 
 interface Message {
