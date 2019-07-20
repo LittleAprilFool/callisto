@@ -1,4 +1,4 @@
-import { getTime } from '../action/utils';
+import { getTime, getTimestamp } from '../action/utils';
 const Jupyter = require('base/js/namespace');
 
 const checkOpType = (op): string => {
@@ -14,7 +14,11 @@ export class ChatWidget implements IChatWidget {
     private isFold: boolean = true;
     private isRead: boolean = true;
     private isFilter: boolean = false;
-    private toolContainer: HTMLElement;
+    private isVersion: boolean = false;
+    private isDiff: boolean = false;
+    private isDiff_select: number[];
+    private headContainer: HTMLElement;
+    private titleContainer: HTMLElement;
     private messageContainer: HTMLElement;
     private lastCursor: Cursor;
     private cursorCallback: any;
@@ -22,7 +26,8 @@ export class ChatWidget implements IChatWidget {
     private currentSelectCellIndex: number;
     private currentAnnotationHighlight: any;
 
-    constructor(private user: User, private doc: any) {
+
+    constructor(private user: User, private doc: any, private tabWidget: IDiffTabWidget) {
         this.initContainer();
         this.initStyle();
         this.loadHistory();
@@ -105,7 +110,7 @@ export class ChatWidget implements IChatWidget {
 
     private handleLineRef = (e): void => {
         const cell = e.target.getAttribute('cell_index');
-        const cell_index = parseInt(cell, 2);
+        const cell_index = parseInt(cell, 0);
         const from = e.target.getAttribute('from');
         const to = e.target.getAttribute('to');
         if (from ==='*') {
@@ -118,11 +123,67 @@ export class ChatWidget implements IChatWidget {
         }
     }
 
+    private handleVersion = (e): void => {
+        e.target.classList.toggle('active');
+        this.isVersion = !this.isVersion;
+        document.querySelectorAll('.message-content').forEach(ele=> {
+            ele.classList.toggle('select');
+        });
+    }
+
+    private handleDiff = (e): void => {
+        e.target.classList.toggle('active');
+        this.isDiff = !this.isDiff;
+        document.querySelectorAll('.message-content').forEach(ele=> {
+            ele.classList.toggle('select');
+        });
+        this.isDiff_select = [];
+    }
+
+    private handleMessageClick = (e): void => {
+        if(this.isVersion) {
+            this.isVersion = false;
+            document.querySelector('.tool-button.active').classList.toggle('active');
+            document.querySelectorAll('.message-content').forEach(ele=> {
+                ele.classList.toggle('select');
+            });
+
+            const timestamp = parseInt(e.target.getAttribute('timestamp'), 0);
+            if(this.tabWidget.checkTab('version', timestamp)) return;
+
+            this.tabWidget.addTab('version', timestamp);
+            this.tabWidget.addVersion(timestamp, timestamp.toString());
+        }
+        if(this.isDiff) {
+            if(this.isDiff_select.length == 0) {
+                const timestamp = parseInt(e.target.getAttribute('timestamp'), 0);
+                e.target.classList.add('selected');
+                this.isDiff_select.push(timestamp);
+            }
+            else {
+                this.isDiff = false;
+
+                document.querySelector('.tool-button.active').classList.toggle('active');
+                document.querySelectorAll('.message-content').forEach(ele=> {
+                    ele.classList.toggle('select');
+                });
+                const timestamp = parseInt(e.target.getAttribute('timestamp'), 0);
+                const old_timestamp = timestamp < this.isDiff_select[0]? timestamp: this.isDiff_select[0];
+                const new_timestamp = timestamp < this.isDiff_select[0]? this.isDiff_select[0]: timestamp;
+                if(this.tabWidget.checkTab('diff', new_timestamp)) return;
+
+                this.tabWidget.addTab('diff', new_timestamp);
+                this.tabWidget.addDiff(new_timestamp, old_timestamp, new_timestamp.toString());
+                this.isDiff_select = [];
+            }
+        }
+    }
+
     private handleFolding = (): void => {
         this.isFold = !this.isFold;
         if(this.isFold) {
             // fold container, turn off filter
-            this.container.style.bottom = '-360px';
+            this.container.style.bottom = '-460px';
             this.filterContainer.style.display = 'none';
             if(this.isFilter) {
                 // turn off filter
@@ -183,6 +244,7 @@ export class ChatWidget implements IChatWidget {
             sender: this.user,
             content: this.messageBox.value,
             time: getTime(),
+            timestamp: getTimestamp(),
             cells: related_cells
         };
         const index = this.doc.getData().length;
@@ -264,6 +326,9 @@ export class ChatWidget implements IChatWidget {
         const message_content = document.createElement('div');
         message_content.innerHTML = formated_text;
         message_content.classList.add('message-content');
+        message_content.setAttribute('timestamp', message.timestamp.toString());
+        message_content.addEventListener('click', this.handleMessageClick);
+
         
         const message_sender = document.createElement('div');
         message_sender.innerText = message.sender.username;
@@ -280,6 +345,7 @@ export class ChatWidget implements IChatWidget {
 
         message_wrapper.appendChild(time_sender);
         message_wrapper.appendChild(message_content);
+
 
         return message_wrapper;
     }
@@ -313,8 +379,8 @@ export class ChatWidget implements IChatWidget {
     }
 
     private updateTitle = (flag): void => {
-        const el = this.toolContainer.childNodes[1] as HTMLElement;
-        const icon = this.toolContainer.childNodes[0] as HTMLElement;
+        const el = this.titleContainer.childNodes[1] as HTMLElement;
+        const icon = this.titleContainer.childNodes[0] as HTMLElement;
 
         switch (flag) {
             case 'chat':
@@ -348,9 +414,51 @@ export class ChatWidget implements IChatWidget {
         this.container = document.createElement('div');
         this.container.id = 'chat-container';
 
+        const head_container = document.createElement('div');
+        head_container.id = 'head-container';
+
+        const title_container = document.createElement('div');
+        title_container.id = 'title-container';
+
+        title_container.addEventListener('click', this.handleFolding);
+
+        head_container.appendChild(title_container);
+
+
         const tool_container = document.createElement('div');
         tool_container.id = 'tool-container';
-        tool_container.addEventListener('click', this.handleFolding);
+        
+        const tool_version = document.createElement('div');
+        tool_version.innerHTML = '<i class="fa fa-code">';
+        tool_version.classList.add('tool-button');
+        tool_container.appendChild(tool_version);
+        tool_version.addEventListener('click', this.handleVersion);
+
+        const tool_diff = document.createElement('div');
+        tool_diff.innerHTML = '<i class="fa fa-history">';
+        tool_diff.classList.add('tool-button');
+        tool_container.appendChild(tool_diff);
+        tool_diff.addEventListener('click', this.handleDiff);
+
+        const tool_filter = document.createElement('div');
+        tool_filter.innerHTML = '<i class="fa fa-filter">';
+        tool_filter.classList.add('tool-button');
+        tool_container.appendChild(tool_filter);
+        // const tool_filter = document.createElement('label');
+        // tool_filter.id = 'switch';
+        // tool_filter.classList.add('tool-button');
+
+        // const filter_input = document.createElement('input');
+        // filter_input.type = "checkbox";
+        // const filter_span = document.createElement('span');
+        // filter_span.id = 'slider';
+        // tool_filter.appendChild(filter_input);
+        // tool_filter.appendChild(filter_span);
+        // filter_input.addEventListener('click', this.handleFiltering);
+
+        // tool_container.append(tool_filter);
+
+        head_container.appendChild(tool_container);
 
         const message_container = document.createElement('div');
         message_container.id = 'message-container';
@@ -363,8 +471,8 @@ export class ChatWidget implements IChatWidget {
         el.innerText = 'Chat';
         el.id = 'chat-title';
         icon.innerHTML = '<i class="fa fa-comment"></i>';
-        tool_container.appendChild(icon);
-        tool_container.appendChild(el);
+        title_container.appendChild(icon);
+        title_container.appendChild(el);
         
         const input_box = document.createElement('textarea');
         input_box.id = 'input-box';
@@ -378,44 +486,40 @@ export class ChatWidget implements IChatWidget {
         input_button.id = 'input-button';
         
         input_button.addEventListener('click', this.handleSubmitting);
-
-        const filter = document.createElement('label');
-        filter.id = 'switch';
-        
-        const filter_input = document.createElement('input');
-        filter_input.type = "checkbox";
-        
-        const filter_span = document.createElement('span');
-        filter_span.id = 'slider';
-        
-        filter.appendChild(filter_input);
-        filter.appendChild(filter_span);
-        filter_input.addEventListener('click', this.handleFiltering);
        
         input_container.appendChild(input_box);
         input_container.appendChild(input_button);
-        input_container.appendChild(filter);
         
-        this.container.appendChild(tool_container);
+        this.container.appendChild(head_container);
         this.container.appendChild(message_container);
         this.container.appendChild(input_container);
 
         const main_container = document.querySelector('#notebook');
         main_container.appendChild(this.container);
 
-        this.toolContainer = tool_container;
+        this.titleContainer = title_container;
+        this.headContainer = head_container;
         this.messageBox = input_box;
         this.inputButton = input_button;
         this.messageContainer = message_container;
-        this.filterContainer = filter;
+        this.filterContainer = tool_filter;
     }
 
     private initStyle = (): void => {
         // update style
         const sheet = document.createElement('style');
-        sheet.innerHTML += '#chat-container { height: 400px; width: 300px; float:right; margin-right: 50px; position: fixed; bottom: -360px; right: 0px; z-index:2; border-radius:10px; box-shadow: 0px 0px 12px 0px rgba(87, 87, 87, 0.2); background: whitesmoke;  transition: bottom .5s; } \n';
-        sheet.innerHTML += '#tool-container { height: 40px; color: #516766; font-weight: bold; padding-top: 8px; text-align: center; background-color: #9dc5a7; border-radius: 10px 10px 0px 0px; } \n';
-        sheet.innerHTML += '#message-container { height: 300px; background-color: whitesmoke; overflow:scroll; } \n';
+        sheet.innerHTML += '#chat-container { height: 500px; width: 300px; float:right; margin-right: 50px; position: fixed; bottom: -460px; right: 0px; z-index:2; border-radius:10px; box-shadow: 0px 0px 12px 0px rgba(87, 87, 87, 0.2); background: white;  transition: bottom .5s; } \n';
+        sheet.innerHTML += '#head-container { color: #516766; font-weight: bold; text-align: center; background-color: #9dc5a7; border-radius: 10px 10px 0px 0px; } \n';
+        sheet.innerHTML += '#tool-container { margin-top: 5px; padding: 5px; background: white; border-bottom: 1px solid #eee}'
+        sheet.innerHTML += '.tool-button {display: inline-block; width: 50px; margin: 0px 10px 0px 10px; background: #fff; border-radius: 3px; border: 1px solid #eee; cursor: pointer; transition: .4s;}\n';
+        sheet.innerHTML += '.tool-button:hover {color: #ddd;}\n';
+        sheet.innerHTML += '.tool-button.active {background: #dae4dd; color: #516766}\n';
+        sheet.innerHTML += '#title-container {padding: 8px; cursor: pointer; }\n';
+        sheet.innerHTML += '#message-container { height: 370px; background-color: white; overflow:scroll; } \n';
+        sheet.innerHTML += '.select.message-content {cursor: pointer; transition: .4s}\n';
+        sheet.innerHTML += '.selected.message-content {background:#dae5dd; }\n';
+
+        sheet.innerHTML += '.select.message-content:hover {background:#dae5dd; }\n';
         sheet.innerHTML += '#input-container { height: 50px; width: 280px; background-color: white; border: solid 2px #ececec; border-radius: 10px; margin:auto;} \n';
         sheet.innerHTML += '#input-box { padding-left: 10px; padding-right: 10px; font-size: 12px; color: #7d7d7d; width: 220px; border: none; background-color: transparent; resize: none;outline: none; } \n';
         sheet.innerHTML += '#input-button { color: #868686; display:inline; height:46px; width: 50px; position: relative; top: -17px; background: transparent; border: none; border-left: solid 2px #ececec; } \n';
@@ -425,7 +529,7 @@ export class ChatWidget implements IChatWidget {
         sheet.innerHTML += '.message-wrapper { margin: 10px 20px;} \n';
         sheet.innerHTML += '.right { text-align: right;} \n';
         sheet.innerHTML += '.message-sender { display:inline; font-size: 10px; font-weight: bold; } \n';
-        sheet.innerHTML += '.message-content { display: inline-block; background: #e8e8e8; padding: 10px; border-radius: 12px; min-width: 100px; font-size: 12px; } \n';
+        sheet.innerHTML += '.message-content { display: inline-block; background: whitesmoke; padding: 10px; border-radius: 12px; min-width: 100px; font-size: 12px; } \n';
         sheet.innerHTML += '.message-time { font-size: 10px; display:inline; margin-left: 10px; color: #b7b7b7; } \n';
         sheet.innerHTML += '.broadcast-message { text-align: center; font-size: 12px; color: #b7b7b7; } \n';
 

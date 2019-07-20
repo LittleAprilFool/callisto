@@ -38,7 +38,10 @@
     "babel-register": "^6.26.0",
     "browserify": "^16.2.3",
     "codemirror": "^5.46.0",
+    "gitmoji-cli": "^1.9.3",
+    "javascript-time-ago": "^2.0.1",
     "jss": "^9.8.7",
+    "luxon": "^1.17.1",
     "mocha": "^6.1.4",
     "tslint": "^5.14.0"
   }

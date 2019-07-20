@@ -1,7 +1,8 @@
 import { SDBDoc } from "sdb-ts";
+
 import { getNotebookMirror} from '../action/notebookAction';
 import { getUserName } from '../action/userAction';
-import { generateUUID, getRandomColor, getTime, getTimestamp } from '../action/utils';
+import { generateUUID, getRandomColor, getTime, getTimestamp} from '../action/utils';
 import { AnnotationWidget } from './annotationWidget';
 import { CellBinding } from './cellBinding';
 import { ChangelogWidget } from './changelogWidget';
@@ -82,17 +83,18 @@ export class NotebookBinding implements INotebookBinding {
         };
         this.user = newUser;
 
-        this.diffTabWidget = new DiffTabWidget();
+        const identifier = this.sdbDoc.getIdentifier();
+        this.diffTabWidget = new DiffTabWidget(this.client, identifier);
+
 
         if(option.chat) {
             const chatDoc = this.sdbDoc.subDoc(['chat']);
-            this.chatWidget = new ChatWidget(this.user, chatDoc);
+            this.chatWidget = new ChatWidget(this.user, chatDoc, this.diffTabWidget);
         }
 
         if(option.changelog) {
             const changelogDoc = this.sdbDoc.subDoc(['changelog']);
-            const identifier = this.sdbDoc.getIdentifier();
-            this.changelogWidget = new ChangelogWidget(changelogDoc, this.client, identifier, this.diffTabWidget);
+            this.changelogWidget = new ChangelogWidget(changelogDoc, this.diffTabWidget);
         } 
 
         this.sharedCells = [];
@@ -146,6 +148,16 @@ export class NotebookBinding implements INotebookBinding {
             this.chatWidget.bindAnnotationAction(this.annotationHighlight);
         }
 
+ 
+    // Create relative date/time formatter.
+        // console.log(en);
+        // TimeAgo.addLocale(en);
+
+        // const timeAgo = new TimeAgo('-US');
+ 
+        // console.log(timeAgo.format(new Date()));
+
+        // console.log(DateTime.local().toString());
 
     }
 
@@ -165,6 +177,7 @@ export class NotebookBinding implements INotebookBinding {
         
         // https://github.com/jupyter/notebook/blob/master/notebook/static/notebook/js/notebook.js#L1184
         Jupyter.notebook.events.on('delete.Cell', this.onDeleteCell);
+        Jupyter.notebook.events.on('select.Cell', this.onSelectCell);
         
         Jupyter.notebook.events.on('execute.CodeCell', this.onExecuteCodeCell);
         Jupyter.notebook.events.on('finished_execute.CodeCell', this.onFinishedExecuteCodeCell);
@@ -488,6 +501,10 @@ export class NotebookBinding implements INotebookBinding {
 
             this.sdbDoc.submitOp([op], this);
         }
+    }
+
+    private onSelectCell = (evt, info): void => {
+        console.log(info);
     }
 
     private onExecuteCodeCell = (evt, info): void => {

@@ -52,6 +52,7 @@ interface Message {
     sender: User;
     content: string;
     time: string;
+    timestamp: number;
     cells: string[];
 }
 
@@ -149,6 +150,8 @@ interface IDiffTabWidget {
     destroy(): void;
     checkTab(type: string, timestamp: number): boolean;
     addTab(type: string, timestamp: number): void;
+    addDiff(new_timestamp: number, old_timestamp: number, title: string): void;
+    addVersion(timestamp: number, title: string): void;
 }
 
 interface IChangelogWidget {

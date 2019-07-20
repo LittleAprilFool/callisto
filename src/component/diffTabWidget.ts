@@ -1,6 +1,19 @@
+import { DiffWidget } from './diffWidget';
+import { timeAgo } from '../action/utils';
+
 export class DiffTabWidget implements IDiffTabWidget {
     private container: HTMLElement;
-    constructor() {
+
+    private new_timestamp: number;
+    private old_timestamp: number;
+    private new_notebook: Notebook;
+    private old_notebook: Notebook;
+    private diff_title: string;
+    private version_timestamp: number;
+    private version_notebook: Notebook;
+    private version_title: string;
+
+    constructor(private client: any, private id: any) {
         this.initContainer();
         this.initStyle();
     }
@@ -25,7 +38,7 @@ export class DiffTabWidget implements IDiffTabWidget {
         const icon = document.createElement('i');
         icon.innerHTML = type==='diff'?'<i class="fa fa-history"></i>':'<i class="fa fa-code"></i>';
         const title = document.createElement('span');
-        title.innerText = timestamp.toString();
+        title.innerText = timeAgo(timestamp);
         const close_icon = document.createElement('i');
         close_icon.innerHTML = '<i class = "fa fa-times">';
         close_icon.classList.add('close-tab');
@@ -42,6 +55,39 @@ export class DiffTabWidget implements IDiffTabWidget {
         this.container.appendChild(new_tab);
 
         this.activeTab(new_tab);
+    }
+
+    public addDiff = (new_timestamp: number, old_timestamp: number, title:string): void => {
+        this.new_timestamp = new_timestamp;
+        this.old_timestamp = old_timestamp;
+        this.diff_title = title;
+        this.client.connection.fetchSnapshotByTimestamp(this.id[0], this.id[1], new_timestamp, this.fetchOld);
+        //     this.client.connection.fetchSnapshotByTimestamp(this.id[0], this.id[1], this.new_timestamp, this.fetchEdit);
+
+    }
+
+    public addVersion = (timestamp: number, title: string): void => {
+        this.version_timestamp = timestamp;
+        this.version_title = title;
+        this.client.connection.fetchSnapshotByTimestamp(this.id[0], this.id[1], timestamp, this.createVersionWidget);
+
+        // const versionWidget = new VersionWidget(notebook, this.version_timestamp.toString(), this.version_timestamp);
+
+    }
+
+    private fetchOld = (err, snapshot): void => {
+        this.new_notebook = snapshot.data.notebook;
+        this.client.connection.fetchSnapshotByTimestamp(this.id[0], this.id[1], this.old_timestamp, this.createDiffWidget);
+    }
+
+    private createDiffWidget = (err, snapshot): void => {
+        this.old_notebook = snapshot.data.notebook;
+        const diffWidget = new DiffWidget('diff', [this.new_notebook, this.old_notebook], this.diff_title, this.new_timestamp);
+    }
+
+    private createVersionWidget = (err, snapshot): void => {
+        this.version_notebook = snapshot.data.notebook;
+        const versionWidget = new DiffWidget('version', [this.version_notebook], this.version_title, this.version_timestamp);
     }
 
     private closeTabHandler = (e): void => {

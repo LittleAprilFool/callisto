@@ -1,5 +1,3 @@
-import { DiffWidget } from './diffWidget';
-
 const Jupyter = require('base/js/namespace');
 
 const checkOpType = (op): string => {
@@ -12,13 +10,7 @@ export class ChangelogWidget implements IChangelogWidget {
     private logContainer: HTMLElement;
     private isFold: boolean = true;
 
-    private new_notebook: Notebook;
-    private old_notebook: Notebook;
-    private new_timestamp: number;
-    private old_timestamp: number;
-    private title: string;
-
-    constructor(private doc: any, private client: any, private id: any, private tabWidget: any) {
+    constructor(private doc: any, private tabWidget: IDiffTabWidget) {
 
         this.initContainer();
         this.initStyle();
@@ -96,26 +88,30 @@ export class ChangelogWidget implements IChangelogWidget {
     }
 
     private displayChanges = (e): void => {
-        this.new_timestamp = parseInt(e.target.getAttribute('timestamp'), 0);
-        if(this.tabWidget.checkTab('diff', this.new_timestamp)) return;
-        
-        this.tabWidget.addTab('diff', this.new_timestamp);
-        this.title = e.target.innerHTML;
-        if(e.target.previousSibling) {
-            this.old_timestamp = parseInt(e.target.previousSibling.getAttribute('timestamp'), 0);
-            this.client.connection.fetchSnapshotByTimestamp(this.id[0], this.id[1], this.new_timestamp, this.fetchEdit);
-        }
+        const new_timestamp = parseInt(e.target.getAttribute('timestamp'), 0);
+        if(this.tabWidget.checkTab('diff', new_timestamp)) return;
+        if(e.target.previousSibling==null) return;
+        const old_timestamp = parseInt(e.target.previousSibling.getAttribute('timestamp'), 0);
+        const title = e.target.innerHTML;
+
+        this.tabWidget.addTab('diff', new_timestamp);
+        this.tabWidget.addDiff(new_timestamp, old_timestamp, title);
+        // this.title = e.target.innerHTML;
+        // if(e.target.previousSibling) {
+        //     this.old_timestamp = parseInt(e.target.previousSibling.getAttribute('timestamp'), 0);
+        //     this.client.connection.fetchSnapshotByTimestamp(this.id[0], this.id[1], this.new_timestamp, this.fetchEdit);
+        // }
     }
 
-    private fetchEdit = (err, snapshot): void => {
-        this.new_notebook = snapshot.data.notebook;
-        this.client.connection.fetchSnapshotByTimestamp(this.id[0], this.id[1], this.old_timestamp, this.renderDiff);
-    }
+    // private fetchEdit = (err, snapshot): void => {
+    //     this.new_notebook = snapshot.data.notebook;
+    //     this.client.connection.fetchSnapshotByTimestamp(this.id[0], this.id[1], this.old_timestamp, this.renderDiff);
+    // }
 
-    private renderDiff = (err, snapshot): void => {
-        this.old_notebook = snapshot.data.notebook;
-        const diffWidget = new DiffWidget(this.new_notebook, this.old_notebook, this.title, this.new_timestamp);
-    }
+    // private renderDiff = (err, snapshot): void => {
+    //     this.old_notebook = snapshot.data.notebook;
+    //     const diffWidget = new DiffWidget(this.new_notebook, this.old_notebook, this.title, this.new_timestamp);
+    // }
 
     private applyOp = (op): void => {
         if(checkOpType(op) === 'NewLog') {
