@@ -10,6 +10,7 @@
       "no-string-literal": false,
       "no-bitwise": false,
       "no-eval": true,
+      "no-conditional-assignment": false,
       "arrow-parens": [true, "ban-single-arg-parens"],
       "indent": [true, "spaces"],
       "no-duplicate-variable": true,
@@ -19,6 +20,7 @@
       "semicolon": [true, "always"],
       "object-literal-sort-keys": false,
       "no-console": false,
+      "prefer-object-spread": false,
       "curly": [true, "ignore-same-line"],
       "only-arrow-functions": true,
       "typedef-whitespace": [

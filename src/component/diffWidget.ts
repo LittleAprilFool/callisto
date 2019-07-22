@@ -1,7 +1,7 @@
 export class DiffWidget implements IDiffWidget {
     private container: HTMLElement;
     
-    constructor(private type:string, private notebook: Notebook[], private title: string, private timestamp: number[]) {
+    constructor(private type: string, private notebook: Notebook[], private title: string, private timestamp: number[]) {
         this.initContainer();
         this.initStyle();
 
@@ -16,9 +16,9 @@ export class DiffWidget implements IDiffWidget {
         if(this.type === 'version') {
             this.notebook[0].cells.forEach(cell=> {
                 this.addCell(cell);
-            })
+            });
         }
-        else{
+        else {
             const new_notebook = this.notebook[0];
             const old_notebook = this.notebook[1];
             let oindex = 0;
@@ -165,9 +165,7 @@ export class DiffWidget implements IDiffWidget {
 
     private initContainer = (): void => {
         this.container = document.createElement('div');
-        let label = '';
-        if(this.type == 'diff') label = 'diff-'+this.timestamp[0]+'-'+this.timestamp[1];
-        else label = 'version-'+this.timestamp[0];
+        const label = this.type === 'diff'? 'diff-'+this.timestamp[0]+'-'+this.timestamp[1]:'version-'+this.timestamp[0];  
         this.container.classList.add('container', 'diffwidget-container', label);
         const trigger = document.createElement('div');
         trigger.classList.add('diffwidget-trigger');
@@ -199,13 +197,13 @@ export class DiffWidget implements IDiffWidget {
 
     private initStyle = (): void => {
         const sheet = document.createElement('style');
-        sheet.innerHTML += '.diffwidget-container { padding: 15px; background-color: white; box-shadow: 0px 0px 12px 0px rgba(87, 87, 87, 0.2); margin-bottom: 20px } \n';
+        sheet.innerHTML += '.diffwidget-container { padding: 15px; background-color: #f7f7f7; box-shadow: 0px 0px 12px 0px rgba(87, 87, 87, 0.2); margin-bottom: 20px } \n';
         sheet.innerHTML += '.diffwidget-trigger { font-size: 15px; text-align: center; position: relative; font-weight: bold;} \n';
         sheet.innerHTML += '.version-label { font-size: 12px; text-align: center; display: inline-block; width: 50%; font-weight: bold;} \n';
         sheet.innerHTML += '#label-new { background:rgba(0, 200, 20, 0.3); } \n';
         sheet.innerHTML += '#label-old { background:rgba(255, 20, 0, 0.3); } \n';
         sheet.innerHTML += '#label-container {margin-top: 10px; margin-bottom: 10px;} \n';
-        sheet.innerHTML += '.diff-cell-container {background: #fff8de4f; overflow:auto;} \n';
+        sheet.innerHTML += '.diff-cell-container {background: #fff6dc; overflow:auto;} \n';
         sheet.innerHTML += '.diff { background: inherit; width: 50% !important; display: inline-block !important; float:left;} \n';
         sheet.innerHTML += '.diff-new .input_area {background: rgba(0, 200, 20, 0.1); }\n';
         sheet.innerHTML += '.diff-old .input_area {background: rgba(255, 20, 0, 0.1); }\n';
