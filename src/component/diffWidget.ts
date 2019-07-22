@@ -1,7 +1,7 @@
 export class DiffWidget implements IDiffWidget {
     private container: HTMLElement;
     
-    constructor(private type:string, private notebook: Notebook[], private title: string, private timestamp: number) {
+    constructor(private type:string, private notebook: Notebook[], private title: string, private timestamp: number[]) {
         this.initContainer();
         this.initStyle();
 
@@ -165,7 +165,10 @@ export class DiffWidget implements IDiffWidget {
 
     private initContainer = (): void => {
         this.container = document.createElement('div');
-        this.container.classList.add('container', 'diffwidget-container', this.type + '-' + this.timestamp.toString());
+        let label = '';
+        if(this.type == 'diff') label = 'diff-'+this.timestamp[0]+'-'+this.timestamp[1];
+        else label = 'version-'+this.timestamp[0];
+        this.container.classList.add('container', 'diffwidget-container', label);
         const trigger = document.createElement('div');
         trigger.classList.add('diffwidget-trigger');
 

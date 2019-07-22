@@ -24,8 +24,11 @@ export class ChangelogWidget implements IChangelogWidget {
         this.doc.unsubscribe(this.onSDBDocEvent);
     }
 
+
+
     private initContainer = (): void => {
         this.container = document.createElement('div');
+        // this.container.classList.add('left-toolbox');
         this.container.id = 'changelog-container';
         const trigger = document.createElement('div');
         trigger.id = 'changelog-trigger';
@@ -40,7 +43,7 @@ export class ChangelogWidget implements IChangelogWidget {
         this.container.appendChild(trigger);
         this.container.appendChild(this.logContainer);
 
-        const main_container = document.querySelector('#notebook');
+        const main_container = document.querySelector('#notebook_panel');
         main_container.appendChild(this.container);
     }
 
@@ -52,6 +55,7 @@ export class ChangelogWidget implements IChangelogWidget {
     private initStyle = (): void => {
         const sheet = document.createElement('style');
         sheet.innerHTML += '#changelog-container { height: 100%; width: 300px; margin-right: 50px; position: fixed; bottom: 0px; left: -300px; z-index:5; box-shadow: 0px 0px 12px 0px rgba(87, 87, 87, 0.2); background: white;  transition: left .5s; } \n';
+        // sheet.innerHTML += '.left-toolbox { height: 100%; width: 400px; position: fixed; bottom: 0px; background: white; border-right: 1px solid #ddd;}\n';
         sheet.innerHTML += '#changelog-trigger { height: 60px; width: 50px; font-size: 20px; text-align: center; color: #516766; font-weight: bold; position: relative; padding-top: 16px; bottom: -200px; left: 300px; z-index:2; box-shadow: 0px 0px 12px 0px rgba(87, 87, 87, 0.2); background: #9dc5a7; border-radius: 0px 10px 10px 0px;} \n';
         sheet.innerHTML += '#log-container {padding-top: 80px; padding-left:20px; height: 100%; overflow: scroll;}';
         sheet.innerHTML += '.log-item {cursor: pointer}';
@@ -89,29 +93,16 @@ export class ChangelogWidget implements IChangelogWidget {
 
     private displayChanges = (e): void => {
         const new_timestamp = parseInt(e.target.getAttribute('timestamp'), 0);
-        if(this.tabWidget.checkTab('diff', new_timestamp)) return;
-        if(e.target.previousSibling==null) return;
         const old_timestamp = parseInt(e.target.previousSibling.getAttribute('timestamp'), 0);
+
+        const label = 'diff-'+new_timestamp.toString() + '-'+old_timestamp.toString();
+        if(this.tabWidget.checkTab(label)) return;
+        if(e.target.previousSibling==null) return;
         const title = e.target.innerHTML;
 
-        this.tabWidget.addTab('diff', new_timestamp);
+        this.tabWidget.addTab(label, 'diff', new_timestamp);
         this.tabWidget.addDiff(new_timestamp, old_timestamp, title);
-        // this.title = e.target.innerHTML;
-        // if(e.target.previousSibling) {
-        //     this.old_timestamp = parseInt(e.target.previousSibling.getAttribute('timestamp'), 0);
-        //     this.client.connection.fetchSnapshotByTimestamp(this.id[0], this.id[1], this.new_timestamp, this.fetchEdit);
-        // }
     }
-
-    // private fetchEdit = (err, snapshot): void => {
-    //     this.new_notebook = snapshot.data.notebook;
-    //     this.client.connection.fetchSnapshotByTimestamp(this.id[0], this.id[1], this.old_timestamp, this.renderDiff);
-    // }
-
-    // private renderDiff = (err, snapshot): void => {
-    //     this.old_notebook = snapshot.data.notebook;
-    //     const diffWidget = new DiffWidget(this.new_notebook, this.old_notebook, this.title, this.new_timestamp);
-    // }
 
     private applyOp = (op): void => {
         if(checkOpType(op) === 'NewLog') {

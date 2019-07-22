@@ -12,6 +12,8 @@ export class DiffTabWidget implements IDiffTabWidget {
     private version_timestamp: number;
     private version_notebook: Notebook;
     private version_title: string;
+    private chatCallback: any;
+
 
     constructor(private client: any, private id: any) {
         this.initContainer();
@@ -21,20 +23,28 @@ export class DiffTabWidget implements IDiffTabWidget {
     public destroy = (): void => {
         this.container.parentNode.removeChild(this.container);
     }
-    public checkTab = (type: string, timestamp: number): boolean => {
-        const label = type + '-' + timestamp.toString();
+    public checkTab = (label:string): boolean => {
+        // const label = type + '-' + timestamp.toString();
         const checkTabEl = document.querySelector('.diff-tab.'+label);
+        if(label == 'version-current') {
+            const currentEl = document.querySelector('.diff-tab#tab-current');
+            this.activeTab(currentEl as HTMLElement);
+            return true;
+        }
         if (checkTabEl) {
             this.activeTab(checkTabEl as HTMLElement);
             return true;
         }
         else return false;
     }
+    public bindChatAction = (callback): void => {
+        this.chatCallback = callback;
+    }
 
-    public addTab = (type: string, timestamp: number): void => {
+    public addTab = (label: string, type:string, timestamp: number): void => {
         const new_tab = document.createElement('div');
-        new_tab.classList.add('diff-tab', type +'-'+ timestamp.toString());
-        new_tab.setAttribute('label', type +'-'+timestamp.toString());
+        new_tab.classList.add('diff-tab', label);
+        new_tab.setAttribute('label', label);
         const icon = document.createElement('i');
         icon.innerHTML = type==='diff'?'<i class="fa fa-history"></i>':'<i class="fa fa-code"></i>';
         const title = document.createElement('span');
@@ -82,12 +92,12 @@ export class DiffTabWidget implements IDiffTabWidget {
 
     private createDiffWidget = (err, snapshot): void => {
         this.old_notebook = snapshot.data.notebook;
-        const diffWidget = new DiffWidget('diff', [this.new_notebook, this.old_notebook], this.diff_title, this.new_timestamp);
+        const diffWidget = new DiffWidget('diff', [this.new_notebook, this.old_notebook], this.diff_title, [this.new_timestamp, this.old_timestamp]);
     }
 
     private createVersionWidget = (err, snapshot): void => {
         this.version_notebook = snapshot.data.notebook;
-        const versionWidget = new DiffWidget('version', [this.version_notebook], this.version_title, this.version_timestamp);
+        const versionWidget = new DiffWidget('version', [this.version_notebook], this.version_title, [this.version_timestamp]);
     }
 
     private closeTabHandler = (e): void => {
@@ -102,6 +112,9 @@ export class DiffTabWidget implements IDiffTabWidget {
     }
 
     private activeTabHandler = (e): void => {
+        console.log(e.target)
+        const label = e.target.parentNode.getAttribute('label');
+        this.chatCallback(label);
         this.activeTab(e.target.parentNode);
     }
 

@@ -73,6 +73,7 @@ export class NotebookBinding implements INotebookBinding {
         cursor: true,
         changelog: true
     }) {
+        this.initStyle();
         this.sdbDoc.subscribe(this.onSDBDocEvent);
         this.eventsOn();
         
@@ -91,6 +92,8 @@ export class NotebookBinding implements INotebookBinding {
             const chatDoc = this.sdbDoc.subDoc(['chat']);
             this.chatWidget = new ChatWidget(this.user, chatDoc, this.diffTabWidget);
         }
+        this.diffTabWidget.bindChatAction(this.chatWidget.onSelectDiff.bind(this.chatWidget));
+
 
         if(option.changelog) {
             const changelogDoc = this.sdbDoc.subDoc(['changelog']);
@@ -140,25 +143,13 @@ export class NotebookBinding implements INotebookBinding {
         }
 
         if(option.chat && option.cursor) {
-            this.cursorWidget.bindChatAction(this.chatWidget.onCursorChange.bind(this.chatWidget));
+            this.cursorWidget.bindChatAction(this.chatWidget.onSelectCursor.bind(this.chatWidget));
             this.chatWidget.bindCursorAction(this.cursorWidget.updateLineRefCursor.bind(this.cursorWidget));
         }
 
         if(option.chat && option.annotation) {
             this.chatWidget.bindAnnotationAction(this.annotationHighlight);
         }
-
- 
-    // Create relative date/time formatter.
-        // console.log(en);
-        // TimeAgo.addLocale(en);
-
-        // const timeAgo = new TimeAgo('-US');
- 
-        // console.log(timeAgo.format(new Date()));
-
-        // console.log(DateTime.local().toString());
-
     }
 
     public destroy = (): void => {
@@ -177,7 +168,6 @@ export class NotebookBinding implements INotebookBinding {
         
         // https://github.com/jupyter/notebook/blob/master/notebook/static/notebook/js/notebook.js#L1184
         Jupyter.notebook.events.on('delete.Cell', this.onDeleteCell);
-        Jupyter.notebook.events.on('select.Cell', this.onSelectCell);
         
         Jupyter.notebook.events.on('execute.CodeCell', this.onExecuteCodeCell);
         Jupyter.notebook.events.on('finished_execute.CodeCell', this.onFinishedExecuteCodeCell);
@@ -503,10 +493,6 @@ export class NotebookBinding implements INotebookBinding {
         }
     }
 
-    private onSelectCell = (evt, info): void => {
-        console.log(info);
-    }
-
     private onExecuteCodeCell = (evt, info): void => {
         if(!this.suppressChanges) {
             // update the input prompt
@@ -739,5 +725,12 @@ export class NotebookBinding implements INotebookBinding {
             const focus_cell = document.querySelectorAll('.cell')[cell_index];
             focus_cell.scrollIntoView();
         }
+    }
+
+    private initStyle = (): void => {
+        const sheet = document.createElement('style');
+        sheet.innerHTML += '#notebook-container {box-shadow: none !important; border: 1px solid #ddd;}\n';
+        sheet.innerHTML += '.notebook_app > #header {box-shadow: none !important; border-bottom: 1px solid #ddd;}\n';
+        document.body.appendChild(sheet);
     }
 }
