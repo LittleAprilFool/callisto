@@ -1,4 +1,6 @@
-import { threadId } from "worker_threads";
+import { joinDoc } from '../action/sharedbAction';
+import * as Quill_lib from '../external/quill';
+import Quill from 'types/quill';
 
 export class MessageBox implements IMessageBox {
     public el: HTMLDivElement;
@@ -6,6 +8,7 @@ export class MessageBox implements IMessageBox {
     public backdrop: HTMLDivElement;
     public text_area: HTMLTextAreaElement;
     public ref_list: MessageLineRef[];
+    public quill_object: Quill;
 
     private prev_text: string;
 
@@ -59,9 +62,28 @@ export class MessageBox implements IMessageBox {
         this.prev_text = this.text_area.value;
     }
 
+    public initQuill(): void {
+        this.quill_object = new Quill_lib('#editor', {
+            modules: {
+                toolbar: false
+            },
+            placeholder: 'write your message',
+            theme: 'snow',
+        });
+    }
+
     private initTextArea(): void {
         this.el = document.createElement('div');
         this.el.id = 'message-box';
+
+        const quill_div = document.createElement('div');
+        quill_div.id = 'editor';
+        this.el.append(quill_div);
+        const quill_link_ref = document.createElement('link');
+        quill_link_ref.href = 'https://cdn.quilljs.com/1.3.6/quill.snow.css';
+        quill_link_ref.rel = 'stylesheet';
+        this.el.append(quill_link_ref);
+
         this.backdrop = document.createElement('div');
         this.backdrop.id = 'message-backdrop';
         this.highlight = document.createElement('div');
@@ -82,6 +104,7 @@ export class MessageBox implements IMessageBox {
 
         // init style
         // TODO: height: 44px is a workaround
+        quill_div.setAttribute('style', 'height: 44px;');
         this.backdrop.setAttribute('style', 'overflow: auto; width: 220px; height: 44px;');
         this.highlight.setAttribute('style', 'white-space: pre-wrap; word-wrap: break-word; font-size: 12px; position: absolute; padding: 2px 10px; width: inherit; height: inherit; overflow: auto;');
         this.text_area.setAttribute('style', 'color: transparent; caret-color: black; background-color: transparent; margin: 0; border-radius: 0; top: -44px; position: relative;');

@@ -30,6 +30,8 @@ export class ChatWidget implements IChatWidget {
         this.initStyle();
         this.loadHistory();
         
+        this.messageBox.initQuill();
+
         // disable Jupyter notebook shortcuts while in the Chat
         Jupyter.keyboard_manager.register_events(this.container);
         Jupyter.notebook.events.on('select.Cell', this.onSelectCell);
@@ -462,7 +464,8 @@ export class ChatWidget implements IChatWidget {
         sheet.innerHTML += 'input:focus + #slider { box-shadow: 0 0 1px #dae4dd; } \n';
         sheet.innerHTML += 'input:checked + #slider:before { transform: translateX(20px); } \n';
         sheet.innerHTML += '.mark {color: red}';
-        
+
+        sheet.innerHTML += '.ql-editor {padding: 2px 10px; font-size: 12px;}';
         document.body.appendChild(sheet);
     }
 }
