@@ -1,20 +1,16 @@
 import Delta = require('quill-delta');
 import { IMessageBox, LineRef, MessageLineRef } from 'types';
-import { DeltaOperation, Quill } from 'types/quill';
+import { Quill } from 'types/quill';
 import * as Quill_lib from '../external/quill';
 
 export class MessageBox implements IMessageBox {
 
-    // TODO: add more formats
-    private static highlight_format: string = "{'color': '#d10d2a', 'bold': true}";
     public el: HTMLDivElement;
     public highlight: HTMLDivElement;
     public backdrop: HTMLDivElement;
     public text_area: HTMLTextAreaElement;
     public ref_list: MessageLineRef[];
     public quill_object: Quill;
-
-    private prev_content: Delta;
 
     constructor() {
         this.ref_list = new Array();
@@ -23,7 +19,6 @@ export class MessageBox implements IMessageBox {
 
     public getSubmissionValue(): string {
         const delta: Delta = this.quill_object.getContents(0, this.quill_object.getLength() - 1);
-        // console.log(delta);
         let submission_string = "";
         let index = 0;
         delta.ops.forEach(insertion => {
@@ -38,7 +33,6 @@ export class MessageBox implements IMessageBox {
             } else {
                 // plain text
                 const re = /\[(.*?)\]\(C([0-9]*?), L([0-9]*\*), L([0-9]*)\)/g; 
-                const match = insertion.insert.match(re);
                 // console.log(match);
                 submission_string += insertion.insert;
             }
@@ -82,8 +76,6 @@ export class MessageBox implements IMessageBox {
             placeholder: 'write your message',
             theme: 'snow',
         });
-        this.quill_object.on('text-change', this.onQuillTextChange);
-        this.prev_content = this.quill_object.getContents();
     }
 
     private initElement(): void {
@@ -100,52 +92,32 @@ export class MessageBox implements IMessageBox {
         this.el.append(quill_link_ref);
 
         quill_div.addEventListener('click', this.handleCaretMove);
-        // quill_div.addEventListener('keydown', this.handleCaretMove);
         quill_div.addEventListener('keyup', this.handleCaretMove);
 
         quill_div.setAttribute('style', 'height: 44px; width: 220px;');
         this.el.setAttribute('style', 'height: 44px; width: 220px;');
     }
 
-    private onQuillTextChange = (delta: DeltaOperation, oldDelta: DeltaOperation, source: string): void => {
-        if (source === 'user') {
-            // console.log('delta');
-            console.log(delta);
-            // this.quill_object.insertText(this.quill_object.getLength() - 1, 'Quill', {'color': '#d10d2a', 'bold': true});
-            // // this.quill_object.insertText(this.quill_object.getLength() - 1, ' ');
-            // this.quill_object.insertText(this.quill_object.getLength() - 1, ' ', {'color': '#000000', 'bold': false});
-            // console.log(this.quill_object.getContents());
-        }
-        this.prev_content = this.quill_object.getContents();
-    }
-
-    private handleCaretMove = (e): void => {
-        // console.log('caret move');
+    private handleCaretMove = (): void => {
         const selection = this.quill_object.getSelection();
         const caret_pos = [selection.index, selection.index + selection.length];
-
-        // falls in ref area
-        // expand first
         const content = this.quill_object.getContents();
         let char_count = 0;
         let ref_index = 0;
         const delta: Delta = {
             ops: new Array()
         };
-        // console.log(delta);
-        let gap_length = 0;
+
         content.ops.forEach(op => {
             if ('attributes' in op) {
                 if (this.shouldExpand(char_count, op, caret_pos[0], caret_pos[1])) {
                     // expand
-                    // console.log('should expand');
                     const message_line_ref = this.ref_list[ref_index];
                     const line_ref = message_line_ref.line_ref;
                     const expanded_text = '['+ message_line_ref.text + '](C' + line_ref.cm_index.toString() + ', L' + (line_ref.from === -1 ? '*' : line_ref.from.toString()) + ', L' +(line_ref.from === -1 ? '' : line_ref.to.toString()) + ')';
                     delta.ops.push({insert: expanded_text});
                     delta.ops.push({delete: op.insert.length});
                     this.ref_list.splice(ref_index, 1);
-                    gap_length += expanded_text.length - op.insert.length;
                 } else {
                     ref_index += 1;
                     if (delta.ops.length !== 0 && 'retain' in delta.ops[delta.ops.length - 1]) {
@@ -182,22 +154,17 @@ export class MessageBox implements IMessageBox {
                         delta.ops.push({'retain': op.insert.length});
                     }
                 } else {
-                    // console.log('should collapse');
-                    // console.log('caret: ' + caret_pos[0].toString() + ' ' + caret_pos[1].toString());    
+                    // collapse
                     let local_char_count = 0;
                     matches.forEach((match: {from: number, to: number, text: string}) => {
                         // dealing with ref list
                         const new_message_line_ref: MessageLineRef = this.getMessageLineRefFromStr(match.text);
                         this.ref_list.splice(ref_index, 0, new_message_line_ref);
-                        // console.log(this.ref_list);
                         ref_index += 1;
-                        // console.log(ref_index);
 
                         // dealing with text
-                        // console.log(match.from);
                         if (match.from > local_char_count) {
                             // padding front retain part
-                            // console.log('padding');
                             if (delta.ops.length !== 0 && 'retain' in delta.ops[delta.ops.length - 1]) {
                                 delta.ops[delta.ops.length - 1].retain = delta.ops[delta.ops.length - 1].retain + match.from - local_char_count;
                             } else {
@@ -209,7 +176,7 @@ export class MessageBox implements IMessageBox {
                         delta.ops.push({'delete': match.text.length});
                     });
                     if (op.insert.length > local_char_count) {
-                        // console.log('padding back');
+                        // padding rear retain part
                         if (delta.ops.length !== 0 && 'retain' in delta.ops[delta.ops.length - 1]) {
                             delta.ops[delta.ops.length - 1].retain = delta.ops[delta.ops.length - 1].retain + op.insert.length - local_char_count;
                         } else {
@@ -222,17 +189,8 @@ export class MessageBox implements IMessageBox {
         });
 
         if (delta.ops.length > 1) {
-            // console.log(delta);
             this.quill_object.updateContents(delta);
         }
-    }
-    
-    private matchExpandedRef(candidate: string): any {
-        const re = /\[(.*?)\]\(C([0-9]*?), L([0-9\*]*), L([0-9]*)\)/g;
-        // console.log('matching');
-        // console.log(candidate);
-        // console.log(candidate.match(re));
-        return candidate.match(re);
     }
     
     private getMessageLineRefFromStr(candidate: string): MessageLineRef {
