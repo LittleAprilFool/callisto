@@ -66,7 +66,6 @@ export class MessageBox implements IMessageBox {
     }
 
     public initQuill(): void {
-        console.log('initting quill');
         this.quill_object = new Quill_lib('#editor', {
             modules: {
                 toolbar: false
@@ -200,7 +199,7 @@ export class MessageBox implements IMessageBox {
     }
 
     private stringToCollapse(char_count: number, op: {insert: string}, caret_pos: number): Array<{from: number, to: number, text: string, ref_type: RefType}> {
-        const type_candidates: RefType[] = ["CODE", "CELL", "MARKER", "VERSION", "DIFF"];
+        const type_candidates: RefType[] = ["CODE", "CELL", "MARKER", "SNAPSHOT", "DIFF"];
         const result = new Array();
         type_candidates.forEach(ref_type => {
             const match = op.insert.match(this.getRegex(ref_type, true));
@@ -255,7 +254,7 @@ export class MessageBox implements IMessageBox {
                 line_ref.marker_index = +match[3];
                 break;
             }
-            case "VERSION": {
+            case "SNAPSHOT": {
                 line_ref.version = match[2];
                 break;
             }
@@ -287,7 +286,7 @@ export class MessageBox implements IMessageBox {
                 // [marker](C0, M1) -> to an annotation marker
                 return "[" + message_line_ref.text + "](C" + line_ref.cell_index.toString() + ", M" + line_ref.marker_index.toString() + ")";
             }
-            case "VERSION": {
+            case "SNAPSHOT": {
                 // [notebook-snapshot](V12345) -> to a version
                 return "[" + message_line_ref.text + "](V" + line_ref.version + ")";
             }
@@ -321,7 +320,7 @@ export class MessageBox implements IMessageBox {
                 re = /\[(.*?)\]\(C([0-9]+), M([0-9]+)\)/;
                 break;
             }
-            case "VERSION": {
+            case "SNAPSHOT": {
                 // [notebook-snapshot](V12345) -> to a version
                 re = /\[(.*?)\]\(V([0-9]+)\)/;
                 break;
@@ -345,12 +344,10 @@ export class MessageBox implements IMessageBox {
                 return {'color': '#008000', bold: true};
             case "MARKER":
                 return {'color': '#9d00e8', bold: true};
-            case "VERSION":
+            case "SNAPSHOT":
                 return {'color': '#0e66dc', bold: true};
             case "DIFF":
                 return {'color': '#ff7a00', bold: true};
         }
     }
-    // todo: refactor some function names
-    // todo: refactor VERSION to SNAPSHOT
 }

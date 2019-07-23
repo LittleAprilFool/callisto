@@ -50,7 +50,7 @@ export type RefType =
         "CODE" |      // [text](C0, L1, L5) -> to a code range
         "CELL" |       // [cell](C0) -> to a cell
         "MARKER" |     // [marker](C0, M1) -> to an annotation marker
-        "VERSION" |    // [notebook-snapshot](V12345) -> to a version
+        "SNAPSHOT" |    // [notebook-snapshot](V12345) -> to a version
         "DIFF";        // [notebook-diff](V12345, V54321) -> to a code diff
 
 interface LineRef {
