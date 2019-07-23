@@ -91,8 +91,8 @@ export class MessageBox implements IMessageBox {
         quill_div.addEventListener('click', this.handleCaretMove);
         quill_div.addEventListener('keyup', this.handleCaretMove);
 
-        quill_div.setAttribute('style', 'height: 50px; width: 220px;');
-        this.el.setAttribute('style', 'height: 50px; width: 220px;');
+        quill_div.setAttribute('style', 'height: 44px; width: 220px;');
+        this.el.setAttribute('style', 'height: 44px; width: 220px;');
     }
 
     private handleCaretMove = (): void => {
