@@ -100,7 +100,7 @@ export class ChatWidget implements IChatWidget {
             if(label === 'version-current') {
                 const timestamp = getTimestamp().toString();
                 this.messageBox.appendRef('notebook-snapshot', {
-                    type: "VERSION",
+                    type: "SNAPSHOT",
                     version: timestamp.toString()
                 });
                 // appended_text = '[notebook-snapshot](V'+ timestamp + ')';
@@ -108,7 +108,7 @@ export class ChatWidget implements IChatWidget {
             else if(label.includes('version')) {
                 const tag = label.split('-');
                 this.messageBox.appendRef('notebook-snapshot', {
-                    type: "VERSION",
+                    type: "SNAPSHOT",
                     version: tag[1]
                 });
                 // appended_text = '[notebook-snapshot](V'+ tag[1] + ')';
@@ -489,7 +489,6 @@ export class ChatWidget implements IChatWidget {
         // [text](V12345) -> to a version
         // [text](V12345, V54321) -> to a code diff
 
-        // todo: fix ahh
         const re = /\[(.*?)\]\((.*?)\)/g;
         const origin_text = message.content;
         this.sender = message.sender;
