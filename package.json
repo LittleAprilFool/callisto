@@ -21,9 +21,9 @@
     "babel-loader": "^8.0.5",
     "chai": "^4.2.0",
     "cross-env": "^5.2.0",
-    "sdb-ts": "^0.2.5",
-    "ts-node": "^8.0.3",
-    "tsc-watch": "^2.1.2",
+    "sdb-ts": "^0.2.6",
+    "ts-node": "^8.3.0",
+    "tsc-watch": "^2.2.1",
     "tsify": "^4.0.1",
     "tslint-config-prettier": "^1.18.0",
     "typescript": "^3.3.4000",
@@ -32,17 +32,16 @@
   "dependencies": {
     "@babel/register": "^7.4.0",
     "@types/node": "^11.11.5",
+    "@types/sharedb": "^1.0.1",
     "babel-polyfill": "^6.26.0",
     "babel-preset-env": "^1.7.0",
     "babel-preset-stage-0": "^6.24.1",
     "babel-register": "^6.26.0",
-    "browserify": "^16.2.3",
-    "codemirror": "^5.46.0",
+    "browserify": "^16.3.0",
+    "codemirror": "^5.48.2",
     "gitmoji-cli": "^1.9.3",
-    "javascript-time-ago": "^2.0.1",
-    "jss": "^9.8.7",
-    "luxon": "^1.17.1",
+    "list.js": "^1.5.0",
     "mocha": "^6.1.4",
-    "tslint": "^5.14.0"
+    "tslint": "^5.18.0"
   }
 }

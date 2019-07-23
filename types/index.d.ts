@@ -97,6 +97,7 @@ interface Cell {
     outputs?: Output[];
     source?: string[];
     rendered?: boolean;
+    unique_id?: string;
 }
 
 interface Output{
