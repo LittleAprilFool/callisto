@@ -44,10 +44,28 @@ interface Cursor {
     to: number;
 }
 
+// note: URL is actually not implemented
+export type RefType =
+        "URL" |       // [text](URL)
+        "CODE" |      // [text](C0, L1, L5) -> to a code range
+        "CELL" |       // [cell](C0) -> to a cell
+        "MARKER" |     // [marker](C0, M1) -> to an annotation marker
+        "VERSION" |    // [notebook-snapshot](V12345) -> to a version
+        "DIFF";        // [notebook-diff](V12345, V54321) -> to a code diff
+
 interface LineRef {
-    cm_index: number;
-    from: number;
-    to: number;
+    type: RefType;  // all types
+
+    URL?: string;   // exists for URL types
+
+    cell_index?: number;    // exists for CODE, CELL and MARKER
+    code_from?: number;    // exists for CODE
+    code_to?: number;      // exists for CODE
+
+    marker_index?: number;  // exists for MARKER
+
+    version?: string;       // exists for VERSION and DIFF
+    version_diff?: string;  // exists for DIFF
 }
 
 interface MessageLineRef {
@@ -56,7 +74,6 @@ interface MessageLineRef {
     from: number;
     to: number;
     expanded: boolean;
-    // TODO: add type
 }
 
 interface Message {

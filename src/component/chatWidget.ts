@@ -65,14 +65,11 @@ export class ChatWidget implements IChatWidget {
 
     public onSelectAnnotation = (cell_index: number, object_index: number): void => {
         if(!this.isFold) {
-            // TODO: fix the appending ref for markers
-            const appended_text = '[marker](C' + cell_index + ', M' + object_index + ') ';
             this.messageBox.appendRef('marker', {
-                cm_index: cell_index,
-                from: -1,
-                to: -1
+                type: "MARKER",
+                cell_index,
+                marker_index: object_index
             });
-            this.messageBox.value = this.messageBox.value + appended_text;
         }
     }
 
@@ -87,32 +84,45 @@ export class ChatWidget implements IChatWidget {
             if(cursor.from!==cursor.to) {
                 const cell = Jupyter.notebook.get_cell(cursor.cm_index);
                 const text = cell.code_mirror.getSelection();
-                const line_ref = {
-                    cm_index: cursor.cm_index,
-                    from: cursor.from,
-                    to: cursor.to
-                };
-                this.messageBox.appendRef(text, line_ref);
+                this.messageBox.appendRef(text, {
+                    type: "CODE",
+                    cell_index: cursor.cm_index,
+                    code_from: cursor.from,
+                    code_to: cursor.to
+                });
             }
         }
     }
 
     public onSelectDiff = (label: string): void => {
         if (!this.isFold) {
-            let appended_text;
+            // let appended_text;
             if(label === 'version-current') {
                 const timestamp = getTimestamp().toString();
-                appended_text = '[notebook-snapshot](V'+ timestamp + ')';
+                this.messageBox.appendRef('notebook-snapshot', {
+                    type: "VERSION",
+                    version: timestamp.toString()
+                });
+                // appended_text = '[notebook-snapshot](V'+ timestamp + ')';
             }
             else if(label.includes('version')) {
                 const tag = label.split('-');
-                appended_text = '[notebook-snapshot](V'+ tag[1] + ')';
+                this.messageBox.appendRef('notebook-snapshot', {
+                    type: "VERSION",
+                    version: tag[1]
+                });
+                // appended_text = '[notebook-snapshot](V'+ tag[1] + ')';
             }
             else if (label.includes('diff')) {
                 const tag = label.split('-');
-                appended_text = '[notebook-diff](V'+ tag[1] + ', V'+tag[2] +')';
+                this.messageBox.appendRef('notebook-diff', {
+                    type: "DIFF",
+                    version: tag[1],
+                    version_diff: tag[2]
+                });
+                // appended_text = '[notebook-diff](V'+ tag[1] + ', V'+tag[2] +')';
             }
-            this.messageBox.value = this.messageBox.value + appended_text;
+            // this.messageBox.value = this.messageBox.value + appended_text;
         }
     }
 
@@ -123,7 +133,11 @@ export class ChatWidget implements IChatWidget {
         if(this.isEdit) {
             const cm_index = info.cell.code_mirror.index;
             const appended_text = '[cell](C'+cm_index + ')';
-            this.messageBox.value = this.messageBox.value + appended_text;
+            this.messageBox.appendRef("cell", {
+                type: "CELL",
+                cell_index: cm_index
+            });
+            // this.messageBox.value = this.messageBox.value + appended_text;
         }
         if(this.isEditLinking) {
             const cellEl_list = document.querySelectorAll('.cell');
@@ -315,10 +329,9 @@ export class ChatWidget implements IChatWidget {
 
         // link chat message with related cells
         const re = /\[(.*?)\]\((.*?)\)/g;
-        const origin_text = this.messageBox.value;
+        const origin_text = this.messageBox.getSubmissionValue();
         const line_refs = origin_text.match(re);
 
-        // TODO: replace the value above with submitting value from messagebox
         if(line_refs!==null) {
             line_refs.forEach(line_ref => {
                 const re2 = /C(.*), L(.*), L(.*)/;
@@ -332,7 +345,7 @@ export class ChatWidget implements IChatWidget {
         else {
             // link chat message with the cell that someone clicks on
             const current_cell = Jupyter.notebook.get_selected_cell();
-           if(current_cell) related_cells.push(current_cell.code_mirror.index);
+            if(current_cell) related_cells.push(current_cell.code_mirror.index);
         }
 
         const newMessage: Message = {

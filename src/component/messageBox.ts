@@ -1,5 +1,5 @@
 import Delta = require('quill-delta');
-import { IMessageBox, LineRef, MessageLineRef } from 'types';
+import { IMessageBox, LineRef, MessageLineRef, RefType } from 'types';
 import { Quill } from 'types/quill';
 import * as Quill_lib from '../external/quill';
 
@@ -11,9 +11,6 @@ export class MessageBox implements IMessageBox {
     public text_area: HTMLTextAreaElement;
     public ref_list: MessageLineRef[];
     public quill_object: Quill;
-
-    // todo: remove this mock stuff after fixing everything
-    public value: string;
 
     constructor() {
         this.ref_list = new Array();
@@ -29,14 +26,11 @@ export class MessageBox implements IMessageBox {
                 // references
                 if (index < this.ref_list.length) {
                     const message_line_ref = this.ref_list[index];
-                    const line_ref = message_line_ref.line_ref;
                     index += 1;
-                    submission_string += '['+ message_line_ref.text + '](C' + line_ref.cm_index.toString() + ', L' + (line_ref.from === -1 ? '*' : line_ref.from.toString()) + ', L' +(line_ref.from === -1 ? '' : line_ref.to.toString()) + ')';
+                    submission_string += this.messageLineRefToExpandedString(message_line_ref);
                 }
             } else {
                 // plain text
-                const re = /\[(.*?)\]\(C([0-9]*?), L([0-9]*\*), L([0-9]*)\)/g; 
-                // console.log(match);
                 submission_string += insertion.insert;
             }
         });
@@ -53,7 +47,7 @@ export class MessageBox implements IMessageBox {
             ops: [
                 { retain: this.quill_object.getLength() - 1 },
                 { insert: ' ' },
-                { insert: text, attributes: {'color': '#d10d2a', 'bold': true} },
+                { insert: text, attributes: this.getAttributes(line_ref.type) },
                 { insert: ' ' },
             ]
         };
@@ -117,8 +111,7 @@ export class MessageBox implements IMessageBox {
                 if (this.shouldExpand(char_count, op, caret_pos[0], caret_pos[1])) {
                     // expand
                     const message_line_ref = this.ref_list[ref_index];
-                    const line_ref = message_line_ref.line_ref;
-                    const expanded_text = '['+ message_line_ref.text + '](C' + line_ref.cm_index.toString() + ', L' + (line_ref.from === -1 ? '*' : line_ref.from.toString()) + ', L' +(line_ref.from === -1 ? '' : line_ref.to.toString()) + ')';
+                    const expanded_text = this.messageLineRefToExpandedString(message_line_ref);
                     delta.ops.push({insert: expanded_text});
                     delta.ops.push({delete: op.insert.length});
                     this.ref_list.splice(ref_index, 1);
@@ -132,12 +125,12 @@ export class MessageBox implements IMessageBox {
                 }
             }
             else {
-                let matches = new Array<{from: number, to: number, text: string}>();
+                let matches = new Array<{from: number, to: number, text: string, ref_type: RefType}>();
                 if (!('attributes' in op) && this.stringToCollapse(char_count, op, caret_pos[0]).length  !== 0 && this.stringToCollapse(char_count, op, caret_pos[1]).length !== 0) {
                     if (caret_pos[0] === caret_pos[1]) {
                         matches = this.stringToCollapse(char_count, op, caret_pos[0]);
                     } else {
-                        matches = new Array<{from: number, to: number, text: string}>();
+                        matches = new Array<{from: number, to: number, text: string, ref_type: RefType}>();
                         const matches_1 = this.stringToCollapse(char_count, op, caret_pos[0]);
                         const matches_2 = this.stringToCollapse(char_count, op, caret_pos[1]);
                         matches_1.forEach(match_1 => {
@@ -160,9 +153,9 @@ export class MessageBox implements IMessageBox {
                 } else {
                     // collapse
                     let local_char_count = 0;
-                    matches.forEach((match: {from: number, to: number, text: string}) => {
+                    matches.forEach((match: {from: number, to: number, text: string, ref_type: RefType}) => {
                         // dealing with ref list
-                        const new_message_line_ref: MessageLineRef = this.getMessageLineRefFromStr(match.text);
+                        const new_message_line_ref: MessageLineRef = this.expandedStringToMessageLineRef(match.text, match.ref_type);
                         this.ref_list.splice(ref_index, 0, new_message_line_ref);
                         ref_index += 1;
 
@@ -176,7 +169,7 @@ export class MessageBox implements IMessageBox {
                             }
                         }
                         local_char_count = match.to;
-                        delta.ops.push({'insert': new_message_line_ref.text, 'attributes': {'color': '#d10d2a', 'bold': true}});
+                        delta.ops.push({'insert': new_message_line_ref.text, 'attributes': this.getAttributes(new_message_line_ref.line_ref.type)});
                         delta.ops.push({'delete': match.text.length});
                     });
                     if (op.insert.length > local_char_count) {
@@ -197,23 +190,6 @@ export class MessageBox implements IMessageBox {
         }
     }
     
-    private getMessageLineRefFromStr(candidate: string): MessageLineRef {
-        const re = /\[(.*?)\]\(C([0-9]*?), L([0-9\*]*), L([0-9]*)\)/;
-        const match = candidate.match(re);
-        const line_ref = {
-            cm_index: +match[2],
-            from: +match[3],
-            to: +match[4]
-        };
-        const message_line_ref = {
-            line_ref,
-            text: match[1],
-            from: -1,
-            to: -1,
-            expanded: false
-        };
-        return message_line_ref;
-    }
 
     private shouldExpand(char_count: number, op: {insert: string, attributes: object}, caret_pos1: number, caret_pos2: number): boolean {
         if (caret_pos2 < char_count || caret_pos1 > char_count + op.insert.length) {
@@ -223,24 +199,158 @@ export class MessageBox implements IMessageBox {
         }
     }
 
-    private stringToCollapse(char_count: number, op: {insert: string}, caret_pos: number): Array<{from: number, to: number, text: string}> {
-        const re = /\[(.*?)\]\(C([0-9]*?), L([0-9\*]*), L([0-9]*)\)/g;
+    private stringToCollapse(char_count: number, op: {insert: string}, caret_pos: number): Array<{from: number, to: number, text: string, ref_type: RefType}> {
+        const type_candidates: RefType[] = ["CODE", "CELL", "MARKER", "VERSION", "DIFF"];
         const result = new Array();
-        const match = op.insert.match(re);
-        let local_char_count = 0;
-        if (match !== null) {
-            match.forEach(candidate => {
-                const index = op.insert.slice(local_char_count, op.insert.length).indexOf(candidate);
-                if (char_count + local_char_count + index > caret_pos || char_count + local_char_count + index + candidate.length < caret_pos) {
-                    result.push({
-                        from: local_char_count + index,
-                        to: local_char_count + index + candidate.length,
-                        text: candidate
-                    });
-                }
-                local_char_count += index + candidate.length;
-            });
-        }
-        return result;
+        type_candidates.forEach(ref_type => {
+            const match = op.insert.match(this.getRegex(ref_type, true));
+            let local_char_count = 0;
+            if (match !== null) {
+                match.forEach(candidate => {
+                    const index = op.insert.slice(local_char_count, op.insert.length).indexOf(candidate);
+                    if (char_count + local_char_count + index > caret_pos || char_count + local_char_count + index + candidate.length < caret_pos) {
+                        result.push({
+                            from: local_char_count + index,
+                            to: local_char_count + index + candidate.length,
+                            text: candidate,
+                            ref_type
+                        });
+                    }
+                    local_char_count += index + candidate.length;
+                });
+            }
+        });
+        return result.sort((a, b) => (a.from > b.from) ? 1 : -1);
     }
+
+    private expandedStringToMessageLineRef(candidate: string, t: RefType): MessageLineRef {
+        const re = this.getRegex(t, false);
+        const match = candidate.match(re);
+        const line_ref: LineRef = {
+            type: t,
+        };
+        const message_line_ref = {
+            line_ref,
+            text: match[1],
+            from: -1,
+            to: -1,
+            expanded: false
+        };
+        switch (t) {
+            case "URL": {
+                line_ref.URL = match[2];
+                break;
+            }
+            case "CODE": {
+                line_ref.code_from = +match[3];
+                line_ref.code_to = +match[4];
+                // fall through
+            }
+            case "CELL": {
+                line_ref.cell_index = +match[2];
+                break;
+            }
+            case "MARKER": {
+                line_ref.cell_index = +match[2];
+                line_ref.marker_index = +match[3];
+                break;
+            }
+            case "VERSION": {
+                line_ref.version = match[2];
+                break;
+            }
+            case "DIFF": {
+                line_ref.version = match[2];
+                line_ref.version_diff = match[3];
+                break;
+            }
+        }
+        return message_line_ref;
+    }
+
+    private messageLineRefToExpandedString(message_line_ref: MessageLineRef): string {
+        const line_ref = message_line_ref.line_ref;
+        switch (line_ref.type) {
+            case "URL": {
+                // not implemented
+                return "";
+            }
+            case "CODE": {
+                // [text](C0, L1, L5) -> to a code range
+                return "[" + message_line_ref.text + "](C" + line_ref.cell_index.toString() + ", L" + line_ref.code_from.toString() + ", L" + line_ref.code_to.toString() + ")";
+            }
+            case "CELL": {
+                // [cell](C0) -> to a cell
+                return "[" + message_line_ref.text + "](C" + line_ref.cell_index.toString() + ")";
+            }
+            case "MARKER": {
+                // [marker](C0, M1) -> to an annotation marker
+                return "[" + message_line_ref.text + "](C" + line_ref.cell_index.toString() + ", M" + line_ref.marker_index.toString() + ")";
+            }
+            case "VERSION": {
+                // [notebook-snapshot](V12345) -> to a version
+                return "[" + message_line_ref.text + "](V" + line_ref.version + ")";
+            }
+            case "DIFF": {
+                // [notebook-diff](V12345, V54321) -> to a code diff
+                return "[" + message_line_ref.text + "](V" + line_ref.version + ", V" + line_ref.version_diff + ")";
+            }
+        }
+    }
+
+    private getRegex(t: RefType, global: boolean): RegExp {
+        let re: RegExp;
+        switch (t) {
+            case "URL": {
+                // this is not a refined URL regex because it's not implemented yet
+                re = /\[(.*?)\]\(([0-9a-zA-Z\\\/\.\-_:]*)\)/;
+                break;
+            }
+            case "CODE": {
+                // [text](C0, L1, L5) -> to a code range
+                re = /\[(.*?)\]\(C([0-9]+), L([0-9]+), L([0-9]+)\)/;
+                break;
+            }
+            case "CELL": {
+                // [cell](C0) -> to a cell
+                re = /\[(.*?)\]\(C([0-9]+)\)/;
+                break;
+            }
+            case "MARKER": {
+                // [marker](C0, M1) -> to an annotation marker
+                re = /\[(.*?)\]\(C([0-9]+), M([0-9]+)\)/;
+                break;
+            }
+            case "VERSION": {
+                // [notebook-snapshot](V12345) -> to a version
+                re = /\[(.*?)\]\(V([0-9]+)\)/;
+                break;
+            }
+            case "DIFF": {
+                // [notebook-diff](V12345, V54321) -> to a code diff
+                re = /\[(.*?)\]\(V([0-9]+), V([0-9]+)\)/;
+                break;
+            }
+        }
+        return global ? new RegExp(re.source, 'g') : re;
+    }
+
+    private getAttributes(t: RefType): {color: string, bold: boolean} {
+        switch (t) {
+            case "URL": 
+                return {'color': '#aa1111', bold: true};
+            case "CODE":
+                return {'color': '#aa1111', bold: true};
+            case "CELL":
+                return {'color': '#008000', bold: true};
+            case "MARKER":
+                return {'color': '#9d00e8', bold: true};
+            case "VERSION":
+                return {'color': '#0e66dc', bold: true};
+            case "DIFF":
+                return {'color': '#ff7a00', bold: true};
+        }
+    }
+    // todo: refactor some function names
+    // todo: refactor VERSION to SNAPSHOT
 }
