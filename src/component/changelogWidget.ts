@@ -1,4 +1,5 @@
 import { DiffWidget } from './diffWidget';
+import { IChangelogWidget, Notebook, Changelog } from 'types';
 
 const Jupyter = require('base/js/namespace');
 

@@ -1,3 +1,5 @@
+import { IDiffTabWidget } from "types";
+
 export class DiffTabWidget implements IDiffTabWidget {
     private container: HTMLElement;
     constructor() {

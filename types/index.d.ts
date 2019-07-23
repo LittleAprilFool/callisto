@@ -1,3 +1,5 @@
+import Quill from "./quill";
+
 interface Dialog {
     title: string;
     body: HTMLElement;
@@ -54,7 +56,7 @@ interface MessageLineRef {
     from: number;
     to: number;
     expanded: boolean;
-    span: HTMLSpanElement;
+    // TODO: add type
 }
 
 interface Message {
@@ -155,8 +157,11 @@ interface ICursorWidget {
 }
 
 interface IMessageBox {
-    text_area: HTMLTextAreaElement;
+    el: HTMLDivElement;
+    quill_object: Quill;
+    ref_list: MessageLineRef[];
 }
+
 interface IDiffTabWidget {
     destroy(): void;
     checkTab(type: string, timestamp: number): boolean;

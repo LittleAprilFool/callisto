@@ -1,3 +1,4 @@
+import { Cursor, IChatWidget, User, Message } from 'types';
 import { getTime } from '../action/utils';
 import { MessageBox } from './messageBox';
 const Jupyter = require('base/js/namespace');
@@ -25,7 +26,6 @@ export class ChatWidget implements IChatWidget {
 
     constructor(private user: User, private doc: any) {
         this.messageBox = new MessageBox();
-        this.messageBox.el.addEventListener('append_ref', this.updateUnsendLineRefListener.bind(this));
         this.initContainer();
         this.initStyle();
         this.loadHistory();
@@ -68,7 +68,6 @@ export class ChatWidget implements IChatWidget {
                 from: -1,
                 to: -1
             });
-            // this.messageBox.value = this.messageBox.value + appended_text;
         }
     }
 
@@ -87,7 +86,7 @@ export class ChatWidget implements IChatWidget {
                     cm_index: cursor.cm_index,
                     from: cursor.from,
                     to: cursor.to
-                }
+                };
                 this.messageBox.appendRef(text, line_ref);
             }
         }
@@ -322,16 +321,6 @@ export class ChatWidget implements IChatWidget {
         }
     }
 
-    private updateUnsendLineRefListener(): void {
-        const tag_unsend = document.getElementsByClassName('line_ref_unsend');
-        for (const item of tag_unsend) {
-            const el = item as HTMLElement;
-            if (!el.onclick) {
-                el.addEventListener('click', this.handleLineRef);
-            }
-        }
-    }
-
     private updateTitle = (flag): void => {
         const el = this.toolContainer.childNodes[1] as HTMLElement;
         const icon = this.toolContainer.childNodes[0] as HTMLElement;
@@ -452,10 +441,10 @@ export class ChatWidget implements IChatWidget {
         sheet.innerHTML += '.line_highlight { background-color: yellow; } \n';
         sheet.innerHTML += '.line_ref { color: #aa1111; cursor: pointer; font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; } \n';
         sheet.innerHTML += '.line_ref:hover { color: #971616; text-decoration: underline; } \n';
-        sheet.innerHTML += '.line_ref_unsend { color: #aa1111; cursor: pointer; } \n';
-        sheet.innerHTML += '.line_ref_unsend:hover { color: #971616; text-decoration: underline; } \n';
         
         sheet.innerHTML += '#message-box { float: left; } \n';
+        sheet.innerHTML += '.ql-editor {padding: 2px 10px; font-size: 12px;}';
+
         sheet.innerHTML += '#slider {border-radius: 20px; position: absolute; cursor: pointer; background-color: #516666; transition: .4s; top: 0; left: 0; right: 0; bottom: 0; } \n';
         sheet.innerHTML += '#slider:before {position:absolute; content:" ";height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: #9cc4a6; transition:.4s; border-radius: 50%; } \n';
         sheet.innerHTML += '#switch {display: none; position: relative; bottom: 378px; left: 20px; width: 40px; height: 20px; } \n';
@@ -465,7 +454,6 @@ export class ChatWidget implements IChatWidget {
         sheet.innerHTML += 'input:checked + #slider:before { transform: translateX(20px); } \n';
         sheet.innerHTML += '.mark {color: red}';
 
-        sheet.innerHTML += '.ql-editor {padding: 2px 10px; font-size: 12px;}';
         document.body.appendChild(sheet);
     }
 }

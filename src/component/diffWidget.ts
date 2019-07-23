@@ -1,3 +1,5 @@
+import { IDiffWidget, Notebook, Cell } from "types";
+
 export class DiffWidget implements IDiffWidget {
     private container: HTMLElement;
     

@@ -1,3 +1,4 @@
+import { IAnnotationWidget } from 'types';
 import * as fabric from '../external/fabric';
 
 export class AnnotationWidget implements IAnnotationWidget {
