@@ -1,3 +1,4 @@
+import { IDiffTabWidget, Notebook } from 'types';
 import { timeAgo } from '../action/utils';
 import { DiffWidget } from './diffWidget';
 

@@ -1,3 +1,5 @@
+import { Changelog, IChangelogWidget, IDiffTabWidget } from 'types';
+
 const Jupyter = require('base/js/namespace');
 
 const checkOpType = (op): string => {

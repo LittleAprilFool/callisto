@@ -10,6 +10,7 @@ import { ChatWidget } from './chatWidget';
 import { CursorWidget } from "./cursorWidget";
 import { DiffTabWidget } from './diffTabWidget';
 import { UserListWidget } from './userListWidget';
+import { INotebookBinding, ICellBinding, User, IUserListWidget, IChatWidget, ICursorWidget, IChangelogWidget, IDiffTabWidget, SharedDoc, SharedDocOption, Changelog } from "types";
 
 const Jupyter = require('base/js/namespace');
 
