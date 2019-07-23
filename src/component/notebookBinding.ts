@@ -1,7 +1,8 @@
 import { SDBDoc } from "sdb-ts";
+
 import { getNotebookMirror} from '../action/notebookAction';
 import { getUserName } from '../action/userAction';
-import { generateUUID, getRandomColor, getTime, getTimestamp } from '../action/utils';
+import { generateUUID, getRandomColor, getTime, getTimestamp} from '../action/utils';
 import { AnnotationWidget } from './annotationWidget';
 import { CellBinding } from './cellBinding';
 import { ChangelogWidget } from './changelogWidget';
@@ -73,6 +74,7 @@ export class NotebookBinding implements INotebookBinding {
         cursor: true,
         changelog: true
     }) {
+        this.initStyle();
         this.sdbDoc.subscribe(this.onSDBDocEvent);
         this.eventsOn();
         
@@ -83,17 +85,20 @@ export class NotebookBinding implements INotebookBinding {
         };
         this.user = newUser;
 
-        this.diffTabWidget = new DiffTabWidget();
+        const identifier = this.sdbDoc.getIdentifier();
+        this.diffTabWidget = new DiffTabWidget(this.client, identifier);
+
 
         if(option.chat) {
             const chatDoc = this.sdbDoc.subDoc(['chat']);
-            this.chatWidget = new ChatWidget(this.user, chatDoc);
+            this.chatWidget = new ChatWidget(this.user, chatDoc, this.diffTabWidget);
         }
+        this.diffTabWidget.bindChatAction(this.chatWidget.onSelectDiff.bind(this.chatWidget));
+
 
         if(option.changelog) {
             const changelogDoc = this.sdbDoc.subDoc(['changelog']);
-            const identifier = this.sdbDoc.getIdentifier();
-            this.changelogWidget = new ChangelogWidget(changelogDoc, this.client, identifier, this.diffTabWidget);
+            this.changelogWidget = new ChangelogWidget(changelogDoc, this.diffTabWidget);
         } 
 
         this.sharedCells = [];
@@ -139,15 +144,13 @@ export class NotebookBinding implements INotebookBinding {
         }
 
         if(option.chat && option.cursor) {
-            this.cursorWidget.bindChatAction(this.chatWidget.onCursorChange.bind(this.chatWidget));
+            this.cursorWidget.bindChatAction(this.chatWidget.onSelectCursor.bind(this.chatWidget));
             this.chatWidget.bindCursorAction(this.cursorWidget.updateLineRefCursor.bind(this.cursorWidget));
         }
 
         if(option.chat && option.annotation) {
             this.chatWidget.bindAnnotationAction(this.annotationHighlight);
         }
-
-
     }
 
     public destroy = (): void => {
@@ -723,5 +726,12 @@ export class NotebookBinding implements INotebookBinding {
             const focus_cell = document.querySelectorAll('.cell')[cell_index];
             focus_cell.scrollIntoView();
         }
+    }
+
+    private initStyle = (): void => {
+        const sheet = document.createElement('style');
+        sheet.innerHTML += '#notebook-container {box-shadow: none !important; border: 1px solid #ddd;}\n';
+        sheet.innerHTML += '.notebook_app > #header {box-shadow: none !important; border-bottom: 1px solid #ddd;}\n';
+        document.body.appendChild(sheet);
     }
 }

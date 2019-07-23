@@ -3,7 +3,7 @@ import { IDiffWidget, Notebook, Cell } from "types";
 export class DiffWidget implements IDiffWidget {
     private container: HTMLElement;
     
-    constructor(private new_notebook: Notebook,  private old_notebook: Notebook, private title: string, private timestamp: number) {
+    constructor(private type: string, private notebook: Notebook[], private title: string, private timestamp: number[]) {
         this.initContainer();
         this.initStyle();
 
@@ -15,50 +15,58 @@ export class DiffWidget implements IDiffWidget {
     }
 
     private displayDiff = (): void => {
-        let oindex = 0;
-        let nindex = 0;
-        const olength = this.old_notebook.cells.length;
-        const nlength = this.new_notebook.cells.length;
-        const ncells = this.new_notebook.cells;
-        const ocells = this.old_notebook.cells;
+        if(this.type === 'version') {
+            this.notebook[0].cells.forEach(cell=> {
+                this.addCell(cell);
+            });
+        }
+        else {
+            const new_notebook = this.notebook[0];
+            const old_notebook = this.notebook[1];
+            let oindex = 0;
+            let nindex = 0;
+            const olength = old_notebook.cells.length;
+            const nlength = new_notebook.cells.length;
+            const ncells = new_notebook.cells;
+            const ocells = old_notebook.cells;
 
-        while((nindex<nlength) && (oindex<olength)) {
+            while((nindex<nlength) && (oindex<olength)) {
+                if(ncells[nindex].source === ocells[oindex].source) {
+                    this.addCell(ncells[nindex]);
+                    oindex ++;
+                    nindex ++;
+                    continue;
+                }
 
-            if(ncells[nindex].source === ocells[oindex].source) {
-                this.addCell(ncells[nindex]);
-                oindex ++;
+                // delete cell
+                if(ncells[nindex].source === ocells[oindex+1].source) {
+                    this.addDiffCell(null, ocells[oindex]);
+                    oindex ++;
+                    continue;
+                }
+
+                // add cell 
+                if (ncells[nindex+1].source === ocells[oindex].source) {
+                    this.addDiffCell(ncells[nindex], null);
+                    nindex ++;
+                    continue;
+                }
+
+                // edit cell
+                this.addDiffCell(ncells[nindex], ocells[oindex]);
+                oindex ++;  
                 nindex ++;
-                continue;
+                continue;  
             }
 
-            // delete cell
-            if(ncells[nindex].source === ocells[oindex+1].source) {
-                this.addDiffCell(null, ocells[oindex]);
-                oindex ++;
-                continue;
-            }
-
-            // add cell 
-            if (ncells[nindex+1].source === ocells[oindex].source) {
+            while(nindex < nlength) {
                 this.addDiffCell(ncells[nindex], null);
                 nindex ++;
-                continue;
             }
-
-            // edit cell
-            this.addDiffCell(ncells[nindex], ocells[oindex]);
-            oindex ++;  
-            nindex ++;
-            continue;  
-        }
-
-        while(nindex < nlength) {
-            this.addDiffCell(ncells[nindex], null);
-            nindex ++;
-        }
-        while(oindex < olength) {
-            this.addDiffCell(ocells[oindex], null);
-            oindex ++;
+            while(oindex < olength) {
+                this.addDiffCell(ocells[oindex], null);
+                oindex ++;
+            }
         }
     }
 
@@ -159,7 +167,8 @@ export class DiffWidget implements IDiffWidget {
 
     private initContainer = (): void => {
         this.container = document.createElement('div');
-        this.container.classList.add('container', 'diffwidget-container', 'diff-' + this.timestamp.toString());
+        const label = this.type === 'diff'? 'diff-'+this.timestamp[0]+'-'+this.timestamp[1]:'version-'+this.timestamp[0];  
+        this.container.classList.add('container', 'diffwidget-container', label);
         const trigger = document.createElement('div');
         trigger.classList.add('diffwidget-trigger');
 
@@ -167,19 +176,21 @@ export class DiffWidget implements IDiffWidget {
         title.innerText = this.title;
         trigger.appendChild(title);
 
-        const label_container = document.createElement('div');
-        label_container.id='label-container';
-        const label_new = document.createElement('div');
-        label_new.innerText = 'New';
-        label_new.classList.add('version-label');
-        label_new.id = 'label-new';
-        const label_old = document.createElement('div');
-        label_old.innerText = 'Old';
-        label_old.classList.add('version-label');
-        label_old.id = 'label-old';
-        label_container.appendChild(label_new);
-        label_container.appendChild(label_old);
-        trigger.appendChild(label_container);
+        if(this.type === 'diff') {
+            const label_container = document.createElement('div');
+            label_container.id='label-container';
+            const label_new = document.createElement('div');
+            label_new.innerText = 'New';
+            label_new.classList.add('version-label');
+            label_new.id = 'label-new';
+            const label_old = document.createElement('div');
+            label_old.innerText = 'Old';
+            label_old.classList.add('version-label');
+            label_old.id = 'label-old';
+            label_container.appendChild(label_new);
+            label_container.appendChild(label_old);
+            trigger.appendChild(label_container);
+        }
 
         this.container.appendChild(trigger);
         const main_container = document.querySelector('#notebook');
@@ -188,13 +199,13 @@ export class DiffWidget implements IDiffWidget {
 
     private initStyle = (): void => {
         const sheet = document.createElement('style');
-        sheet.innerHTML += '.diffwidget-container { padding: 15px; background-color: white; box-shadow: 0px 0px 12px 0px rgba(87, 87, 87, 0.2); margin-bottom: 20px } \n';
+        sheet.innerHTML += '.diffwidget-container { padding: 15px; background-color: #f7f7f7; box-shadow: 0px 0px 12px 0px rgba(87, 87, 87, 0.2); margin-bottom: 20px } \n';
         sheet.innerHTML += '.diffwidget-trigger { font-size: 15px; text-align: center; position: relative; font-weight: bold;} \n';
         sheet.innerHTML += '.version-label { font-size: 12px; text-align: center; display: inline-block; width: 50%; font-weight: bold;} \n';
         sheet.innerHTML += '#label-new { background:rgba(0, 200, 20, 0.3); } \n';
         sheet.innerHTML += '#label-old { background:rgba(255, 20, 0, 0.3); } \n';
         sheet.innerHTML += '#label-container {margin-top: 10px; margin-bottom: 10px;} \n';
-        sheet.innerHTML += '.diff-cell-container {background: #fff8de4f; overflow:auto;} \n';
+        sheet.innerHTML += '.diff-cell-container {background: #fff6dc; overflow:auto;} \n';
         sheet.innerHTML += '.diff { background: inherit; width: 50% !important; display: inline-block !important; float:left;} \n';
         sheet.innerHTML += '.diff-new .input_area {background: rgba(0, 200, 20, 0.1); }\n';
         sheet.innerHTML += '.diff-old .input_area {background: rgba(255, 20, 0, 0.1); }\n';

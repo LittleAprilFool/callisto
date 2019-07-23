@@ -1,8 +1,22 @@
-import { IDiffTabWidget } from "types";
+import { IDiffTabWidget, Notebook } from 'types';
+import { timeAgo } from '../action/utils';
+import { DiffWidget } from './diffWidget';
 
 export class DiffTabWidget implements IDiffTabWidget {
     private container: HTMLElement;
-    constructor() {
+
+    private new_timestamp: number;
+    private old_timestamp: number;
+    private new_notebook: Notebook;
+    private old_notebook: Notebook;
+    private diff_title: string;
+    private version_timestamp: number;
+    private version_notebook: Notebook;
+    private version_title: string;
+    private chatCallback: any;
+
+
+    constructor(private client: any, private id: any) {
         this.initContainer();
         this.initStyle();
     }
@@ -10,34 +24,41 @@ export class DiffTabWidget implements IDiffTabWidget {
     public destroy = (): void => {
         this.container.parentNode.removeChild(this.container);
     }
-    public checkTab = (type: string, timestamp: number): boolean => {
-        const label = type + '-' + timestamp.toString();
+    public checkTab = (label: string): boolean => {
         const checkTabEl = document.querySelector('.diff-tab.'+label);
+        if(label === 'version-current') {
+            const currentEl = document.querySelector('.diff-tab#tab-current');
+            this.activeTab(currentEl as HTMLElement);
+            return true;
+        }
         if (checkTabEl) {
             this.activeTab(checkTabEl as HTMLElement);
             return true;
         }
         else return false;
     }
+    public bindChatAction = (callback): void => {
+        this.chatCallback = callback;
+    }
 
-    public addTab = (type: string, timestamp: number): void => {
+    public addTab = (label: string, type: string, timestamp: number): void => {
         const new_tab = document.createElement('div');
-        new_tab.classList.add('diff-tab', type +'-'+ timestamp.toString());
-        new_tab.setAttribute('label', type +'-'+timestamp.toString());
+        new_tab.classList.add('diff-tab', label);
+        new_tab.setAttribute('label', label);
         const icon = document.createElement('i');
         icon.innerHTML = type==='diff'?'<i class="fa fa-history"></i>':'<i class="fa fa-code"></i>';
         const title = document.createElement('span');
-        title.innerText = timestamp.toString();
+        title.innerText = timeAgo(timestamp);
         const close_icon = document.createElement('i');
         close_icon.innerHTML = '<i class = "fa fa-times">';
         close_icon.classList.add('close-tab');
-        close_icon.setAttribute('label', type +'-'+timestamp.toString());
+        close_icon.setAttribute('label', label);
         close_icon.addEventListener('click', this.closeTabHandler);
         new_tab.appendChild(icon);
         new_tab.appendChild(title);
         new_tab.appendChild(close_icon);
 
-        title.addEventListener('click', this.activeTabHandler);
+        new_tab.addEventListener('click', this.activeTabHandler);
        
         document.querySelector('.tab-active').classList.remove('tab-active');
         new_tab.classList.add('tab-active');
@@ -46,8 +67,36 @@ export class DiffTabWidget implements IDiffTabWidget {
         this.activeTab(new_tab);
     }
 
+    public addDiff = (new_timestamp: number, old_timestamp: number, title: string): void => {
+        this.new_timestamp = new_timestamp;
+        this.old_timestamp = old_timestamp;
+        this.diff_title = 'Notebook diff between snapshot-' + new_timestamp.toString() + ' (' + timeAgo(new_timestamp) + ') and snapshot-' + old_timestamp.toString() + ' (' + timeAgo(old_timestamp) + ')';
+        this.client.connection.fetchSnapshotByTimestamp(this.id[0], this.id[1], new_timestamp, this.fetchOld);
+    }
+
+    public addVersion = (timestamp: number, title: string): void => {
+        this.version_timestamp = timestamp;
+        this.version_title = 'Notebook snapshot-' + timestamp.toString() + ' (' + timeAgo(timestamp) + ')';
+        this.client.connection.fetchSnapshotByTimestamp(this.id[0], this.id[1], timestamp, this.createVersionWidget);
+    }
+
+    private fetchOld = (err, snapshot): void => {
+        this.new_notebook = snapshot.data.notebook;
+        this.client.connection.fetchSnapshotByTimestamp(this.id[0], this.id[1], this.old_timestamp, this.createDiffWidget);
+    }
+
+    private createDiffWidget = (err, snapshot): void => {
+        this.old_notebook = snapshot.data.notebook;
+        const diffWidget = new DiffWidget('diff', [this.new_notebook, this.old_notebook], this.diff_title, [this.new_timestamp, this.old_timestamp]);
+    }
+
+    private createVersionWidget = (err, snapshot): void => {
+        this.version_notebook = snapshot.data.notebook;
+        const versionWidget = new DiffWidget('version', [this.version_notebook], this.version_title, [this.version_timestamp]);
+    }
+
     private closeTabHandler = (e): void => {
-        const label = e.target.parentNode.getAttribute('label');
+        const label = e.currentTarget.getAttribute('label');
         const related_eles = document.querySelectorAll('.'+ label);
         related_eles.forEach(ele=> {
             ele.parentNode.removeChild(ele);
@@ -55,10 +104,13 @@ export class DiffTabWidget implements IDiffTabWidget {
         const tab_list = document.querySelectorAll('.diff-tab');
         const last_tab = tab_list[tab_list.length-1];
         this.activeTab(last_tab as HTMLElement);
+        e.stopPropagation();
     }
 
     private activeTabHandler = (e): void => {
-        this.activeTab(e.target.parentNode);
+        const label = e.currentTarget.getAttribute('label');
+        this.chatCallback(label);
+        this.activeTab(e.currentTarget);
     }
 
     private activeTab = (ele: HTMLElement): void => {
@@ -101,7 +153,7 @@ export class DiffTabWidget implements IDiffTabWidget {
         notebook_tab.appendChild(title);
         notebook_tab.setAttribute('label', 'version-current');
 
-        title.addEventListener('click', this.activeTabHandler);
+        notebook_tab.addEventListener('click', this.activeTabHandler);
 
         this.container.appendChild(notebook_tab);
         const main_container = document.querySelector('#notebook');

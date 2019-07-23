@@ -63,6 +63,7 @@ interface Message {
     sender: User;
     content: string;
     time: string;
+    timestamp: number;
     cells: string[];
 }
 
@@ -143,8 +144,9 @@ interface IUserListWidget {
 interface IChatWidget {
     destroy(): void;
     broadcastMessage(message: string): void;
-    onCursorChange(cursor: Cursor): void;
+    onSelectCursor(cursor: Cursor): void;
     onSelectAnnotation(cell_index: number, object_index: number): void;
+    onSelectDiff(label: string): void;
     bindCursorAction(callback: any): void;
     bindAnnotationAction(callback: any): void;
 }
@@ -164,8 +166,11 @@ interface IMessageBox {
 
 interface IDiffTabWidget {
     destroy(): void;
-    checkTab(type: string, timestamp: number): boolean;
-    addTab(type: string, timestamp: number): void;
+    checkTab(label: string): boolean;
+    addTab(label: string, type: string, timestamp: number): void;
+    addDiff(new_timestamp: number, old_timestamp: number, title: string): void;
+    addVersion(timestamp: number, title: string): void;
+    bindChatAction(callback: any): void;
 }
 
 interface IChangelogWidget {

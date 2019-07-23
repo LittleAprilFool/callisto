@@ -12,6 +12,9 @@ export class MessageBox implements IMessageBox {
     public ref_list: MessageLineRef[];
     public quill_object: Quill;
 
+    // todo: remove this mock stuff after fixing everything
+    public value: string;
+
     constructor() {
         this.ref_list = new Array();
         this.initElement();
@@ -69,12 +72,13 @@ export class MessageBox implements IMessageBox {
     }
 
     public initQuill(): void {
+        console.log('initting quill');
         this.quill_object = new Quill_lib('#editor', {
             modules: {
                 toolbar: false
             },
             placeholder: 'write your message',
-            theme: 'snow',
+            theme: 'bubble',
         });
     }
 
@@ -87,15 +91,15 @@ export class MessageBox implements IMessageBox {
         this.el.append(quill_div);
 
         const quill_link_ref = document.createElement('link');
-        quill_link_ref.href = 'https://cdn.quilljs.com/1.3.6/quill.snow.css';
+        quill_link_ref.href = 'https://cdn.quilljs.com/1.3.6/quill.bubble.css';
         quill_link_ref.rel = 'stylesheet';
         this.el.append(quill_link_ref);
 
         quill_div.addEventListener('click', this.handleCaretMove);
         quill_div.addEventListener('keyup', this.handleCaretMove);
 
-        quill_div.setAttribute('style', 'height: 44px; width: 220px;');
-        this.el.setAttribute('style', 'height: 44px; width: 220px;');
+        quill_div.setAttribute('style', 'height: 50px; width: 220px;');
+        this.el.setAttribute('style', 'height: 50px; width: 220px;');
     }
 
     private handleCaretMove = (): void => {

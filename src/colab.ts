@@ -1,6 +1,9 @@
 import { loadNotebook } from './action/notebookAction';
 import { SharedButton } from './component/sharedButton';
 import './external/sdb';
+// import './external/luxon';
+// import './external/javascript-time-ago';
+// import './external/javascript-time-ago/locale/en/index';
 
 const Jupyter = require('base/js/namespace');
 
