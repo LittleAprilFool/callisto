@@ -1,3 +1,5 @@
+import { IUserListWidget, User } from "types";
+
 export class UserListWidget implements IUserListWidget {
     private container: HTMLElement;
     constructor() {

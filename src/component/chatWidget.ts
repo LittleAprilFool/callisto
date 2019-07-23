@@ -1,4 +1,6 @@
+import { Cursor, IChatWidget, IDiffTabWidget, Message, User } from 'types';
 import { getTime, getTimestamp, timeAgo } from '../action/utils';
+import { MessageBox } from './messageBox';
 const Jupyter = require('base/js/namespace');
 
 const checkOpType = (op): string => {
@@ -8,7 +10,7 @@ const checkOpType = (op): string => {
 
 export class ChatWidget implements IChatWidget {
     private container: HTMLElement;
-    private messageBox: HTMLTextAreaElement;
+    private messageBox: MessageBox;
     private inputButton: HTMLButtonElement;
     private filterContainer: HTMLElement;
     private isFold: boolean = true;
@@ -24,17 +26,20 @@ export class ChatWidget implements IChatWidget {
     private currentAnnotationHighlight: any;
     private sender: User;
 
-
     constructor(private user: User, private doc: any, private tabWidget: IDiffTabWidget) {
+        this.messageBox = new MessageBox();
         this.initContainer();
         this.initStyle();
         this.loadHistory();
         
+
         // disable Jupyter notebook shortcuts while in the Chat
         Jupyter.keyboard_manager.register_events(this.container);
         Jupyter.notebook.events.on('select.Cell', this.onSelectCell);
         this.doc.subscribe(this.onSDBDocEvent);
         this.initMouseListener();
+
+        this.messageBox.initQuill();
     }
 
     public destroy = (): void => {
@@ -60,8 +65,11 @@ export class ChatWidget implements IChatWidget {
 
     public onSelectAnnotation = (cell_index: number, object_index: number): void => {
         if(!this.isFold) {
-            const appended_text = '[marker](C' + cell_index + ', M' + object_index + ') ';
-            this.messageBox.value = this.messageBox.value + appended_text;
+            this.messageBox.appendRef('marker', {
+                type: "MARKER",
+                cell_index,
+                marker_index: object_index
+            });
         }
     }
 
@@ -76,28 +84,45 @@ export class ChatWidget implements IChatWidget {
             if(cursor.from!==cursor.to) {
                 const cell = Jupyter.notebook.get_cell(cursor.cm_index);
                 const text = cell.code_mirror.getSelection();
-                const appended_text = '['+text+'](C'+cursor.cm_index + ', L'+cursor.from+', L'+cursor.to+') ';
-                this.messageBox.value = this.messageBox.value + appended_text;
+                this.messageBox.appendRef(text, {
+                    type: "CODE",
+                    cell_index: cursor.cm_index,
+                    code_from: cursor.from,
+                    code_to: cursor.to
+                });
             }
         }
     }
 
     public onSelectDiff = (label: string): void => {
         if (!this.isFold) {
-            let appended_text;
+            // let appended_text;
             if(label === 'version-current') {
                 const timestamp = getTimestamp().toString();
-                appended_text = '[notebook-snapshot](V'+ timestamp + ')';
+                this.messageBox.appendRef('notebook-snapshot', {
+                    type: "SNAPSHOT",
+                    version: timestamp.toString()
+                });
+                // appended_text = '[notebook-snapshot](V'+ timestamp + ')';
             }
             else if(label.includes('version')) {
                 const tag = label.split('-');
-                appended_text = '[notebook-snapshot](V'+ tag[1] + ')';
+                this.messageBox.appendRef('notebook-snapshot', {
+                    type: "SNAPSHOT",
+                    version: tag[1]
+                });
+                // appended_text = '[notebook-snapshot](V'+ tag[1] + ')';
             }
             else if (label.includes('diff')) {
                 const tag = label.split('-');
-                appended_text = '[notebook-diff](V'+ tag[1] + ', V'+tag[2] +')';
+                this.messageBox.appendRef('notebook-diff', {
+                    type: "DIFF",
+                    version: tag[1],
+                    version_diff: tag[2]
+                });
+                // appended_text = '[notebook-diff](V'+ tag[1] + ', V'+tag[2] +')';
             }
-            this.messageBox.value = this.messageBox.value + appended_text;
+            // this.messageBox.value = this.messageBox.value + appended_text;
         }
     }
 
@@ -108,7 +133,11 @@ export class ChatWidget implements IChatWidget {
         if(this.isEdit) {
             const cm_index = info.cell.code_mirror.index;
             const appended_text = '[cell](C'+cm_index + ')';
-            this.messageBox.value = this.messageBox.value + appended_text;
+            this.messageBox.appendRef("cell", {
+                type: "CELL",
+                cell_index: cm_index
+            });
+            // this.messageBox.value = this.messageBox.value + appended_text;
         }
         if(this.isEditLinking) {
             const cellEl_list = document.querySelectorAll('.cell');
@@ -300,7 +329,7 @@ export class ChatWidget implements IChatWidget {
 
         // link chat message with related cells
         const re = /\[(.*?)\]\((.*?)\)/g;
-        const origin_text = this.messageBox.value;
+        const origin_text = this.messageBox.getSubmissionValue();
         const line_refs = origin_text.match(re);
 
         if(line_refs!==null) {
@@ -316,12 +345,12 @@ export class ChatWidget implements IChatWidget {
         else {
             // link chat message with the cell that someone clicks on
             const current_cell = Jupyter.notebook.get_selected_cell();
-           if(current_cell) related_cells.push(current_cell.code_mirror.index);
+            if(current_cell) related_cells.push(current_cell.code_mirror.index);
         }
 
         const newMessage: Message = {
             sender: this.user,
-            content: this.messageBox.value,
+            content: this.messageBox.getSubmissionValue(),
             time: getTime(),
             timestamp: getTimestamp(),
             cells: related_cells
@@ -333,8 +362,8 @@ export class ChatWidget implements IChatWidget {
             li: newMessage
         };
 
-        if (this.messageBox.value) this.doc.submitOp([op], this);
-        this.messageBox.value = '';
+        if (this.messageBox.getSubmissionValue()) this.doc.submitOp([op], this);
+        this.messageBox.clear();
     }
 
     private handleMessageSelect = (e): void => {
@@ -742,19 +771,21 @@ export class ChatWidget implements IChatWidget {
         title_container.appendChild(icon);
         title_container.appendChild(el);
         
-        const input_box = document.createElement('textarea');
-        input_box.id = 'input-box';
-        input_box.placeholder = 'write your message';
-
         const button_icon = document.createElement('i');
         button_icon.innerHTML = '<i class="fa fa-paper-plane"></i>';
 
         const input_button = document.createElement('button');
         input_button.appendChild(button_icon);
         input_button.id = 'input-button';
+
+        const input_and_button_div = document.createElement('div');
+        input_and_button_div.appendChild(this.messageBox.el);
+        input_and_button_div.appendChild(input_button);
         
         input_button.addEventListener('click', this.handleSubmitting);
        
+        input_container.appendChild(input_and_button_div);
+
         const input_snapshot = document.createElement('div');
         input_snapshot.id = 'input-snapshot';
         input_snapshot.classList.add('input-label');
@@ -851,7 +882,7 @@ export class ChatWidget implements IChatWidget {
 
 
 
-        input_container.appendChild(input_box);
+        // input_container.appendChild(input_box);
 
         input_container.appendChild(input_button);
         
@@ -867,7 +898,7 @@ export class ChatWidget implements IChatWidget {
         main_container.appendChild(this.container);
 
         this.titleContainer = title_container;
-        this.messageBox = input_box;
+        // this.messageBox = input_box;
         this.inputButton = input_button;
         this.messageContainer = message_container;
         this.filterContainer = tool_filter;
@@ -896,7 +927,7 @@ export class ChatWidget implements IChatWidget {
         sheet.innerHTML += '#input-container { height: 50px; width: 280px; background-color: white; border: solid 2px #ececec; border-radius: 10px; margin:auto;} \n';
         sheet.innerHTML += '.input-label { color: #bbb; font-size: 12px; font-weight: bold; padding: 15px 15px; height: 50px; width: 300px; border-top: 1px solid #eee; margin:auto;} \n';
         sheet.innerHTML += '#input-box { padding-left: 10px; padding-right: 10px; font-size: 12px; color: #7d7d7d; width: 220px; border: none; background-color: transparent; resize: none;outline: none; } \n';
-        sheet.innerHTML += '#input-button { color: #868686; display:inline; height:46px; width: 50px; position: relative; top: -12px; background: transparent; border: none; border-left: solid 2px #ececec; } \n';
+        sheet.innerHTML += '#input-button { color: #868686; display:inline; height:46px; width: 50px; position: relative; background: transparent; border: none; border-left: solid 2px #ececec; } \n';
         sheet.innerHTML += '#input-button:hover { color: #484848;} \n';
         sheet.innerHTML += '#chat-title { display: inline; margin-left: 8px; } \n';
 
@@ -912,6 +943,7 @@ export class ChatWidget implements IChatWidget {
         sheet.innerHTML += '.message-wrapper.select .tick {color: #9dc5a7;}\n';
 
         sheet.innerHTML += '.line_highlight { background-color: yellow; } \n';
+
         sheet.innerHTML += '.line_ref { display: inline-block; margin: 0px 2px; cursor: pointer; font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; } \n';
         sheet.innerHTML += '.line_ref:hover { text-decoration: underline; } \n';
         sheet.innerHTML += '.line_ref.cell { color: #008000; }\n';
@@ -920,9 +952,12 @@ export class ChatWidget implements IChatWidget {
         sheet.innerHTML += '.line_ref.snapshot { color: #0e66dc; }\n';
         sheet.innerHTML += '.line_ref.diff { color: #ff7a00; }\n';
 
+        sheet.innerHTML += '#message-box { float: left; } \n';
+        sheet.innerHTML += '.ql-editor {padding: 2px 10px; font-size: 12px;}';
+
         sheet.innerHTML += '#slider {border-radius: 20px; position: absolute; cursor: pointer; background-color: #516666; transition: .4s; top: 0; left: 0; right: 0; bottom: 0; } \n';
         sheet.innerHTML += '#slider:before {position:absolute; content:" ";height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: #9cc4a6; transition:.4s; border-radius: 50%; } \n';
-        sheet.innerHTML += '#switch {display: none; position: relative; bottom: 395px; left: 240px; width: 40px; height: 20px; } \n';
+        sheet.innerHTML += '#switch {display: none; position: relative; bottom: 378px; left: 20px; width: 40px; height: 20px; } \n';
         sheet.innerHTML += '#switch input {opacity: 0; width: 0; height: 0; } \n';
         sheet.innerHTML += 'input:checked + #slider { background-color: #dae4dd; } \n';
         sheet.innerHTML += 'input:focus + #slider { box-shadow: 0 0 1px #dae4dd; } \n';

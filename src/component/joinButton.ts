@@ -1,5 +1,6 @@
 import { openNotebook } from '../action/notebookAction';
 import { joinDoc } from '../action/sharedbAction';
+import { Dialog } from 'types';
 
 const dialog = require('base/js/dialog');
 const i18n = require('base/js/i18n');

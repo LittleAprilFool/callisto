@@ -1,5 +1,6 @@
 // import { CodeMirror } from 'codemirror';
 import { SDBDoc } from 'sdb-ts';
+import { INotebookBinding, SharedDoc } from 'types';
 import { NotebookBinding } from '../component/notebookBinding';
 import { updateSharedButton } from '../component/sharedButton';
 import { joinDoc } from './sharedbAction';

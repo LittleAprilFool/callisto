@@ -1,4 +1,5 @@
 import { SDBDoc } from 'sdb-ts';
+import { SharedDoc } from 'types';
 import { openWS } from './utils';
 
 const Jupyter = require('base/js/namespace');

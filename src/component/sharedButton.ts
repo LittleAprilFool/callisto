@@ -1,6 +1,7 @@
 import { createDoc } from '../action/sharedbAction';
 import { generateUUID } from '../action/utils';
 import { NotebookBinding } from './notebookBinding';
+import { Button, INotebookBinding, Dialog } from 'types';
 
 const Jupyter = require('base/js/namespace');
 const i18n = require('base/js/i18n');
