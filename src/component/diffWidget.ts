@@ -82,8 +82,8 @@ export class DiffWidget implements IDiffWidget {
         diff_container.appendChild(new_cell_container);
         diff_container.appendChild(old_cell_container);
 
-        this.createCellUnit(new_cell, new_cell_container);
-        this.createCellUnit(old_cell, old_cell_container);
+        this.createCellUnit(new_cell, new_cell_container, false);
+        this.createCellUnit(old_cell, old_cell_container, true, new_cell);
     }
 
     private addCell = (cell: Cell): void => {
@@ -91,10 +91,10 @@ export class DiffWidget implements IDiffWidget {
         cell_container.classList.add('cell');
         this.container.appendChild(cell_container);
 
-        this.createCellUnit(cell, cell_container);
+        this.createCellUnit(cell, cell_container, false);
     }
 
-    private createCellUnit = (cell: Cell, cell_container: HTMLElement): void => {
+    private createCellUnit = (cell: Cell, cell_container: HTMLElement, is_old_cell: boolean, new_cell?: Cell): void => {
         const input_container = document.createElement('div');
         input_container.classList.add('input');
         if(cell==null) {
@@ -131,6 +131,8 @@ export class DiffWidget implements IDiffWidget {
         // add output to the cell
         const output_wrapper = document.createElement('div');
         output_wrapper.classList.add('output_wrapper');
+        // todo: this causes trouble when the outputs from the two sides are not the same.
+        let output_index = 0;
         cell.outputs.forEach(output => {
             const outputEl = document.createElement('div');
             outputEl.classList.add('output');
@@ -147,7 +149,30 @@ export class DiffWidget implements IDiffWidget {
                     output_subarea.classList.add('output_png');
                     const img = document.createElement('img');
                     img.setAttribute('src', 'data:image/png;base64,'+output.data['image/png']);
+                    // use cell number and output as index. Shouldn't cause any trouble as the diff is static.
+                    img.id = "output-img-" + this.notebook[0].cells.indexOf(cell).toString() + "-" + output_index.toString();
                     output_subarea.appendChild(img);
+                    if (is_old_cell && new_cell.outputs.length > output_index && new_cell.outputs[output_index].output_type === 'display_data') {
+                        // Only show diff when the new cell has at least the same number of output as the index and the corresponding index is still an image.
+                        // adding css to original img
+                        img.classList.add('img-overlay');
+                        img.classList.add('top-layer');
+                        img.style.opacity = "0.75";
+                        // overlays new picture in the bottom
+                        const img_bottom = document.createElement('img');
+                        img_bottom.setAttribute('src', 'data:image/png;base64,'+ new_cell.outputs[output_index].data['image/png']);
+                        output_subarea.appendChild(img_bottom);
+                        // creating slider
+                        const slider = document.createElement('input');
+                        slider.type = "range";
+                        slider.min = "0";
+                        slider.max = "100";
+                        slider.value = "75";
+                        slider.setAttribute("img-id", img.id);
+                        slider.classList.add("img-slider");
+                        slider.addEventListener("input", this.onSliderInput);
+                        output_subarea.appendChild(slider);
+                    }
                     break;
                 case 'stream':
                     output_subarea.classList.add('output_stream', 'output_text', 'output_stdout');
@@ -160,6 +185,7 @@ export class DiffWidget implements IDiffWidget {
             }
             outputEl.appendChild(output_area);
             output_wrapper.appendChild(outputEl);
+            output_index += 1;
         });
 
         cell_container.appendChild(output_wrapper);
@@ -197,6 +223,14 @@ export class DiffWidget implements IDiffWidget {
         main_container.insertBefore(this.container, main_container.firstChild.nextSibling);
     }
 
+    private onSliderInput = (e: Event): void => {
+        const target_slider = e.target as HTMLInputElement;
+        const target_img = document.getElementById(target_slider.getAttribute('img-id'));
+        const opacity = ((+target_slider.value) - (+target_slider.min)) / ((+target_slider.max) - (+target_slider.min));
+        target_img.style.opacity = opacity.toString();
+        console.log(opacity.toString());
+    }
+
     private initStyle = (): void => {
         const sheet = document.createElement('style');
         sheet.innerHTML += '.diffwidget-container { padding: 15px; background-color: #f7f7f7; box-shadow: 0px 0px 12px 0px rgba(87, 87, 87, 0.2); margin-bottom: 20px } \n';
@@ -209,6 +243,8 @@ export class DiffWidget implements IDiffWidget {
         sheet.innerHTML += '.diff { background: inherit; width: 50% !important; display: inline-block !important; float:left;} \n';
         sheet.innerHTML += '.diff-new .input_area {background: rgba(0, 200, 20, 0.1); }\n';
         sheet.innerHTML += '.diff-old .input_area {background: rgba(255, 20, 0, 0.1); }\n';
+        sheet.innerHTML += '.img-overlay.top-layer { position: absolute; }\n';
+        sheet.innerHTML += '.img-slider { margin: 10px 0 5px 0; }\n';
         document.body.appendChild(sheet);
     }
 }
