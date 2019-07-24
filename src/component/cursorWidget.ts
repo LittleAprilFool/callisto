@@ -1,5 +1,5 @@
 import {CodeMirror} from 'codemirror';
-import { ICursorWidget, User, ICellBinding, Cursor } from 'types';
+import { Cursor, ICellBinding, ICursorWidget, User } from 'types';
 const Jupyter = require('base/js/namespace');
 
 const checkOpType = (op): string => {
