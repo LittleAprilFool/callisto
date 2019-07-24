@@ -1,5 +1,5 @@
 import { SDBDoc } from "sdb-ts";
-
+import { Changelog, ICellBinding, IChangelogWidget, IChatWidget, ICursorWidget, IDiffTabWidget, INotebookBinding, IUserListWidget, SharedDoc, SharedDocOption, User } from "types";
 import { getNotebookMirror} from '../action/notebookAction';
 import { getUserName } from '../action/userAction';
 import { generateUUID, getRandomColor, getTime, getTimestamp} from '../action/utils';
@@ -10,7 +10,6 @@ import { ChatWidget } from './chatWidget';
 import { CursorWidget } from "./cursorWidget";
 import { DiffTabWidget } from './diffTabWidget';
 import { UserListWidget } from './userListWidget';
-import { INotebookBinding, ICellBinding, User, IUserListWidget, IChatWidget, ICursorWidget, IChangelogWidget, IDiffTabWidget, SharedDoc, SharedDocOption, Changelog } from "types";
 
 const Jupyter = require('base/js/namespace');
 

@@ -1,13 +1,29 @@
-import { Cursor, IChatWidget, IDiffTabWidget, Message, User } from 'types';
+import { Cursor, IChatWidget, IDiffTabWidget, Message, MessageItem, User } from 'types';
 import { getTime, getTimestamp, timeAgo } from '../action/utils';
-// import { List } from '../external/list';
-// import * as Test from '../external/test';
+
 import { MessageBox } from './messageBox';
 const Jupyter = require('base/js/namespace');
 
 const checkOpType = (op): string => {
     if (op.p.length === 1 && typeof op.p[0] === 'number' && op.li && !op.ld) return 'NewMessage';
     return 'Else';
+};
+
+const options = {
+    item: 'message-item',
+    valueNames: [ 
+        'message-sender', 
+        'message-time', 
+        'message-content',
+        { name: 'message-id', attr: 'message-id' }
+    ],
+    fuzzySearch: {
+        searchClass: "search",
+        location: 0,
+        distance: 100,
+        threshold: 0.4,
+        multiSearch: true
+      }
 };
 
 export class ChatWidget implements IChatWidget {
@@ -27,13 +43,13 @@ export class ChatWidget implements IChatWidget {
     private annotationCallback: any;
     private currentAnnotationHighlight: any;
     private sender: User;
+    private messageList: any;
 
     constructor(private user: User, private doc: any, private tabWidget: IDiffTabWidget) {
         this.messageBox = new MessageBox();
         this.initContainer();
         this.initStyle();
-        this.loadHistory();
-        
+        this.initMessageList();        
 
         // disable Jupyter notebook shortcuts while in the Chat
         Jupyter.keyboard_manager.register_events(this.container);
@@ -134,12 +150,10 @@ export class ChatWidget implements IChatWidget {
         if(this.isFold) return;
         if(this.isEdit) {
             const cm_index = info.cell.code_mirror.index;
-            const appended_text = '[cell](C'+cm_index + ')';
             this.messageBox.appendRef("cell", {
                 type: "CELL",
                 cell_index: cm_index
             });
-            // this.messageBox.value = this.messageBox.value + appended_text;
         }
         if(this.isEditLinking) {
             const cellEl_list = document.querySelectorAll('.cell');
@@ -187,11 +201,8 @@ export class ChatWidget implements IChatWidget {
 
     private applyOp = (op): void => {
         if(checkOpType(op) === 'NewMessage') {
-            const newMessageEL = this.createNewMessage(op.li, this.doc.getData().length-1);
-            this.messageContainer.appendChild(newMessageEL);
-            newMessageEL.scrollIntoView();
+            this.updateMessageList(op.li, this.doc.getData().length -1);
             if(this.isFold) this.notifyNewMessage(true);
-            this.updateLineRefListener();
         }
     } 
 
@@ -296,7 +307,6 @@ export class ChatWidget implements IChatWidget {
                 this.updateFilter(false);
                 this.updateTitle('chat');
                 this.updateCellHighlight(false);
-                this.loadHistory();
             }
         }
         else {
@@ -307,6 +317,7 @@ export class ChatWidget implements IChatWidget {
     }
 
     private handleFiltering = (e): void => {
+        
         this.isFilter = !this.isFilter;
         const filter_button = document.querySelector('#tool-filter');
         filter_button.classList.toggle('active');
@@ -316,7 +327,8 @@ export class ChatWidget implements IChatWidget {
             this.updateCellHighlight(true);
         }
         else {
-            this.loadHistory();
+            // to do fix this bug
+            this.messageList.filter();
             this.updateCellHighlight(false);
         }
         this.tabWidget.checkTab('version-current');
@@ -381,34 +393,59 @@ export class ChatWidget implements IChatWidget {
         if(cell) {
             const cell_index = cell.code_mirror.index;
             const chat_data = this.doc.getData();
-            while(this.messageContainer.firstChild) this.messageContainer.removeChild(this.messageContainer.firstChild);
             let flag = false;
+            const filter_list = [];
             chat_data.forEach((element, index) => {
                 const message: Message = element;
                 if(message.cells.includes(cell_index)) {
                     flag = true;
-                    const newMessageEL = this.createNewMessage(message, index);
-                    this.messageContainer.appendChild(newMessageEL);
-                    newMessageEL.scrollIntoView();
+                    filter_list.push(index);
                 }
             });
-            this.updateLineRefListener();
 
+            this.messageList.filter(item => {
+                const data = item.values();
+                const id = parseInt(data['message-id'], 0);
+                if(filter_list.includes(id)) return true;
+                else return false;
+            });
+            
             if(!flag) {
                 this.broadcastMessage('No relevant chat messages');
             }
         }
     }
 
-    private loadHistory = (): void => {
-        while(this.messageContainer.firstChild) this.messageContainer.removeChild(this.messageContainer.firstChild);
+    private getMessageInfo = (message: Message, index: number): MessageItem => {
+        const re = /\[(.*?)\]\((.*?)\)/g;
+        this.sender = message.sender;
+        const origin_text = message.content;    
+        const formated_text = origin_text.replace(re, this.replaceLR);
+    
+        const message_info: MessageItem = {
+            'message-sender': message.sender.username,
+            'message-content': formated_text,
+            'message-time': message.time,
+            'message-id': index.toString(),
+        };
+        return message_info;
+    }
+
+    private initMessageList = (): void => {
+        const values = [];
         const history = this.doc.getData();
-         history.forEach((message, index) => {
-            const newMessageEL = this.createNewMessage(message, index);
-            this.messageContainer.appendChild(newMessageEL);
-            newMessageEL.scrollIntoView();
+        history.forEach((message, index) => {
+            const message_info = this.getMessageInfo(message, index);
+            values.push(message_info);
         });
-        this.updateLineRefListener();
+        this.messageList = new window['List']('message-list', options, values);
+        this.updateListener();
+    }
+
+    private updateMessageList = (message: Message, id: number): void => {
+        const message_info = this.getMessageInfo(message, id);
+        this.messageList.add(message_info);
+        this.updateListener();
     }
 
     private notifyNewMessage = (flag: boolean): void => {
@@ -471,60 +508,6 @@ export class ChatWidget implements IChatWidget {
         }
     }
 
-    private createNewMessage = (message: Message, id: number): HTMLLIElement => {
-        const message_wrapper = document.createElement('li');
-        message_wrapper.classList.add('message-wrapper');
-        message_wrapper.addEventListener('click', this.handleMessageSelect);
-
-        if(this.user.user_id === message.sender.user_id) {
-            message_wrapper.classList.add('right');
-        }
-        // add selection tick
-        const message_tick = document.createElement('i');
-        message_tick.innerHTML = '<i class="fa fa-check-circle tick"></i>';
-        message_wrapper.appendChild(message_tick);
-
-        // replace the original text into formatted text
-        // [text](URL)
-        // [text](C0,L1,L5) -> to a code range
-        // [text](C0) -> to a cell
-        // [text](C0, M1) -> to an annotation marker
-        // [text](V12345) -> to a version
-        // [text](V12345, V54321) -> to a code diff
-
-        const re = /\[(.*?)\]\((.*?)\)/g;
-        const origin_text = message.content;
-        this.sender = message.sender;
-
-        const formated_text = origin_text.replace(re, this.replaceLR);
-
-        const message_content = document.createElement('div');
-        message_content.innerHTML = formated_text;
-        message_content.classList.add('message-content');
-        message_content.setAttribute('timestamp', message.timestamp.toString());
-        message_wrapper.setAttribute('timestamp', message.timestamp.toString());
-        message_wrapper.setAttribute('message-id', id.toString());
-
-
-        const message_sender = document.createElement('div');
-        message_sender.innerText = message.sender.username;
-        message_sender.classList.add('message-sender');
-        message_sender.style.color = message.sender.color;
-        
-        const message_time = document.createElement('div');
-        message_time.innerText = message.time;
-        message_time.classList.add('message-time');
-
-        const time_sender = document.createElement('div');
-        time_sender.appendChild(message_sender);
-        time_sender.appendChild(message_time);
-
-        message_wrapper.appendChild(time_sender);
-        message_wrapper.appendChild(message_content);
-
-        return message_wrapper;
-    }
-
     private replaceLR = (p1: string, p2: string, p3: string): string => {
         const refEl = document.createElement('span');
         refEl.innerText = p2;
@@ -583,12 +566,25 @@ export class ChatWidget implements IChatWidget {
         input.checked = flag;
     }
 
+    private updateListener = (): void => {
+        this.updateLineRefListener();
+        this.updateSelectionListener();
+    }
+
     private updateLineRefListener = (): void => {
-        const tag = document.getElementsByClassName('line_ref');
-        for(const item of tag) {
-            const el = item as HTMLElement;
+        const tags = document.querySelectorAll('.line_ref');
+        tags.forEach(tag => {
+            const el = tag as HTMLElement;
             if(!el.onclick) el.addEventListener('click', this.handleLineRef);
-        }
+        });
+    }
+
+    private updateSelectionListener = (): void => {
+        const messages = document.querySelectorAll('.message-wrapper');
+        messages.forEach(message => {
+            const el = message as HTMLElement;
+            if(!el.onclick) message.addEventListener('click', this.handleMessageSelect);
+        });
     }
 
     private updateTitle = (flag): void => {
@@ -640,16 +636,20 @@ export class ChatWidget implements IChatWidget {
     private getCurrentList = (): number[] => {
         const selected_messages = document.querySelectorAll('.message-wrapper.select');
         const history = this.doc.getData();
-        const id0 = parseInt(selected_messages[0].getAttribute('message-id'), 0);
+        const contentEl0 = selected_messages[0].lastChild as HTMLElement;
+        const id0 = parseInt(contentEl0.getAttribute('message-id'), 0);
         const message0 = history[id0];
         let cell_list = message0.cells;
 
         selected_messages.forEach(messageEl => {
-            const id = messageEl.getAttribute('message-id');
+            const contentEl = messageEl.lastChild as HTMLElement;
+            const id = contentEl.getAttribute('message-id');
             const message = history[id];
-            const cells = message.cells;
-            const intersection = cell_list.filter(v => cells.indexOf(v) > -1);
-            cell_list = intersection;
+            if(message) {
+                const cells = message.cells;
+                const intersection = cell_list.filter(v => cells.indexOf(v) > -1);
+                cell_list = intersection;
+            }
         });
         return cell_list;
     }
@@ -659,7 +659,6 @@ export class ChatWidget implements IChatWidget {
     }
     private getNewList= (): number[] => {
         const selected_cells = Jupyter.notebook.get_selected_cells();
-        const messages = document.querySelectorAll('.message-wrapper');
         const selected_cells_list = [];
         selected_cells.forEach(cell => {
             selected_cells_list.push(cell.code_mirror.index);
@@ -678,7 +677,7 @@ export class ChatWidget implements IChatWidget {
         const history = this.doc.getData();
         messages.forEach((message, id) => {
             if(message.classList.contains('select')) {
-                const old_message= history[id];
+                const old_message= history[id-1];
                 const new_message = Object.assign({}, old_message);
                 const diff_list = new_message.cells.filter(v => cell_list.indexOf(v) === -1);
                 const union_list = diff_list.concat(new_list.filter(v => diff_list.indexOf(v) === -1));                
@@ -686,11 +685,10 @@ export class ChatWidget implements IChatWidget {
 
                 if(old_message.cells !== new_message.cells) {
                     const op = {
-                        p: [id],
+                        p: [id-1],
                         ld: old_message,
                         li: new_message
                     };
-            
                     this.doc.submitOp([op], this);
                 }
             }
@@ -717,8 +715,13 @@ export class ChatWidget implements IChatWidget {
     private handleSearch = (): void => {
         const input = document.querySelector('#search-input') as HTMLInputElement;
         const keyword = input.value;
-        // todo: https://github.com/LittleAprilFool/jupyter-sharing/issues/20
-        console.log(keyword);
+        
+        if(keyword === '') {
+            this.messageList.search();
+        }
+        else {
+            this.messageList.search(keyword, ['message-content']);
+        }
     }
 
     private initContainer = (): void => {
@@ -747,7 +750,7 @@ export class ChatWidget implements IChatWidget {
         search_input.classList.add('search');
         search_input.placeholder = 'Search';
         search_input.id = 'search-input';
-        search_icon.addEventListener('click', this.handleSearch);
+        search_input.addEventListener('input', this.handleSearch);
         tool_search.appendChild(search_input);
         tool_search.appendChild(search_icon);
 
@@ -755,7 +758,6 @@ export class ChatWidget implements IChatWidget {
         tool_filter.innerHTML = '<i class="fa fa-filter">';
         tool_filter.classList.add('head-tool');
         tool_filter.id = 'tool-filter';
-        // tool_filter.setAttribute('data-title', 'filter messages related to the selected cell');
         tool_filter.addEventListener('click', this.handleFiltering);
         tool_container.appendChild(tool_search);
         tool_container.appendChild(tool_filter);
@@ -763,11 +765,42 @@ export class ChatWidget implements IChatWidget {
         head_container.appendChild(tool_container);
 
         const message_container_wrapper = document.createElement('div');
-        message_container_wrapper.classList.add('message_list');
+        message_container_wrapper.id = 'message-list';
 
         const message_container = document.createElement('ul');
         message_container.classList.add('list');
         message_container.id = 'message-container';
+
+        const message_item_template = document.createElement('div');
+        message_item_template.setAttribute('style', 'display: none');
+        const message_item = document.createElement('li');
+        message_item.id = 'message-item';
+        message_item.classList.add('message-wrapper');
+
+        const message_tick = document.createElement('i');
+        message_tick.innerHTML = '<i class="fa fa-check-circle tick"></i>';
+        message_item.appendChild(message_tick);
+
+        const message_content = document.createElement('div');
+        message_content.classList.add('message-content');
+        message_content.classList.add('message-id');
+
+        const message_sender = document.createElement('div');
+        message_sender.classList.add('message-sender');
+        
+        const message_time = document.createElement('div');
+        message_time.classList.add('message-time');
+
+        const time_sender = document.createElement('div');
+        time_sender.appendChild(message_sender);
+        time_sender.appendChild(message_time);
+
+        message_item.appendChild(time_sender);
+        message_item.appendChild(message_content);
+
+        message_item_template.appendChild(message_item);
+        
+        this.container.appendChild(message_item_template);
         
         message_container_wrapper.appendChild(message_container);
 
@@ -813,7 +846,6 @@ export class ChatWidget implements IChatWidget {
         tool_snapshot.appendChild(snapshot_icon);
         tool_snapshot.classList.add('tool-button');
         tool_snapshot.id = 'tool-version';
-        // tool_snapshot.setAttribute('data-title', 'notebook snapshot');
         tool_snapshot.addEventListener('click', this.handleSnapshot);
 
         const tool_linking = document.createElement('div');
@@ -822,7 +854,6 @@ export class ChatWidget implements IChatWidget {
         linking_icon.innerHTML = '<i class="fa fa-link">';
         tool_linking.appendChild(linking_icon);
         tool_linking.classList.add('tool-button', 'tool-linking');
-        // tool_snapshot.setAttribute('data-title', 'notebook snapshot');
         tool_linking.addEventListener('click', this.handleLinking);
 
 
@@ -843,7 +874,6 @@ export class ChatWidget implements IChatWidget {
         tool_diff.appendChild(diff_icon);
         tool_diff.classList.add('tool-button');
         tool_diff.id = 'tool-diff';
-        // tool_diff.setAttribute('data-title', 'notebook diff');
         tool_diff.addEventListener('click', this.handleDiff);
 
         const cancel_button2 = cancel_button.cloneNode(true);
@@ -884,16 +914,11 @@ export class ChatWidget implements IChatWidget {
         save_icon.innerHTML = '<i class="fa fa-save">';
         tool_save.appendChild(save_icon);
         tool_save.classList.add('tool-button', 'tool-save');
-        // tool_snapshot.setAttribute('data-title', 'notebook snapshot');
         tool_save.addEventListener('click', this.handleLinkingSave);
 
         input_save.appendChild(tool_save);
         input_save.appendChild(cancel_button4);
         input_save.setAttribute('style', 'display: none');
-
-
-
-        // input_container.appendChild(input_box);
 
         input_container.appendChild(input_button);
         
@@ -909,26 +934,9 @@ export class ChatWidget implements IChatWidget {
         main_container.appendChild(this.container);
 
         this.titleContainer = title_container;
-        // this.messageBox = input_box;
         this.inputButton = input_button;
         this.messageContainer = message_container;
         this.filterContainer = tool_filter;
-
-        var options = {
-            valueNames: [ 'message-content']
-          };
-
-        // console.log(List);
-        // new (<any>(person("John Doe")))
-        // const userList = new List('message_list', options);
-        // interface ITest {
-        //     echo(): void;
-        // }
-        // const test = <ITest> new( <any> (Test('haha')));
-        // test.echo();
-        // const userList = new(<any>(List('message_list', options)));
-        // console.log(userList)
-        // userList.add({'message-content': 'testtest'});
     }
 
     private initStyle = (): void => {
@@ -958,8 +966,9 @@ export class ChatWidget implements IChatWidget {
         sheet.innerHTML += '#input-button:hover { color: #484848;} \n';
         sheet.innerHTML += '#chat-title { display: inline; margin-left: 8px; } \n';
 
-        sheet.innerHTML += '.message-wrapper { padding: 8px 20px; margin: 4px 0px;} \n';
+        sheet.innerHTML += '.message-wrapper { list-style: none; padding: 8px 20px; margin: 4px 0px;} \n';
         sheet.innerHTML += '.message-wrapper.select {background: #9dc5a73d;}\n';
+        sheet.innerHTML += '#message-container {padding: 0px 0px; margin: 0px 0px; }\n';
         // sheet.innerHTML += '.right { text-align: right;} \n';
         sheet.innerHTML += '.message-sender { display:inline; font-size: 10px; font-weight: bold; } \n';
         sheet.innerHTML += '.message-content { display: inline-block; background: whitesmoke; left: 5px; position: relative; padding: 10px; border-radius: 12px; min-width: 100px; font-size: 12px; } \n';

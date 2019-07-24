@@ -1,6 +1,6 @@
-import {CodeMirror} from 'codemirror';
+import { CodeMirror} from 'codemirror';
 import { SDBSubDoc } from "sdb-ts";
-import { ICellBinding, IAnnotationWidget, Cell } from 'types';
+import { Cell, IAnnotationWidget, ICellBinding } from 'types';
 
 const checkOpType = (op): string => {
 
