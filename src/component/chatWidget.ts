@@ -439,12 +439,16 @@ export class ChatWidget implements IChatWidget {
             values.push(message_info);
         });
         this.messageList = new window['List']('message-list', options, values);
+        const last = this.messageContainer.lastChild as HTMLElement;
+        last.scrollIntoView();
         this.updateListener();
     }
 
     private updateMessageList = (message: Message, id: number): void => {
         const message_info = this.getMessageInfo(message, id);
         this.messageList.add(message_info);
+        const last = this.messageContainer.lastChild as HTMLElement;
+        last.scrollIntoView();
         this.updateListener();
     }
 
