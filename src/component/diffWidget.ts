@@ -151,17 +151,29 @@ export class DiffWidget implements IDiffWidget {
                     img.setAttribute('src', 'data:image/png;base64,'+output.data['image/png']);
                     // use cell number and output as index. Shouldn't cause any trouble as the diff is static.
                     img.id = "output-img-" + this.notebook[0].cells.indexOf(cell).toString() + "-" + output_index.toString();
-                    output_subarea.appendChild(img);
                     if (is_old_cell && new_cell.outputs.length > output_index && new_cell.outputs[output_index].output_type === 'display_data') {
                         // Only show diff when the new cell has at least the same number of output as the index and the corresponding index is still an image.
+                        // creating diff image which appears on hover
+                        const hover_container = document.createElement('div');
+                        hover_container.classList.add('hover-container');
+
+                        const img_diff = document.createElement('img');
+                        img_diff.setAttribute('src', 'data:image/png;base64,'+output.data['image/png']);
+                        img_diff.classList.add("img-diff");
+                        hover_container.appendChild(img_diff);
+
                         // adding css to original img
                         img.classList.add('img-overlay');
-                        img.classList.add('top-layer');
                         img.style.opacity = "0.75";
+                        hover_container.appendChild(img);
+
                         // overlays new picture in the bottom
                         const img_bottom = document.createElement('img');
                         img_bottom.setAttribute('src', 'data:image/png;base64,'+ new_cell.outputs[output_index].data['image/png']);
-                        output_subarea.appendChild(img_bottom);
+                        hover_container.appendChild(img_bottom);
+
+                        output_subarea.appendChild(hover_container);
+
                         // creating slider
                         const slider = document.createElement('input');
                         slider.type = "range";
@@ -172,6 +184,9 @@ export class DiffWidget implements IDiffWidget {
                         slider.classList.add("img-slider");
                         slider.addEventListener("input", this.onSliderInput);
                         output_subarea.appendChild(slider);
+                        
+                    } else {
+                        output_subarea.appendChild(img);
                     }
                     break;
                 case 'stream':
@@ -228,7 +243,6 @@ export class DiffWidget implements IDiffWidget {
         const target_img = document.getElementById(target_slider.getAttribute('img-id'));
         const opacity = ((+target_slider.value) - (+target_slider.min)) / ((+target_slider.max) - (+target_slider.min));
         target_img.style.opacity = opacity.toString();
-        console.log(opacity.toString());
     }
 
     private initStyle = (): void => {
@@ -243,7 +257,9 @@ export class DiffWidget implements IDiffWidget {
         sheet.innerHTML += '.diff { background: inherit; width: 50% !important; display: inline-block !important; float:left;} \n';
         sheet.innerHTML += '.diff-new .input_area {background: rgba(0, 200, 20, 0.1); }\n';
         sheet.innerHTML += '.diff-old .input_area {background: rgba(255, 20, 0, 0.1); }\n';
-        sheet.innerHTML += '.img-overlay.top-layer { position: absolute; }\n';
+        sheet.innerHTML += '.img-overlay { position: absolute; }\n';
+        sheet.innerHTML += '.img-diff { position: absolute; opacity: 0}\n';
+        sheet.innerHTML += '.hover-container:hover .img-diff{ opacity: 1 }\n';
         sheet.innerHTML += '.img-slider { margin: 10px 0 5px 0; }\n';
         document.body.appendChild(sheet);
     }
