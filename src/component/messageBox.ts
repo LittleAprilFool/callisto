@@ -66,7 +66,7 @@ export class MessageBox implements IMessageBox {
     }
 
     public initQuill(): void {
-        this.quill_object = new Quill_lib('#editor', {
+        this.quill_object = new (<any>Quill_lib)('#editor', {
             modules: {
                 toolbar: false
             },
