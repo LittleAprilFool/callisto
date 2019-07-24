@@ -84,6 +84,13 @@ interface Message {
     cells: string[];
 }
 
+interface MessageItem {
+    'message-sender': string,
+    'message-content': string,
+    'message-time': string,
+    'message-id': string,
+}
+
 interface User {
     user_id: string;
     username: string;
@@ -125,6 +132,7 @@ interface Cell {
     outputs?: Output[];
     source?: string[];
     rendered?: boolean;
+    unique_id?: string;
 }
 
 interface Output{
@@ -197,3 +205,4 @@ interface IChangelogWidget {
 interface IDiffWidget {
     destroy(): void;
 }
+
