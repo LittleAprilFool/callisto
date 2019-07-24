@@ -15,7 +15,8 @@ const options = {
         'message-sender', 
         'message-time', 
         'message-content',
-        { name: 'message-id', attr: 'message-id' }
+        { name: 'message-id', attr: 'message-id' },
+        { name: 'timestamp', attr: 'timestamp' }
     ],
     fuzzySearch: {
         searchClass: "search",
@@ -145,7 +146,7 @@ export class ChatWidget implements IChatWidget {
     private onSelectCell = (evt, info): void => {
         const cell = info.cell;
 
-        if(this.isFold) return
+        if(this.isFold) return;
         if(this.isSelect) {
             // a naive way to wait for annotation/cursor
             setTimeout(() => {
@@ -273,7 +274,8 @@ export class ChatWidget implements IChatWidget {
         this.updateInputStatus();
 
         const selected_message = selected_messages[0];
-        const timestamp = parseInt(selected_message.getAttribute('timestamp'), 0);
+        const selected_message_child = selected_message.lastChild as HTMLElement;
+        const timestamp = parseInt(selected_message_child.getAttribute('timestamp'), 0);
         const label = 'version-'+timestamp.toString();
         if(this.tabWidget.checkTab(label)) return;
 
@@ -288,8 +290,14 @@ export class ChatWidget implements IChatWidget {
         });
         this.updateInputStatus();
 
-        const timestamp1 = parseInt(selected_messages[0].getAttribute('timestamp'), 0);
-        const timestamp2 = parseInt(selected_messages[1].getAttribute('timestamp'), 0);
+        const selected_message1 = selected_messages[0];
+        const selected_message_child1 = selected_message1.lastChild as HTMLElement;
+        const timestamp1 = parseInt(selected_message_child1.getAttribute('timestamp'), 0);
+        
+        const selected_message2 = selected_messages[1];
+        const selected_message_child2 = selected_message2.lastChild as HTMLElement;
+        const timestamp2 = parseInt(selected_message_child2.getAttribute('timestamp'), 0);
+
         const old_timestamp = timestamp1 > timestamp2? timestamp1: timestamp2;
         const new_timestamp = timestamp1 > timestamp2? timestamp2: timestamp1;
 
@@ -431,6 +439,7 @@ export class ChatWidget implements IChatWidget {
             'message-content': formated_text,
             'message-time': message.time,
             'message-id': index.toString(),
+            'timestamp': getTimestamp().toString(),
         };
         return message_info;
     }
@@ -801,6 +810,8 @@ export class ChatWidget implements IChatWidget {
         const message_content = document.createElement('div');
         message_content.classList.add('message-content');
         message_content.classList.add('message-id');
+        message_content.classList.add('timestamp');
+
 
         const message_sender = document.createElement('div');
         message_sender.classList.add('message-sender');

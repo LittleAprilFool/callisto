@@ -89,6 +89,7 @@ interface MessageItem {
     'message-content': string,
     'message-time': string,
     'message-id': string,
+    'timestamp': string
 }
 
 interface User {

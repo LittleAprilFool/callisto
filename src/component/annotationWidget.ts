@@ -37,7 +37,7 @@ export class AnnotationWidget implements IAnnotationWidget {
         const [canvasEl, canvasContainer] = this.initCanvasContainer();
 
         // init fabric canvas
-        this.canvas = new (<any>fabric).Canvas(canvasEl, {
+        this.canvas = new (fabric as any).Canvas(canvasEl, {
             width: canvasContainer.offsetWidth,
             height: canvasContainer.offsetHeight,
         });
