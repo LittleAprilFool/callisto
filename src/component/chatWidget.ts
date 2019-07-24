@@ -33,9 +33,9 @@ export class ChatWidget implements IChatWidget {
     private filterContainer: HTMLElement;
     private isFold: boolean = true;
     private isRead: boolean = true;
-    private isEdit: boolean = true;
     private isEditLinking: boolean = false;
     private isFilter: boolean = false;
+    private isSelect: boolean = false;
     private titleContainer: HTMLElement;
     private messageContainer: HTMLElement;
     private lastCursor: Cursor;
@@ -82,7 +82,8 @@ export class ChatWidget implements IChatWidget {
     }
 
     public onSelectAnnotation = (cell_index: number, object_index: number): void => {
-        if(!this.isFold) {
+        if(!this.isFold && this.isSelect) {
+            this.handleMagicToggle();
             this.messageBox.appendRef('marker', {
                 type: "MARKER",
                 cell_index,
@@ -98,7 +99,7 @@ export class ChatWidget implements IChatWidget {
         else {
             this.lastCursor = cursor;
         }
-        if(!this.isFold) {
+        if(!this.isFold && this.isSelect) {
             if(cursor.from!==cursor.to) {
                 const cell = Jupyter.notebook.get_cell(cursor.cm_index);
                 const text = cell.code_mirror.getSelection();
@@ -108,20 +109,20 @@ export class ChatWidget implements IChatWidget {
                     code_from: cursor.from,
                     code_to: cursor.to
                 });
+                this.handleMagicToggle();
             }
         }
     }
 
     public onSelectDiff = (label: string): void => {
-        if (!this.isFold) {
-            // let appended_text;
+        if (!this.isFold && this.isSelect) {
+            this.handleMagicToggle();
             if(label === 'version-current') {
                 const timestamp = getTimestamp().toString();
                 this.messageBox.appendRef('notebook-snapshot', {
                     type: "SNAPSHOT",
                     version: timestamp.toString()
                 });
-                // appended_text = '[notebook-snapshot](V'+ timestamp + ')';
             }
             else if(label.includes('version')) {
                 const tag = label.split('-');
@@ -129,7 +130,6 @@ export class ChatWidget implements IChatWidget {
                     type: "SNAPSHOT",
                     version: tag[1]
                 });
-                // appended_text = '[notebook-snapshot](V'+ tag[1] + ')';
             }
             else if (label.includes('diff')) {
                 const tag = label.split('-');
@@ -138,9 +138,7 @@ export class ChatWidget implements IChatWidget {
                     version: tag[1],
                     version_diff: tag[2]
                 });
-                // appended_text = '[notebook-diff](V'+ tag[1] + ', V'+tag[2] +')';
             }
-            // this.messageBox.value = this.messageBox.value + appended_text;
         }
     }
 
@@ -148,12 +146,18 @@ export class ChatWidget implements IChatWidget {
         const cell = info.cell;
 
         if(this.isFold) return;
-        if(this.isEdit) {
-            const cm_index = info.cell.code_mirror.index;
-            this.messageBox.appendRef("cell", {
-                type: "CELL",
-                cell_index: cm_index
-            });
+        if(this.isSelect) {
+            // a naive way to wait for annotation/cursor
+            setTimeout(() => {
+                if(this.isSelect) {
+                    const cm_index = info.cell.code_mirror.index;
+                    this.messageBox.appendRef("cell", {
+                    type: "CELL",
+                    cell_index: cm_index
+                    });
+                    this.handleMagicToggle();
+                }
+            }, 500);
         }
         if(this.isEditLinking) {
             const cellEl_list = document.querySelectorAll('.cell');
@@ -475,7 +479,7 @@ export class ChatWidget implements IChatWidget {
         other.setAttribute('style', 'display:none');
         save.setAttribute('style', 'display:none');
         input.setAttribute('style', 'display: none');
-        this.isEdit = false;
+        this.isSelect = false;
         this.isEditLinking = false;
 
         if(status === 'save') {
@@ -489,7 +493,7 @@ export class ChatWidget implements IChatWidget {
         switch(selected_messages.length) {
             case 0:
                 input.setAttribute('style', 'display: block');
-                this.isEdit = true;
+                this.isSelect = true;
                 const selected_cells = Jupyter.notebook.get_selected_cells();
                 if (selected_cells.length > 1) {
                     selected_cells.forEach(c => { c.unselect();});
@@ -661,6 +665,15 @@ export class ChatWidget implements IChatWidget {
     private handleLinking = (e): void => {
         this.updateInputStatus('save');
     }
+
+    private handleMagicToggle = (e?): void => {
+        const magic_button = document.querySelector('#magic-button');
+        const notebook = document.querySelector('#notebook');
+        notebook.classList.toggle('select');
+        magic_button.classList.toggle('active');
+        this.isSelect = !this.isSelect;
+    }
+
     private getNewList= (): number[] => {
         const selected_cells = Jupyter.notebook.get_selected_cells();
         const selected_cells_list = [];
@@ -824,15 +837,28 @@ export class ChatWidget implements IChatWidget {
 
         const input_button = document.createElement('button');
         input_button.appendChild(button_icon);
-        input_button.id = 'input-button';
+        input_button.id = 'send-button';
+        input_button.classList.add('input-button');
+
+        const magic_icon = document.createElement('i');
+        magic_icon.innerHTML = '<i class="fa fa-magic"></i>';
+
+        const magic_button = document.createElement('button');
+        magic_button.appendChild(magic_icon);
+        magic_button.id = 'magic-button';
+        magic_button.classList.add('input-button');
+        const button_group = document.createElement('div');
+        button_group.appendChild(magic_button);
+        button_group.appendChild(input_button);
 
         const input_and_button_div = document.createElement('div');
         input_and_button_div.appendChild(this.messageBox.el);
-        input_and_button_div.appendChild(input_button);
         
         input_button.addEventListener('click', this.handleSubmitting);
+        magic_button.addEventListener('click', this.handleMagicToggle);
        
         input_container.appendChild(input_and_button_div);
+        input_container.appendChild(button_group);
 
         const input_snapshot = document.createElement('div');
         input_snapshot.id = 'input-snapshot';
@@ -923,8 +949,6 @@ export class ChatWidget implements IChatWidget {
         input_save.appendChild(tool_save);
         input_save.appendChild(cancel_button4);
         input_save.setAttribute('style', 'display: none');
-
-        input_container.appendChild(input_button);
         
         this.container.appendChild(head_container);
         this.container.appendChild(message_container_wrapper);
@@ -946,13 +970,13 @@ export class ChatWidget implements IChatWidget {
     private initStyle = (): void => {
         // update style
         const sheet = document.createElement('style');
+        sheet.innerHTML += '#notebook.select * {cursor: crosshair}\n';
         sheet.innerHTML += '#chat-container { height: 500px; width: 300px; float:right; margin-right: 50px; position: fixed; bottom: -460px; right: 0px; z-index:2; border-radius:10px; box-shadow: 0px 0px 12px 0px rgba(87, 87, 87, 0.2); background: white;  transition: bottom .5s; } \n';
         sheet.innerHTML += '#head-container { color: #516766; font-weight: bold; text-align: center; background-color: #9dc5a7; border-radius: 10px 10px 0px 0px; } \n';
         sheet.innerHTML += '#tool-container { text-align: right; margin-top: 5px; padding: 5px; background: white; border-bottom: 1px solid #eee}\n';
         sheet.innerHTML += '.tool-button {font-size:10px; margin-left: 10px; display: inline-block; padding: 5px 10px; background: #709578;color: white; border-radius: 3px; cursor: pointer; }\n';
         sheet.innerHTML += '.tool-button i {margin-left: 1px; }\n';
 
-        // sheet.innerHTML += '.tool-button:hover {color: #ddd;}\n';
         sheet.innerHTML += '.head-tool { height: 22px; margin-right: 10px; border: 1px solid #eee; padding: 0px 10px; display: inline-block}\n';
         sheet.innerHTML += '#tool-filter.active {background: #dae4dd; color: #516766}\n';
         sheet.innerHTML += '#tool-search input { font-weight: normal; color: #aaa; outline: none; border: none; width: 185px; font-size: 10px; margin-right: 5px;}\n';
@@ -966,14 +990,15 @@ export class ChatWidget implements IChatWidget {
         sheet.innerHTML += '#input-container { height: 50px; width: 280px; background-color: white; border: solid 2px #ececec; border-radius: 10px; margin:auto;} \n';
         sheet.innerHTML += '.input-label { color: #bbb; font-size: 12px; font-weight: bold; padding: 15px 15px; height: 50px; width: 300px; border-top: 1px solid #eee; margin:auto;} \n';
         sheet.innerHTML += '#input-box { padding-left: 10px; padding-right: 10px; font-size: 12px; color: #7d7d7d; width: 220px; border: none; background-color: transparent; resize: none;outline: none; } \n';
-        sheet.innerHTML += '#input-button { color: #868686; display:inline; height:46px; width: 50px; position: relative; background: transparent; border: none; border-left: solid 2px #ececec; } \n';
-        sheet.innerHTML += '#input-button:hover { color: #484848;} \n';
+        sheet.innerHTML += '.input-button { font-size: 14px; padding: 0px 0px; color: #868686; display:inline; height:46px; width: 25px; position: relative; background: transparent; border: none;} \n';
+        sheet.innerHTML += '.input-button.active {color: #9dc5a7;}\n';
+        sheet.innerHTML += '.input-button:focus {outline:none}\n';
         sheet.innerHTML += '#chat-title { display: inline; margin-left: 8px; } \n';
 
         sheet.innerHTML += '.message-wrapper { list-style: none; padding: 8px 20px; margin: 4px 0px;} \n';
         sheet.innerHTML += '.message-wrapper.select {background: #9dc5a73d;}\n';
         sheet.innerHTML += '#message-container {padding: 0px 0px; margin: 0px 0px; }\n';
-        // sheet.innerHTML += '.right { text-align: right;} \n';
+        sheet.innerHTML += '#message-box strong {font-weight: normal; font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}\n';
         sheet.innerHTML += '.message-sender { display:inline; font-size: 10px; font-weight: bold; } \n';
         sheet.innerHTML += '.message-content { display: inline-block; background: whitesmoke; left: 5px; position: relative; padding: 10px; border-radius: 12px; min-width: 100px; font-size: 12px; } \n';
         sheet.innerHTML += '.message-time { float: right; font-size: 10px; display:inline; margin-left: 10px; color: #b7b7b7; } \n';
