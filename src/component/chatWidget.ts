@@ -145,7 +145,7 @@ export class ChatWidget implements IChatWidget {
     private onSelectCell = (evt, info): void => {
         const cell = info.cell;
 
-        if(this.isFold) return;
+        if(this.isFold) return
         if(this.isSelect) {
             // a naive way to wait for annotation/cursor
             setTimeout(() => {
