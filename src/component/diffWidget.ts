@@ -1,4 +1,5 @@
 import { Cell, IDiffWidget, Notebook } from "types";
+import * as resemble from "../external/resemble";
 
 export class DiffWidget implements IDiffWidget {
     private container: HTMLElement;
@@ -157,10 +158,25 @@ export class DiffWidget implements IDiffWidget {
                         const hover_container = document.createElement('div');
                         hover_container.classList.add('hover-container');
 
+                        const old_src = 'data:image/png;base64,'+output.data['image/png'];
+                        const new_src = 'data:image/png;base64,'+ new_cell.outputs[output_index].data['image/png'];
+
                         const img_diff = document.createElement('img');
-                        img_diff.setAttribute('src', 'data:image/png;base64,'+output.data['image/png']);
+                        img_diff.setAttribute('src', old_src);
                         img_diff.classList.add("img-diff");
                         hover_container.appendChild(img_diff);
+
+                        const resemble_control = resemble(old_src).compareTo(new_src).onComplete(data => {
+                            img_diff.setAttribute('src', data.getImageDataUrl());
+                        });
+                        resemble_control.outputSettings({
+                            errorColor: {
+                                red: 255,
+                                green: 0,
+                                blue: 255
+                            },
+                            errorType: 'movement'
+                        }).repaint();
 
                         // adding css to original img
                         img.classList.add('img-overlay');
@@ -169,7 +185,7 @@ export class DiffWidget implements IDiffWidget {
 
                         // overlays new picture in the bottom
                         const img_bottom = document.createElement('img');
-                        img_bottom.setAttribute('src', 'data:image/png;base64,'+ new_cell.outputs[output_index].data['image/png']);
+                        img_bottom.setAttribute('src', new_src);
                         hover_container.appendChild(img_bottom);
 
                         output_subarea.appendChild(hover_container);
@@ -258,8 +274,8 @@ export class DiffWidget implements IDiffWidget {
         sheet.innerHTML += '.diff-new .input_area {background: rgba(0, 200, 20, 0.1); }\n';
         sheet.innerHTML += '.diff-old .input_area {background: rgba(255, 20, 0, 0.1); }\n';
         sheet.innerHTML += '.img-overlay { position: absolute; }\n';
-        sheet.innerHTML += '.img-diff { position: absolute; opacity: 0}\n';
-        sheet.innerHTML += '.hover-container:hover .img-diff{ opacity: 1 }\n';
+        sheet.innerHTML += '.img-diff { position: absolute; opacity: 0;}\n';
+        sheet.innerHTML += '.hover-container:hover .img-diff{ opacity: 1; z-index: 2;}\n';
         sheet.innerHTML += '.img-slider { margin: 10px 0 5px 0; }\n';
         document.body.appendChild(sheet);
     }
