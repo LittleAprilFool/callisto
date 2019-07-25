@@ -502,7 +502,6 @@ export class ChatWidget implements IChatWidget {
         switch(selected_messages.length) {
             case 0:
                 input.setAttribute('style', 'display: block');
-                this.isSelect = true;
                 const selected_cells = Jupyter.notebook.get_selected_cells();
                 if (selected_cells.length > 1) {
                     selected_cells.forEach(c => { c.unselect();});
