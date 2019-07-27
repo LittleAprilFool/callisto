@@ -11,6 +11,14 @@ export const joinDoc = (doc_name: string): Promise<{doc: SDBDoc<SharedDoc>, clie
         const sdbDoc = sdbClient.get('doc', doc_name);
         sdbDoc.fetch().then(res=> {
             if (res.type == null) {
+                // set share flag to true
+                Jupyter.notebook.metadata.shared = false;
+        
+                // add doc name
+                Jupyter.notebook.metadata.doc_name = null;
+
+                // save after changing metadata
+                Jupyter.notebook.save_notebook();   
                 reject('document does not exist');
             }
             else {
