@@ -333,15 +333,17 @@ export class ChatWidget implements IChatWidget {
         this.isFilter = !this.isFilter;
         const filter_button = document.querySelector('#tool-filter');
         filter_button.classList.toggle('active');
+        const message_container = document.querySelector('#message-container') as HTMLElement;
 
         if(this.isFilter) {
             this.loadFilteredMessages();
             this.updateCellHighlight(true);
+            message_container.classList.add('filtermode');
         }
         else {
-            // to do fix this bug
             this.messageList.filter();
             this.updateCellHighlight(false);
+            message_container.classList.remove('filtermode');
         }
         this.tabWidget.checkTab('version-current');
     }
@@ -740,12 +742,15 @@ export class ChatWidget implements IChatWidget {
     private handleSearch = (): void => {
         const input = document.querySelector('#search-input') as HTMLInputElement;
         const keyword = input.value;
+        const message_container = document.querySelector('#message-container') as HTMLElement;
         
         if(keyword === '') {
             this.messageList.search();
+            message_container.classList.remove('searchmode');
         }
         else {
             this.messageList.search(keyword, ['message-content']);
+            message_container.classList.add('searchmode');
         }
     }
 
@@ -992,6 +997,8 @@ export class ChatWidget implements IChatWidget {
         sheet.innerHTML += '#tool-search input { font-weight: normal; color: #aaa; outline: none; border: none; width: 185px; font-size: 10px; margin-right: 5px;}\n';
         sheet.innerHTML += '#title-container {padding: 8px; cursor: pointer; }\n';
         sheet.innerHTML += '#message-container { height: 370px; background-color: white; overflow:scroll; } \n';
+        sheet.innerHTML += '#message-container.searchmode::before {content: "Search Mode"; display: block; font-weight: bold; color: #bbb; padding-top: 5px; text-align: center;}\n';
+        sheet.innerHTML += '#message-container.filtermode::before {content: "Filter Mode"; display: block; font-weight: bold; color: #bbb; padding-top: 5px; text-align: center;}\n';
         sheet.innerHTML += '.select.message-content {cursor: pointer; transition: .4s}\n';
         sheet.innerHTML += '.selected.message-content {background:#dae5dd; }\n';
         sheet.innerHTML += '.cancel-selection {background: none; border: none; color: #155725ab; float: right; }\n';

@@ -85,6 +85,7 @@ export class DiffWidget implements IDiffWidget {
 
         this.createCellUnit(new_cell, new_cell_container, false);
         this.createCellUnit(old_cell, old_cell_container, true, new_cell);
+        this.onSliderDemo();
     }
 
     private addCell = (cell: Cell): void => {
@@ -230,7 +231,7 @@ export class DiffWidget implements IDiffWidget {
         slider.type = "range";
         slider.min = "0";
         slider.max = "100";
-        slider.value = "75";
+        slider.value = "0";
         slider.setAttribute("img-id", img.id);
         slider.classList.add("img-slider");
         slider.addEventListener("input", this.onSliderInput);
@@ -269,11 +270,27 @@ export class DiffWidget implements IDiffWidget {
         main_container.insertBefore(this.container, main_container.firstChild.nextSibling);
     }
 
-    private onSliderInput = (e: Event): void => {
-        const target_slider = e.target as HTMLInputElement;
+    private onSliderInput = (e?: Event): void => {
+        const target_slider = document.querySelector('.img-slider') as HTMLInputElement;
         const target_img = document.getElementById(target_slider.getAttribute('img-id'));
         const opacity = ((+target_slider.value) - (+target_slider.min)) / ((+target_slider.max) - (+target_slider.min));
         target_img.style.opacity = opacity.toString();
+    }
+
+    private onSliderDemo = (): void => {
+        const target_slider = document.querySelector('.img-slider') as HTMLInputElement;
+        if(target_slider == null) return;
+
+        const startTimer = value => {
+            if(value > 100) return;
+            setTimeout(() => {
+                value = value + 1;
+                target_slider.value = value.toString();
+                this.onSliderInput();
+                startTimer(value);
+            }, 20);
+        };
+        startTimer(0);
     }
 
     private initStyle = (): void => {
