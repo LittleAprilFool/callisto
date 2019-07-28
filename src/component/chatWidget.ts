@@ -85,9 +85,10 @@ export class ChatWidget implements IChatWidget {
     public onSelectAnnotation = (cell_index: number, object_index: number): void => {
         if(!this.isFold && this.isSelect) {
             this.handleMagicToggle();
+            const cuid = Jupyter.notebook.get_cell(cell_index).uid;
             this.messageBox.appendRef('marker', {
                 type: "MARKER",
-                cell_index,
+                cell_index: cuid,
                 marker_index: object_index
             });
         }
@@ -103,10 +104,11 @@ export class ChatWidget implements IChatWidget {
         if(!this.isFold && this.isSelect) {
             if(cursor.from!==cursor.to) {
                 const cell = Jupyter.notebook.get_cell(cursor.cm_index);
+                const cuid = cell.uid;
                 const text = cell.code_mirror.getSelection();
                 this.messageBox.appendRef(text, {
                     type: "CODE",
-                    cell_index: cursor.cm_index,
+                    cell_index: cuid,
                     code_from: cursor.from,
                     code_to: cursor.to
                 });
@@ -151,10 +153,11 @@ export class ChatWidget implements IChatWidget {
             // a naive way to wait for annotation/cursor
             setTimeout(() => {
                 if(this.isSelect) {
+                    const cuid = info.cell.uid;
                     const cm_index = info.cell.code_mirror.index;
                     this.messageBox.appendRef("cell", {
                     type: "CELL",
-                    cell_index: cm_index
+                    cell_index: cuid
                     });
                     this.handleMagicToggle();
                 }
@@ -214,14 +217,19 @@ export class ChatWidget implements IChatWidget {
     private handleLineRef = (e): void => {
         e.stopPropagation();
         const line_refs = e.currentTarget.getAttribute('ref');
-        const line_ref = line_refs.split('-');
+        const line_ref = line_refs.split('|');
         const ref1 = line_ref[0];
         if(line_ref.length === 1) {
             if(ref1[0] === 'C') {
-                const cell_index = parseInt(ref1.slice(1), 0);
+                const cuid = ref1.slice(1);
+                const cell_index = this.uidToId(cuid);
+                // console.log(cuid);
+                // const cell_index = parseInt(ref1.slice(1), 0);
                 this.tabWidget.checkTab('version-current');
-                Jupyter.notebook.select(cell_index);
-                this.updateCellHighlight(true);
+                if(cell_index !== -1) {
+                    Jupyter.notebook.select(cell_index);
+                    this.updateCellHighlight(true);    
+                }
             }
             if(ref1[0] === 'V') {
                 const timestamp = parseInt(ref1.slice(1), 0);
@@ -235,12 +243,16 @@ export class ChatWidget implements IChatWidget {
         }
         if(line_ref.length === 2) {
             if(ref1[0] === 'C') {
-                const cell_index = parseInt(ref1.slice(1), 0);
-                const ref2 = line_ref[1];
-                const object_index = parseInt(ref2.slice(1), 0);
-                this.currentAnnotationHighlight = {cell_index, object_index};
-                this.tabWidget.checkTab('version-current');
-                this.annotationCallback(true, cell_index, object_index);
+                const cuid = ref1.slice(1);
+                const cell_index = this.uidToId(cuid);
+                if (cell_index !== -1) {
+                    const ref2 = line_ref[1];
+                    const object_index = parseInt(ref2.slice(1), 0);
+                    this.currentAnnotationHighlight = {cell_index, object_index};
+                    this.tabWidget.checkTab('version-current');
+                    this.annotationCallback(true, cell_index, object_index);
+                }
+                // const cell_index = parseInt(ref1.slice(1), 0);
             }
             if(ref1[0] === 'V') {
                 const new_timestamp = parseInt(ref1.slice(1), 0);
@@ -256,14 +268,27 @@ export class ChatWidget implements IChatWidget {
         if(line_ref.length === 3) {
             if(ref1[0] === 'C') {
                 this.tabWidget.checkTab('version-current');
-                const cell_index = parseInt(ref1.slice(1), 0);
-                const ref2 = line_ref[1]; 
-                const ref3 = line_ref[2];
-                const from = parseInt(ref2.slice(1), 0);
-                const to = parseInt(ref3.slice(1), 0);
-                this.cursorCallback(true, cell_index, from, to);
+                const cuid = ref1.slice(1);
+                const cell_index = this.uidToId(cuid);
+                // const cell_index = parseInt(ref1.slice(1), 0);
+                if(cell_index!== -1) {
+                    const ref2 = line_ref[1]; 
+                    const ref3 = line_ref[2];
+                    const from = parseInt(ref2.slice(1), 0);
+                    const to = parseInt(ref3.slice(1), 0);
+                    this.cursorCallback(true, cell_index, from, to);
+                }
             }
         }
+    }
+
+    private uidToId = (uid: string): number => {
+        const cells = Jupyter.notebook.get_cells();
+        let id = -1;
+        cells.forEach((cell, index) => {
+            if (cell.uid === uid) id = index;
+        });
+        return id;
     }
 
     private handleSnapshot = (e): void => {
@@ -366,7 +391,7 @@ export class ChatWidget implements IChatWidget {
                 const line_ref_list = RegExp.$2.split(', ');
                 const first_el = line_ref_list[0];
                 if(first_el[0] === 'C') {
-                    const cell_index = Number(first_el.slice(1));
+                    const cell_index = first_el.slice(1);
                     if(cell_index !== null && !related_cells.includes(cell_index)) related_cells.push(cell_index);
                 }
             });
@@ -374,7 +399,7 @@ export class ChatWidget implements IChatWidget {
         else {
             // link chat message with the cell that someone clicks on
             const current_cell = Jupyter.notebook.get_selected_cell();
-            if(current_cell) related_cells.push(current_cell.code_mirror.index);
+            if(current_cell) related_cells.push(current_cell.uid);
         }
 
         const newMessage: Message = {
@@ -405,7 +430,7 @@ export class ChatWidget implements IChatWidget {
     private loadFilteredMessages = (): void => {
         const cell = Jupyter.notebook.get_selected_cell();
         if(cell) {
-            const cell_index = cell.code_mirror.index;
+            const cell_index = cell.uid;
             const chat_data = this.doc.getData();
             let flag = false;
             const filter_list = [];
@@ -531,10 +556,10 @@ export class ChatWidget implements IChatWidget {
         refEl.innerText = p2;
         refEl.setAttribute('timestamp', getTimestamp().toString());
         refEl.setAttribute('source', this.sender.user_id);
-        const tag = p3.replace(/, /g, '-');
+        const tag = p3.replace(/, /g, '|');
         refEl.setAttribute('ref', tag);
         let ref_type = '';
-        const line_ref = tag.split('-');
+        const line_ref = tag.split('|');
         const ref1 = line_ref[0];
         if(line_ref.length === 1) {
             if(ref1[0] === 'C') {
@@ -651,7 +676,7 @@ export class ChatWidget implements IChatWidget {
         this.updateInputStatus();
     }
 
-    private getCurrentList = (): number[] => {
+    private getCurrentList = (): string[] => {
         const selected_messages = document.querySelectorAll('.message-wrapper.select');
         const history = this.doc.getData();
         const contentEl0 = selected_messages[0].lastChild as HTMLElement;
@@ -684,11 +709,11 @@ export class ChatWidget implements IChatWidget {
         this.isSelect = !this.isSelect;
     }
 
-    private getNewList= (): number[] => {
+    private getNewList= (): string[] => {
         const selected_cells = Jupyter.notebook.get_selected_cells();
         const selected_cells_list = [];
         selected_cells.forEach(cell => {
-            selected_cells_list.push(cell.code_mirror.index);
+            selected_cells_list.push(cell.uid);
         });
         return selected_cells_list;
 
@@ -732,7 +757,8 @@ export class ChatWidget implements IChatWidget {
         old_cells.forEach(cell => {
             cell.unselect();
         });
-        cell_list.forEach(index => {
+        cell_list.forEach(uid => {
+            const index = this.uidToId(uid);
             const cell = Jupyter.notebook.get_cell(index);
             cell.select();
         });
