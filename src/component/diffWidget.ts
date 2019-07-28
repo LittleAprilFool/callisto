@@ -133,8 +133,7 @@ export class DiffWidget implements IDiffWidget {
         const output_wrapper = document.createElement('div');
         output_wrapper.classList.add('output_wrapper');
         // todo: this causes trouble when the outputs from the two sides are not the same.
-        let output_index = 0;
-        cell.outputs.forEach(output => {
+        cell.outputs.forEach((output, output_index) => {
             const outputEl = document.createElement('div');
             outputEl.classList.add('output');
             const output_area = document.createElement('div');
@@ -153,54 +152,9 @@ export class DiffWidget implements IDiffWidget {
                     // use cell number and output as index. Shouldn't cause any trouble as the diff is static.
                     img.id = "output-img-" + this.notebook[0].cells.indexOf(cell).toString() + "-" + output_index.toString();
                     if (is_old_cell && new_cell.outputs.length > output_index && new_cell.outputs[output_index].output_type === 'display_data') {
-                        // Only show diff when the new cell has at least the same number of output as the index and the corresponding index is still an image.
-                        // creating diff image which appears on hover
-                        const hover_container = document.createElement('div');
-                        hover_container.classList.add('hover-container');
-
-                        const old_src = 'data:image/png;base64,'+output.data['image/png'];
-                        const new_src = 'data:image/png;base64,'+ new_cell.outputs[output_index].data['image/png'];
-
-                        const img_diff = document.createElement('img');
-                        img_diff.setAttribute('src', old_src);
-                        img_diff.classList.add("img-diff");
-                        hover_container.appendChild(img_diff);
-
-                        const resemble_control = resemble(old_src).compareTo(new_src).onComplete(data => {
-                            img_diff.setAttribute('src', data.getImageDataUrl());
-                        });
-                        resemble_control.outputSettings({
-                            errorColor: {
-                                red: 255,
-                                green: 0,
-                                blue: 255
-                            },
-                            errorType: 'movement'
-                        }).repaint();
-
-                        // adding css to original img
-                        img.classList.add('img-overlay');
-                        img.style.opacity = "0.75";
-                        hover_container.appendChild(img);
-
-                        // overlays new picture in the bottom
-                        const img_bottom = document.createElement('img');
-                        img_bottom.setAttribute('src', new_src);
-                        hover_container.appendChild(img_bottom);
-
-                        output_subarea.appendChild(hover_container);
-
-                        // creating slider
-                        const slider = document.createElement('input');
-                        slider.type = "range";
-                        slider.min = "0";
-                        slider.max = "100";
-                        slider.value = "75";
-                        slider.setAttribute("img-id", img.id);
-                        slider.classList.add("img-slider");
-                        slider.addEventListener("input", this.onSliderInput);
-                        output_subarea.appendChild(slider);
-                        
+                        const data_old = output.data['image/png'];
+                        const data_new = new_cell.outputs[output_index].data['image/png'];
+                        this.renderImageDiff(output_subarea, img, data_old, data_new);                        
                     } else {
                         output_subarea.appendChild(img);
                     }
@@ -211,15 +165,76 @@ export class DiffWidget implements IDiffWidget {
                     pre.innerText = output.text;
                     output_subarea.appendChild(pre);
                     break;
+                case 'execute_result':
+                    if (output.data.hasOwnProperty('text/html')) {
+                        output_subarea.classList.add('output_html', 'rendered_html', 'output_result');
+                        output_subarea.innerHTML = output.data['text/html'];
+                    }
+                    else if (output.data.hasOwnProperty('text/plain')) {
+                        output_subarea.classList.add('output_text', 'output_result');
+                        const tmp = document.createElement('pre');
+                        tmp.innerText = output.data['text/plain'];
+                        output_subarea.appendChild(tmp);
+                    }
+                    break;
                 default:
                     break;
             }
             outputEl.appendChild(output_area);
             output_wrapper.appendChild(outputEl);
-            output_index += 1;
         });
 
         cell_container.appendChild(output_wrapper);
+    }
+
+    private renderImageDiff = (output_subarea, img, data_old, data_new): void => {
+        // Only show diff when the new cell has at least the same number of output as the index and the corresponding index is still an image.
+        // creating diff image which appears on hover
+        const hover_container = document.createElement('div');
+        hover_container.classList.add('hover-container');
+
+        const old_src = 'data:image/png;base64,'+ data_old;
+        const new_src = 'data:image/png;base64,'+ data_new;
+
+        const img_diff = document.createElement('img');
+        img_diff.setAttribute('src', old_src);
+        img_diff.classList.add("img-diff");
+        hover_container.appendChild(img_diff);
+
+        const resemble_control = resemble(old_src).compareTo(new_src).onComplete(data => {
+            img_diff.setAttribute('src', data.getImageDataUrl());
+        });
+        resemble_control.outputSettings({
+            errorColor: {
+                red: 255,
+                green: 0,
+                blue: 255
+            },
+            errorType: 'movement'
+        }).repaint();
+
+        // adding css to original img
+        img.classList.add('img-overlay');
+        img.style.opacity = "0.75";
+        hover_container.appendChild(img);
+
+        // overlays new picture in the bottom
+        const img_bottom = document.createElement('img');
+        img_bottom.setAttribute('src', new_src);
+        hover_container.appendChild(img_bottom);
+
+        output_subarea.appendChild(hover_container);
+
+        // creating slider
+        const slider = document.createElement('input');
+        slider.type = "range";
+        slider.min = "0";
+        slider.max = "100";
+        slider.value = "75";
+        slider.setAttribute("img-id", img.id);
+        slider.classList.add("img-slider");
+        slider.addEventListener("input", this.onSliderInput);
+        output_subarea.appendChild(slider);
     }
 
     private initContainer = (): void => {

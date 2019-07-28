@@ -439,7 +439,7 @@ export class ChatWidget implements IChatWidget {
             'message-content': formated_text,
             'message-time': message.time,
             'message-id': index.toString(),
-            'timestamp': getTimestamp().toString(),
+            'timestamp': message.timestamp.toString(),
         };
         return message_info;
     }
