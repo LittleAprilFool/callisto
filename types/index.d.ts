@@ -133,7 +133,7 @@ interface Cell {
     outputs?: Output[];
     source?: string[];
     rendered?: boolean;
-    unique_id?: string;
+    uid?: string;
 }
 
 interface Output{

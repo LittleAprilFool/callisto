@@ -129,6 +129,7 @@ export class NotebookBinding implements INotebookBinding {
         });
 
         this.onJoinChannel();
+        this.bindCellID();
 
         // pull initial user list
         if(option.userlist) {
@@ -289,7 +290,8 @@ export class NotebookBinding implements INotebookBinding {
             case 'InsertCell': {
                 const {p, li} = op;
                 const [, , index] = p;
-                const cell = Jupyter.notebook.insert_cell_above(li.cell_type, index);            
+                const cell = Jupyter.notebook.insert_cell_above(li.cell_type, index); 
+                cell.uid = li.uid;           
                 this.insertSharedCell(index, cell.code_mirror);
                 // when deleting the only cell, Jupyter will automatically insert a cell
                 // when a remote notebook deletes the only cell, the current notebook will first delete its only cell. Then the current notebook will automatically insert a cell. Then the remote notebook will insert a cell as well.
@@ -396,7 +398,7 @@ export class NotebookBinding implements INotebookBinding {
                 const {p, od, oi} = op;
                 this.chatWidget.broadcastMessage('The new host is ' + oi.username);
                 const theHost = this.sdbDoc.getData().host;
-                if (theHost === this.user) this.isHost = true;
+                if (theHost.username === this.user.username) this.isHost = true;
                 break;
             }
             case 'EditCell': {
@@ -470,6 +472,14 @@ export class NotebookBinding implements INotebookBinding {
         }
     }
 
+    private bindCellID = (): void => {
+        const data = this.sdbDoc.getData();
+        data.notebook.cells.forEach((cell, index) => {
+            const jupyter_cell = Jupyter.notebook.get_cell(index);
+            jupyter_cell.uid = cell.uid;
+        });
+    }
+
     // when the local notebook inserts a cell
     private onInsertCell = (evt, info): void => {
         // info contains the following:
@@ -480,13 +490,16 @@ export class NotebookBinding implements INotebookBinding {
         // Jupyter will create an insert event by default when the code type is changed
         if(!this.suppressChanges && !Jupyter.ignoreInsert) {
             this.insertSharedCell(info.index, info.cell.code_mirror);
+            info.cell.uid = generateUUID();
+            const cell_string = JSON.parse(JSON.stringify(info.cell));
+            cell_string.uid = info.cell.uid;
 
             // op = {p:[path,idx], li:obj}	
             // inserts the object obj before the item at idx in the list at [path].
 
             const op = {
                 p: ['notebook', 'cells', info.index],
-                li: JSON.parse(JSON.stringify(info.cell))
+                li: JSON.parse(JSON.stringify(cell_string))
             };
 
             this.sdbDoc.submitOp([op], this);
@@ -517,9 +530,15 @@ export class NotebookBinding implements INotebookBinding {
             // the input_prompt_number is not updated the same time as the output
             // thus we need to update it from the current Jupyter notebook after 20 msec
             // need a better solution rather than setTimeout
-            setTimeout(()=> {
-                this.onSyncInputPrompt(Jupyter.notebook.get_cell(index));
-            }, 20);
+            const updateCount = () => {
+                setTimeout(() => {
+                    const count = Jupyter.notebook.get_cell(index);
+                    if(count === '*') updateCount();
+                    else this.onSyncInputPrompt(count);
+                }, 20);
+            };
+
+            updateCount();
         }
 
         this.addAnnotation(info.cell);

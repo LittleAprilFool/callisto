@@ -1,5 +1,6 @@
 import { loadNotebook } from './action/notebookAction';
 import { SharedButton } from './component/sharedButton';
+import './external/diff2html';
 import './external/list';
 import './external/sdb';
 

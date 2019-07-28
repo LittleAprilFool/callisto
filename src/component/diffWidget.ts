@@ -24,51 +24,69 @@ export class DiffWidget implements IDiffWidget {
         else {
             const new_notebook = this.notebook[0];
             const old_notebook = this.notebook[1];
+            const new_uids = [];
+            const old_uids = [];
             let oindex = 0;
             let nindex = 0;
-            const olength = old_notebook.cells.length;
-            const nlength = new_notebook.cells.length;
-            const ncells = new_notebook.cells;
-            const ocells = old_notebook.cells;
+            new_notebook.cells.forEach(cell => {
+                new_uids.push(cell.uid);
+            });
+            old_notebook.cells.forEach(cell => {
+                old_uids.push(cell.uid);
+            });
 
-            while((nindex<nlength) && (oindex<olength)) {
-                if(ncells[nindex].source === ocells[oindex].source) {
-                    this.addCell(ncells[nindex]);
-                    oindex ++;
-                    nindex ++;
-                    continue;
+            while(new_uids.length > 0 && old_uids.length > 0) {
+                const current_uid = new_uids[0];
+                const index = old_uids.indexOf(current_uid);
+                switch (index) {
+                    case -1:
+                        // if the current cell is not in the old version
+                        this.addDiffCell(new_notebook.cells[nindex], null);
+                        new_uids.shift();
+                        nindex ++;
+                        break;
+                    case 0:
+                        // if the current cell is the corresponding cell in the old version
+                        if(new_notebook.cells[nindex].source === old_notebook.cells[oindex].source) {
+                            this.addCell(new_notebook.cells[nindex]);
+                        }
+                        else this.addDiffCell(new_notebook.cells[nindex], old_notebook.cells[oindex]);
+                        new_uids.shift();
+                        nindex ++;
+                        old_uids.shift();
+                        oindex ++;
+                        break;
+                    default:
+                        // if the current cell is in the old version, but not the corresponding cell
+                        this.addDiffCell(null, old_notebook.cells[oindex]);
+                        old_uids.shift();
+                        oindex ++;
+                        break;
                 }
-
-                // delete cell
-                if(ncells[nindex].source === ocells[oindex+1].source) {
-                    this.addDiffCell(null, ocells[oindex]);
-                    oindex ++;
-                    continue;
-                }
-
-                // add cell 
-                if (ncells[nindex+1].source === ocells[oindex].source) {
-                    this.addDiffCell(ncells[nindex], null);
-                    nindex ++;
-                    continue;
-                }
-
-                // edit cell
-                this.addDiffCell(ncells[nindex], ocells[oindex]);
-                oindex ++;  
-                nindex ++;
-                continue;  
             }
 
-            while(nindex < nlength) {
-                this.addDiffCell(ncells[nindex], null);
-                nindex ++;
-            }
-            while(oindex < olength) {
-                this.addDiffCell(ocells[oindex], null);
+            while (old_uids.length > 0) {
+                this.addDiffCell(null, old_notebook.cells[oindex]);
+                old_uids.shift();
                 oindex ++;
             }
+
+            while (new_uids.length > 0) {
+                this.addDiffCell(new_notebook.cells[nindex], null);
+                new_uids.shift();
+                nindex ++;
+            }
         }
+
+        const diffHtml = window['Diff2Html'].getPrettyHtml(
+            '<Unified Diff String>',
+            {inputFormat: 'diff', showFiles: true, matching: 'lines', outputFormat: 'side-by-side'}
+          );
+
+        const difftest = document.createElement('div');
+        difftest.innerHTML = diffHtml;
+        console.log(difftest);
+        this.container.appendChild(difftest);
     }
 
     private addDiffCell = (new_cell: Cell, old_cell: Cell): void => {
@@ -152,7 +170,7 @@ export class DiffWidget implements IDiffWidget {
                     img.setAttribute('src', 'data:image/png;base64,'+output.data['image/png']);
                     // use cell number and output as index. Shouldn't cause any trouble as the diff is static.
                     img.id = "output-img-" + this.notebook[0].cells.indexOf(cell).toString() + "-" + output_index.toString();
-                    if (is_old_cell && new_cell.outputs.length > output_index && new_cell.outputs[output_index].output_type === 'display_data') {
+                    if (new_cell && is_old_cell && new_cell.outputs.length > output_index && new_cell.outputs[output_index].output_type === 'display_data') {
                         const data_old = output.data['image/png'];
                         const data_new = new_cell.outputs[output_index].data['image/png'];
                         this.renderImageDiff(output_subarea, img, data_old, data_new);                        

@@ -212,7 +212,8 @@ export class ChatWidget implements IChatWidget {
     } 
 
     private handleLineRef = (e): void => {
-        const line_refs = e.target.getAttribute('ref');
+        e.stopPropagation();
+        const line_refs = e.currentTarget.getAttribute('ref');
         const line_ref = line_refs.split('-');
         const ref1 = line_ref[0];
         if(line_ref.length === 1) {
@@ -263,7 +264,6 @@ export class ChatWidget implements IChatWidget {
                 this.cursorCallback(true, cell_index, from, to);
             }
         }
-        e.stopPropagation();
     }
 
     private handleSnapshot = (e): void => {
@@ -298,8 +298,8 @@ export class ChatWidget implements IChatWidget {
         const selected_message_child2 = selected_message2.lastChild as HTMLElement;
         const timestamp2 = parseInt(selected_message_child2.getAttribute('timestamp'), 0);
 
-        const old_timestamp = timestamp1 > timestamp2? timestamp1: timestamp2;
-        const new_timestamp = timestamp1 > timestamp2? timestamp2: timestamp1;
+        const old_timestamp = timestamp1 > timestamp2? timestamp2: timestamp1;
+        const new_timestamp = timestamp1 > timestamp2? timestamp1: timestamp2;
 
         const label = 'diff-'+new_timestamp.toString()+ '-' + old_timestamp.toString();
         if(this.tabWidget.checkTab(label)) return;
