@@ -1,8 +1,6 @@
 import { Cell, IDiffWidget, Notebook } from "types";
-import * as resemble from "../external/resemble";
 import * as Diff from '../external/diff';
-import { start } from "repl";
-
+import * as resemble from "../external/resemble";
 
 export class DiffWidget implements IDiffWidget {
     private container: HTMLElement;
@@ -124,8 +122,6 @@ export class DiffWidget implements IDiffWidget {
         const old_lines = old_container.querySelectorAll('.CodeMirror-line');
         let lineNumber = 0;
         let string_count = 0;
-        console.log(new_code)
-        console.log(old_code)
         parts.forEach((part, partIndex) => {
             console.log(part, partIndex, lineNumber, string_count, new_lines[lineNumber].innerText);
             const substring = part.value;
@@ -303,57 +299,58 @@ export class DiffWidget implements IDiffWidget {
         const output_wrapper = document.createElement('div');
         output_wrapper.classList.add('output_wrapper');
         // todo: this causes trouble when the outputs from the two sides are not the same.
-        cell.outputs.forEach((output, output_index) => {
-            const outputEl = document.createElement('div');
-            outputEl.classList.add('output');
-            const output_area = document.createElement('div');
-            output_area.classList.add('output_area');
-            const output_prompt = document.createElement('div');
-            output_prompt.classList.add('prompt');
-            output_area.appendChild(output_prompt);
-            const output_subarea = document.createElement('div');
-            output_subarea.classList.add('output_subarea');
-            output_area.appendChild(output_subarea);
-            switch(output.output_type) {
-                case 'display_data':
-                    output_subarea.classList.add('output_png');
-                    const img = document.createElement('img');
-                    img.setAttribute('src', 'data:image/png;base64,'+output.data['image/png']);
-                    // use cell number and output as index. Shouldn't cause any trouble as the diff is static.
-                    img.id = "output-img-" + this.notebook[0].cells.indexOf(cell).toString() + "-" + output_index.toString();
-                    if (new_cell && is_old_cell && new_cell.outputs.length > output_index && new_cell.outputs[output_index].output_type === 'display_data') {
-                        const data_old = output.data['image/png'];
-                        const data_new = new_cell.outputs[output_index].data['image/png'];
-                        this.renderImageDiff(output_subarea, img, data_old, data_new);                        
-                    } else {
-                        output_subarea.appendChild(img);
-                    }
-                    break;
-                case 'stream':
-                    output_subarea.classList.add('output_stream', 'output_text', 'output_stdout');
-                    const pre = document.createElement('pre');
-                    pre.innerText = output.text;
-                    output_subarea.appendChild(pre);
-                    break;
-                case 'execute_result':
-                    if (output.data.hasOwnProperty('text/html')) {
-                        output_subarea.classList.add('output_html', 'rendered_html', 'output_result');
-                        output_subarea.innerHTML = output.data['text/html'];
-                    }
-                    else if (output.data.hasOwnProperty('text/plain')) {
-                        output_subarea.classList.add('output_text', 'output_result');
-                        const tmp = document.createElement('pre');
-                        tmp.innerText = output.data['text/plain'];
-                        output_subarea.appendChild(tmp);
-                    }
-                    break;
-                default:
-                    break;
-            }
-            outputEl.appendChild(output_area);
-            output_wrapper.appendChild(outputEl);
-        });
-
+        if(cell.outputs){
+            cell.outputs.forEach((output, output_index) => {
+                const outputEl = document.createElement('div');
+                outputEl.classList.add('output');
+                const output_area = document.createElement('div');
+                output_area.classList.add('output_area');
+                const output_prompt = document.createElement('div');
+                output_prompt.classList.add('prompt');
+                output_area.appendChild(output_prompt);
+                const output_subarea = document.createElement('div');
+                output_subarea.classList.add('output_subarea');
+                output_area.appendChild(output_subarea);
+                switch(output.output_type) {
+                    case 'display_data':
+                        output_subarea.classList.add('output_png');
+                        const img = document.createElement('img');
+                        img.setAttribute('src', 'data:image/png;base64,'+output.data['image/png']);
+                        // use cell number and output as index. Shouldn't cause any trouble as the diff is static.
+                        img.id = "output-img-" + this.notebook[0].cells.indexOf(cell).toString() + "-" + output_index.toString();
+                        if (new_cell && is_old_cell && new_cell.outputs.length > output_index && new_cell.outputs[output_index].output_type === 'display_data') {
+                            const data_old = output.data['image/png'];
+                            const data_new = new_cell.outputs[output_index].data['image/png'];
+                            this.renderImageDiff(output_subarea, img, data_old, data_new);                        
+                        } else {
+                            output_subarea.appendChild(img);
+                        }
+                        break;
+                    case 'stream':
+                        output_subarea.classList.add('output_stream', 'output_text', 'output_stdout');
+                        const pre = document.createElement('pre');
+                        pre.innerText = output.text;
+                        output_subarea.appendChild(pre);
+                        break;
+                    case 'execute_result':
+                        if (output.data.hasOwnProperty('text/html')) {
+                            output_subarea.classList.add('output_html', 'rendered_html', 'output_result');
+                            output_subarea.innerHTML = output.data['text/html'];
+                        }
+                        else if (output.data.hasOwnProperty('text/plain')) {
+                            output_subarea.classList.add('output_text', 'output_result');
+                            const tmp = document.createElement('pre');
+                            tmp.innerText = output.data['text/plain'];
+                            output_subarea.appendChild(tmp);
+                        }
+                        break;
+                    default:
+                        break;
+                }
+                outputEl.appendChild(output_area);
+                output_wrapper.appendChild(outputEl);
+            })
+        }
         cell_container.appendChild(output_wrapper);
     }
 
