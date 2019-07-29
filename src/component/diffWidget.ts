@@ -1,5 +1,8 @@
 import { Cell, IDiffWidget, Notebook } from "types";
 import * as resemble from "../external/resemble";
+import * as Diff from '../external/diff';
+import { start } from "repl";
+
 
 export class DiffWidget implements IDiffWidget {
     private container: HTMLElement;
@@ -82,11 +85,6 @@ export class DiffWidget implements IDiffWidget {
             '<Unified Diff String>',
             {inputFormat: 'diff', showFiles: true, matching: 'lines', outputFormat: 'side-by-side'}
           );
-
-        const difftest = document.createElement('div');
-        difftest.innerHTML = diffHtml;
-        console.log(difftest);
-        this.container.appendChild(difftest);
     }
 
     private addDiffCell = (new_cell: Cell, old_cell: Cell): void => {
@@ -101,9 +99,162 @@ export class DiffWidget implements IDiffWidget {
         diff_container.appendChild(new_cell_container);
         diff_container.appendChild(old_cell_container);
 
+
         this.createCellUnit(new_cell, new_cell_container, false);
         this.createCellUnit(old_cell, old_cell_container, true, new_cell);
+        // this.computeDiff(new_cell.source, old_cell.source)
+        // jsdiff does not work here!!
+        // this.addCodeDiff(diff_container, new_cell.source, old_cell.source);
         this.onSliderDemo();
+    }
+
+    private computeDiff = (new_code, old_code): void => {
+        // send a request to server
+
+        // get a diff file
+
+        // render the diff using html2diff
+    }
+
+    private addCodeDiff = (diff_container, new_code, old_code): void => {
+        const parts = Diff.diffChars(old_code, new_code);
+        const new_container = diff_container.querySelector('.cell.diff-new');
+        const old_container = diff_container.querySelector('.cell.diff-old');
+        const new_lines = new_container.querySelectorAll('.CodeMirror-line');
+        const old_lines = old_container.querySelectorAll('.CodeMirror-line');
+        let lineNumber = 0;
+        let string_count = 0;
+        console.log(new_code)
+        console.log(old_code)
+        parts.forEach((part, partIndex) => {
+            console.log(part, partIndex, lineNumber, string_count, new_lines[lineNumber].innerText);
+            const substring = part.value;
+            const lines = substring.split("\n");
+            if (part.added) {
+                lines.forEach((line, index) => {
+                    if(index>0) {
+                        lineNumber++;
+                        string_count = 0;
+                    }
+                    const text = new_lines[lineNumber].innerText;
+                    const raw = new_lines[lineNumber].innerHTML;
+                    // console.log(string_count, text.slice(string_count, string_count + 2))
+                    const transform_text = this.transformADDText(raw, text, string_count, line);
+                    new_lines[lineNumber].innerHTML = transform_text;
+                })
+
+                // const transform_text = this.transformADDText(new_lines[startLineNumber], string_count, part.value);
+                // new_lines[startLineNumber].innerHTML = transform_text;
+            } else if (part.removed) {
+                // add multiple lines to new_lines?
+                // may not work out
+                const text = new_lines[lineNumber].innerText;
+                const raw = new_lines[lineNumber].innerHTML;
+                const transform_text = this.transformDELText(raw, text, string_count, part.value);
+                new_lines[lineNumber].innerHTML = transform_text;
+                lineNumber++;
+            }
+            else {
+                string_count = string_count + part.count;
+                if(lines.length > 1) {
+                    lineNumber = lineNumber + lines.length-1;
+                    string_count = lines[lines.length-1].length;
+                }
+            }
+        })
+    }
+
+    private transformDELText = (raw, text, string_count, value): string => {
+        console.log('transform del, ', text, string_count, value)
+        let i_count = 0;
+        let e_count = 0;
+        let e_key;
+        let flag = false;
+        // console.log(string_count)
+        while(e_count < raw.length) {
+            switch(raw[e_count]) {
+                case '<':
+                    flag = true;
+                    break;
+                case '>':
+                    flag = false;
+                    break;
+                default:
+                    if(!flag) {
+                        // console.log(i_count);
+                        // console.log(e_count, raw[e_count])
+                        if(i_count==string_count-1) e_key = e_count;
+                        i_count ++;
+                    }
+                    break;
+            }
+            e_count ++;
+        }
+        console.log(raw);
+        // console.log(e_key)
+        const p1 = raw.slice(0,e_key+1);
+        const p2 = raw.slice(e_key+1, raw.length);
+        console.log(p1);
+        console.log(p2);
+        const new_raw = p1 + '<span class="diff-del">' + value + '</span>' + p2;
+        return new_raw;
+    }
+
+    private transformADDText = (raw, text, string_count, value): string =>{
+        console.log('transform add, ', text, string_count, value)
+        let i_count = 0;
+        let e_count = 0;
+        let e_start;
+        let e_end;
+        let last_end;
+        let flag = false;
+        let next_end = false;
+        let num_flag = 0;
+        const length = value.length;
+        // console.log(string_count, length)
+        while(e_count < raw.length) {
+            switch(raw[e_count]) {
+                case '<':
+                    last_end = e_count;
+                    flag = true;
+                    break;
+                case '>':
+                    flag = false;
+                    num_flag ++;
+                    if(next_end) {
+                        e_end = e_count;
+                        next_end = false;
+                    }
+                    break;
+                default:
+                    if(!flag) {
+                        // console.log(i_count, e_count, raw[e_count])
+                        if(i_count==string_count) {
+                            // if e_start needs to include the <span> tag
+                            // console.log(e_count, raw.slice(e_count-3, e_count+3))
+                            if (raw[e_count-1]==='>' && (num_flag % 2 ==0)) e_start = last_end;
+                            else e_start = e_count;
+                        }
+                        if(i_count==string_count+length-1) {
+                            // console.log(e_count, raw.slice(e_count-3, e_count+3))
+                            if(raw[e_count+1] === '<' && (num_flag % 2 == 0)) next_end = true;
+                            else e_end = e_count;
+                        } 
+                        i_count ++;
+                    }
+                    break;
+            }
+            e_count ++;
+        }
+        console.log(raw);
+        const p1 = raw.slice(0,e_start);
+        const p2 = raw.slice(e_start, e_end+1);
+        const p3 = raw.slice(e_end+1, raw.length);
+        console.log(p1)
+        console.log(p2)
+        console.log(p3);
+        const new_raw = p1 + '<span class="diff-add">' + p2 + '</span>' + p3;
+        return new_raw;
     }
 
     private addCell = (cell: Cell): void => {
@@ -321,6 +472,8 @@ export class DiffWidget implements IDiffWidget {
         sheet.innerHTML += '#label-container {margin-top: 10px; margin-bottom: 10px;} \n';
         sheet.innerHTML += '.diff-cell-container {background: #fff6dc; overflow:auto;} \n';
         sheet.innerHTML += '.diff { background: inherit; width: 50% !important; display: inline-block !important; float:left;} \n';
+        sheet.innerHTML += 'span.diff-add {background: #c5e4bd}\n';
+        sheet.innerHTML += 'span.diff-del {background: #e4cabd}\n';
         sheet.innerHTML += '.diff-new .input_area {background: rgba(0, 200, 20, 0.1); }\n';
         sheet.innerHTML += '.diff-old .input_area {background: rgba(255, 20, 0, 0.1); }\n';
         sheet.innerHTML += '.img-overlay { position: absolute; }\n';
