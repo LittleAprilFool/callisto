@@ -112,7 +112,7 @@ export class NotebookBinding implements INotebookBinding {
                 const doc_data = subDoc.getData();
                 const output_data = doc_data['outputs'];
                 let widget_data = null;
-                if(output_data.length >= 1) {
+                if(output_data && output_data.hasOwnProperty(length) && output_data.length >= 1) {
                     const last_output = output_data[output_data.length - 1];
                     if (last_output.hasOwnProperty('metadata')) {
                         if (last_output.metadata.hasOwnProperty('annotation')) {
