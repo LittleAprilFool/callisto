@@ -88,7 +88,7 @@ export class ChatWidget implements IChatWidget {
             const cuid = Jupyter.notebook.get_cell(cell_index).uid;
             this.messageBox.appendRef('marker', {
                 type: "MARKER",
-                cell_index: cuid,
+                cell_index,
                 marker_index: object_index
             });
         }
@@ -108,7 +108,7 @@ export class ChatWidget implements IChatWidget {
                 const text = cell.code_mirror.getSelection();
                 this.messageBox.appendRef(text, {
                     type: "CODE",
-                    cell_index: cuid,
+                    cell_index: cursor.cm_index,
                     code_from: cursor.from,
                     code_to: cursor.to
                 });
@@ -156,8 +156,8 @@ export class ChatWidget implements IChatWidget {
                     const cuid = info.cell.uid;
                     const cm_index = info.cell.code_mirror.index;
                     this.messageBox.appendRef("cell", {
-                    type: "CELL",
-                    cell_index: cuid
+                        type: "CELL",
+                        cell_index: cm_index
                     });
                     this.handleMagicToggle();
                 }
@@ -457,9 +457,10 @@ export class ChatWidget implements IChatWidget {
 
     private getMessageInfo = (message: Message, index: number): MessageItem => {
         const re = /\[(.*?)\]\((.*?)\)/g;
+        const url_re = /(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:/?#[\]@!\$&'\(\)\*\+,;=.]+/g;
         this.sender = message.sender;
         const origin_text = message.content;    
-        const formated_text = origin_text.replace(re, this.replaceLR);
+        const formated_text = origin_text.replace(re, this.replaceLR).replace(url_re, this.replaceURL);
     
         const message_info: MessageItem = {
             'message-sender': message.sender.username,
@@ -587,6 +588,14 @@ export class ChatWidget implements IChatWidget {
 
         refEl.classList.add('line_ref');
         return refEl.outerHTML;
+    }
+
+    private replaceURL = (p1: string, p2: string, p3: string): string => {
+        const URL_el = document.createElement('a');
+        URL_el.href = p1;
+        URL_el.innerHTML = p1;
+        URL_el.target = '_blank';
+        return URL_el.outerHTML;
     }
 
     private updateCellHighlight = (flag: boolean): void => {

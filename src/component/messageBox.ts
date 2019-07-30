@@ -3,6 +3,8 @@ import { IMessageBox, LineRef, MessageLineRef, RefType } from 'types';
 import { Quill } from 'types/quill';
 import * as Quill_lib from '../external/quill';
 
+const Jupyter = require('base/js/namespace');
+
 export class MessageBox implements IMessageBox {
 
     public el: HTMLDivElement;
@@ -27,7 +29,7 @@ export class MessageBox implements IMessageBox {
                 if (index < this.ref_list.length) {
                     const message_line_ref = this.ref_list[index];
                     index += 1;
-                    submission_string += this.messageLineRefToExpandedString(message_line_ref);
+                    submission_string += this.messageLineRefToExpandedString(message_line_ref, true);
                 }
             } else {
                 // plain text
@@ -73,6 +75,18 @@ export class MessageBox implements IMessageBox {
             placeholder: 'write your message',
             theme: 'bubble',
         });
+        this.quill_object.clipboard.addMatcher(Node.ELEMENT_NODE, (_node, delta) => {
+            const ops = [];
+            delta.ops.forEach(op => {
+                if (op.insert && typeof op.insert === 'string') {
+                    ops.push({
+                        insert: op.insert
+                    });
+                }
+            });
+            delta.ops = ops;
+            return delta;
+        });
     }
 
     private initElement(): void {
@@ -110,7 +124,7 @@ export class MessageBox implements IMessageBox {
                 if (this.shouldExpand(char_count, op, caret_pos[0], caret_pos[1])) {
                     // expand
                     const message_line_ref = this.ref_list[ref_index];
-                    const expanded_text = this.messageLineRefToExpandedString(message_line_ref);
+                    const expanded_text = this.messageLineRefToExpandedString(message_line_ref, false);
                     delta.ops.push({insert: expanded_text});
                     delta.ops.push({delete: op.insert.length});
                     this.ref_list.splice(ref_index, 1);
@@ -267,8 +281,10 @@ export class MessageBox implements IMessageBox {
         return message_line_ref;
     }
 
-    private messageLineRefToExpandedString(message_line_ref: MessageLineRef): string {
+    private messageLineRefToExpandedString(message_line_ref: MessageLineRef, submitting: boolean): string {
         const line_ref = message_line_ref.line_ref;
+        const code_str = line_ref.cell_index === undefined ? '' : (submitting ? Jupyter.notebook.get_cell(line_ref.cell_index).uid : line_ref.cell_index.toString());
+        console.log(code_str);
         switch (line_ref.type) {
             case "URL": {
                 // not implemented
@@ -276,15 +292,15 @@ export class MessageBox implements IMessageBox {
             }
             case "CODE": {
                 // [text](C0, L1, L5) -> to a code range
-                return "[" + message_line_ref.text + "](C" + line_ref.cell_index.toString() + ", L" + line_ref.code_from.toString() + ", L" + line_ref.code_to.toString() + ")";
+                return "[" + message_line_ref.text + "](C" + code_str + ", L" + line_ref.code_from.toString() + ", L" + line_ref.code_to.toString() + ")";
             }
             case "CELL": {
                 // [cell](C0) -> to a cell
-                return "[" + message_line_ref.text + "](C" + line_ref.cell_index.toString() + ")";
+                return "[" + message_line_ref.text + "](C" + code_str + ")";
             }
             case "MARKER": {
                 // [marker](C0, M1) -> to an annotation marker
-                return "[" + message_line_ref.text + "](C" + line_ref.cell_index.toString() + ", M" + line_ref.marker_index.toString() + ")";
+                return "[" + message_line_ref.text + "](C" + code_str + ", M" + line_ref.marker_index.toString() + ")";
             }
             case "SNAPSHOT": {
                 // [notebook-snapshot](V12345) -> to a version
