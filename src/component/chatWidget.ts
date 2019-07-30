@@ -520,9 +520,9 @@ export class ChatWidget implements IChatWidget {
         this.isEditLinking = false;
 
         if(status === 'save') {
+            this.isEditLinking = true;
             this.handleLinkingDisplay();
             save.setAttribute('style', 'display: block');
-            this.isEditLinking = true;
             return;
         }
 
@@ -606,7 +606,7 @@ export class ChatWidget implements IChatWidget {
         
         if(flag) {
             const cells = document.querySelectorAll('.cell.selected');
-            if (cells[0]) {
+            if (cells[0] && !this.isEditLinking) {
                 cells[0].scrollIntoView();
             }
             cells.forEach(cell => {
