@@ -3,7 +3,7 @@ import * as Diff from '../external/diff';
 import * as resemble from "../external/resemble";
 
 export class DiffWidget implements IDiffWidget {
-    private container: HTMLElement;
+    public container: HTMLElement;
     
     constructor(private type: string, private notebook: Notebook[], private title: string, private timestamp: number[]) {
         this.initContainer();

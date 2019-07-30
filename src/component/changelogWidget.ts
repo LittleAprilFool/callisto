@@ -13,7 +13,6 @@ export class ChangelogWidget implements IChangelogWidget {
     private isFold: boolean = true;
 
     constructor(private doc: any, private tabWidget: IDiffTabWidget) {
-
         this.initContainer();
         this.initStyle();
         this.loadHistory();

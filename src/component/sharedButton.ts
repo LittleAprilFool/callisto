@@ -105,6 +105,7 @@ export class SharedButton {
         // close websocket
         this.sharedNotebook.destroy();
         updateSharedButton(false);
+        location.reload(true);
     }
 
     private shareHandler(): void {

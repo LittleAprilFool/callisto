@@ -159,8 +159,12 @@ export class NotebookBinding implements INotebookBinding {
         this.sharedCells.forEach(cell => {
             cell.destroy();
         });
-        if(this.userListWidget) this.userListWidget.destroy();
         this.ws.close();
+        if(this.changelogWidget) this.changelogWidget.destroy();
+        if(this.chatWidget) this.chatWidget.destroy();
+        if(this.userListWidget) this.userListWidget.destroy();
+        if(this.cursorWidget) this.cursorWidget.destroy();
+        if(this.diffTabWidget) this.diffTabWidget.destroy();
     }
 
     private eventsOn = (): void => {
