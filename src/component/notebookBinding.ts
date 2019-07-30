@@ -64,7 +64,8 @@ export class NotebookBinding implements INotebookBinding {
     private chatWidget: IChatWidget;
     private cursorWidget: ICursorWidget;
     private changelogWidget: IChangelogWidget;
-    private isChanged: boolean = false;
+    private cellChangeBuffer: string[] = [];
+    private cellExecutionBuffer: string[] = [];
     private diffTabWidget: IDiffTabWidget;
     constructor(private sdbDoc: SDBDoc<SharedDoc>, private client: any, private ws: WebSocket, private option: SharedDocOption = {
         annotation: true,
@@ -245,23 +246,10 @@ export class NotebookBinding implements INotebookBinding {
                 break;
             }
             case 'UpdateOutputs': {
-                // todo: isChanged can be also output results changed
-                if(this.isChanged) {
-                    this.isChanged = false;
-                    const log_index = this.sdbDoc.getData().changelog.length;
-                    const log: Changelog = {
-                        user: this.user,
-                        eventName: 'edited the notebook',
-                        event: 'edit',
-                        time: getTime(),
-                        timestamp: getTimestamp() + 100
-                    };
-                    const op_log = {
-                        p: ['changelog', log_index],
-                        li: log
-                    };
-                    this.sdbDoc.submitOp([op_log], this);
-                }
+                const {p, od, oi} = op;
+                const [, , index, ] = p;
+                const cell = Jupyter.notebook.get_cell(index);
+                this.testExecutionLog(cell);
                 break;
             }
             case 'JoinChannel': {
@@ -335,6 +323,7 @@ export class NotebookBinding implements INotebookBinding {
                 });
                 const widget = new AnnotationWidget(cell, this.onUpdateAnnotation.bind(this), null);
                 this.sharedCells[index].annotationWidget = widget;
+                this.testExecutionLog(cell);
                 break;
             }
             case 'UpdateAnnotation': {
@@ -406,7 +395,12 @@ export class NotebookBinding implements INotebookBinding {
                 break;
             }
             case 'EditCell': {
-                this.isChanged = true;
+                const {p, t, o} = op;
+                const [, ,index] = p;
+                const cell = Jupyter.notebook.get_cell(index);
+                if(!this.cellChangeBuffer.includes(cell.uid)) {
+                    this.cellChangeBuffer.push(cell.uid);
+                }
                 break;
             }
             default: {
@@ -414,6 +408,38 @@ export class NotebookBinding implements INotebookBinding {
             }
         }
         this.suppressChanges = false;
+    }
+
+    private testExecutionLog = (cell): void => {
+        // if this user sent the execution operation
+        if(this.cellExecutionBuffer.includes(cell.uid)) {
+            const id = this.cellChangeBuffer.indexOf(cell.uid);
+            this.cellExecutionBuffer.splice(id, 1);
+            if(this.cellChangeBuffer.includes(cell.uid)) {
+                const id2 = this.cellChangeBuffer.indexOf(cell.uid);
+                this.cellChangeBuffer.splice(id2, 1);
+                const log_index = this.sdbDoc.getData().changelog.length;
+                const log: Changelog = {
+                    user: this.user,
+                    eventName: 'executed a modified cell',
+                    event: 'edit',
+                    time: getTime(),
+                    timestamp: getTimestamp() + 100
+                };
+                const op_log = {
+                    p: ['changelog', log_index],
+                    li: log
+                };
+                this.sdbDoc.submitOp([op_log], this);
+            }
+        }
+        else { 
+            // remove edit
+            if(this.cellChangeBuffer.includes(cell.uid)) {
+                const id = this.cellChangeBuffer.indexOf(cell.uid);
+                this.cellChangeBuffer.splice(id, 1);
+            }
+        }
     }
 
     // add user into connected user
@@ -513,6 +539,7 @@ export class NotebookBinding implements INotebookBinding {
     private onExecuteCodeCell = (evt, info): void => {
         if(!this.suppressChanges) {
             // update the input prompt
+            this.cellExecutionBuffer.push(info.cell.uid);
             this.onSyncInputPrompt(info.cell);
         }
     }
