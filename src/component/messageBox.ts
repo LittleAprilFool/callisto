@@ -34,6 +34,10 @@ export class MessageBox implements IMessageBox {
                 submission_string += insertion.insert;
             }
         });
+        console.log("delta:");
+        console.log(delta);
+        console.log("submission:");
+        console.log(submission_string);
         return submission_string;
     }
 
@@ -72,6 +76,18 @@ export class MessageBox implements IMessageBox {
             },
             placeholder: 'write your message',
             theme: 'bubble',
+        });
+        this.quill_object.clipboard.addMatcher(Node.ELEMENT_NODE, (_node, delta) => {
+            const ops = [];
+            delta.ops.forEach(op => {
+                if (op.insert && typeof op.insert === 'string') {
+                    ops.push({
+                        insert: op.insert
+                    });
+                }
+            });
+            delta.ops = ops;
+            return delta;
         });
     }
 
