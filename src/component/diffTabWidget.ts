@@ -28,7 +28,7 @@ export class DiffTabWidget implements IDiffTabWidget {
         notebook_widget.setAttribute('style', 'display:block');
         this.diffList.forEach(widget => {
             widget.container.parentNode.removeChild(widget.container);
-        })
+        });
     }
     public checkTab = (label: string): boolean => {
         const checkTabEl = document.querySelector('.diff-tab.'+label);
