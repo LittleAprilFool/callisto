@@ -34,6 +34,10 @@ export class MessageBox implements IMessageBox {
                 submission_string += insertion.insert;
             }
         });
+        console.log("delta:");
+        console.log(delta);
+        console.log("submission:");
+        console.log(submission_string);
         return submission_string;
     }
 
