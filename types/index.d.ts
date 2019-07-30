@@ -141,7 +141,8 @@ interface Output{
     output_type?: string,
     text?: any,
     data?: any,
-    metadata?: any
+    metadata?: any,
+    traceback?:any
 }
 
 interface INotebookBinding {

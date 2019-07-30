@@ -344,7 +344,18 @@ export class DiffWidget implements IDiffWidget {
                             output_subarea.appendChild(tmp);
                         }
                         break;
+                    case 'error':
+                        output_subarea.classList.add('output_text', 'output_error');
+                        console.log(output);
+                        const pre2 = document.createElement('pre');
+                        output.traceback.forEach(item => {
+                            pre2.innerText += item;
+                        });
+                        output_subarea.appendChild(pre2);
+                        break;
                     default:
+                        console.log('unrecognized output');
+                        console.log(output);
                         break;
                 }
                 outputEl.appendChild(output_area);
