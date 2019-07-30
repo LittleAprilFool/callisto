@@ -24,7 +24,7 @@ export class AnnotationWidget implements IAnnotationWidget {
         const object_list = this.canvas.getObjects();
         const object = object_list[index];
         if(flag) {
-            object.set('fill', 'yellow');
+            object.set('fill', '#fff70a50');
         }
         else {
             object.set('fill', null);
