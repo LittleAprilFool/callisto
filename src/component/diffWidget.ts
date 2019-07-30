@@ -299,7 +299,7 @@ export class DiffWidget implements IDiffWidget {
         const output_wrapper = document.createElement('div');
         output_wrapper.classList.add('output_wrapper');
         // todo: this causes trouble when the outputs from the two sides are not the same.
-        if(cell.outputs){
+        if(cell.outputs) {
             cell.outputs.forEach((output, output_index) => {
                 const outputEl = document.createElement('div');
                 outputEl.classList.add('output');
@@ -349,7 +349,7 @@ export class DiffWidget implements IDiffWidget {
                 }
                 outputEl.appendChild(output_area);
                 output_wrapper.appendChild(outputEl);
-            })
+            });
         }
         cell_container.appendChild(output_wrapper);
     }
