@@ -606,7 +606,9 @@ export class ChatWidget implements IChatWidget {
         
         if(flag) {
             const cells = document.querySelectorAll('.cell.selected');
-            cells[0].scrollIntoView();
+            if (cells[0]) {
+                cells[0].scrollIntoView();
+            }
             cells.forEach(cell => {
                 cell.classList.add('highlight');
             });
