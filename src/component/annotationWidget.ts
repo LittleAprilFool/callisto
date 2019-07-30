@@ -31,7 +31,7 @@ export class AnnotationWidget implements IAnnotationWidget {
         }
         this.canvas.renderAll();
     }
-    
+
     public disableDrawing = (): void => {
         if(this.canvas.isDrawingMode) {
             this.canvas.isDrawingMode = false;
@@ -120,11 +120,11 @@ export class AnnotationWidget implements IAnnotationWidget {
     }
 
     private handleMouseUp = (options): void => {
-        // if(this.canvas.isDrawingMode) {
-        //     this.canvas.isDrawingMode = !this.canvas.isDrawingMode;
-        //     this.changePaintColor(false);
-        //     this.saveDrawing();
-        // }
+        if(this.canvas.isDrawingMode) {
+            // this.canvas.isDrawingMode = !this.canvas.isDrawingMode;
+            // this.changePaintColor(false);
+            this.saveDrawing();
+        }
         if (options.target) {
             this.saveDrawing();
             const object_list = this.canvas.getObjects();
@@ -154,6 +154,9 @@ export class AnnotationWidget implements IAnnotationWidget {
         this.canvas.clear();
         this.saveDrawing();
         this.clearTool.blur();
+        if(this.canvas.isDrawingMode) {
+            this.disableDrawing();
+        }
     }
 
     private saveDrawing(): void {
