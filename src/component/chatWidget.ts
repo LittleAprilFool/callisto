@@ -781,7 +781,7 @@ export class ChatWidget implements IChatWidget {
         }
     }
 
-    private handleEnterKey = (e:KeyboardEvent): void => {
+    private handleEnterKey = (e: KeyboardEvent): void => {
         if(e.which === 13) {
             this.handleSubmitting();
             e.preventDefault();

@@ -106,152 +106,152 @@ export class DiffWidget implements IDiffWidget {
         this.onSliderDemo();
     }
 
-    private computeDiff = (new_code, old_code): void => {
-        // send a request to server
+    // private computeDiff = (new_code, old_code): void => {
+    //     // send a request to server
 
-        // get a diff file
+    //     // get a diff file
 
-        // render the diff using html2diff
-    }
+    //     // render the diff using html2diff
+    // }
 
-    private addCodeDiff = (diff_container, new_code, old_code): void => {
-        const parts = Diff.diffChars(old_code, new_code);
-        const new_container = diff_container.querySelector('.cell.diff-new');
-        const old_container = diff_container.querySelector('.cell.diff-old');
-        const new_lines = new_container.querySelectorAll('.CodeMirror-line');
-        const old_lines = old_container.querySelectorAll('.CodeMirror-line');
-        let lineNumber = 0;
-        let string_count = 0;
-        parts.forEach((part, partIndex) => {
-            console.log(part, partIndex, lineNumber, string_count, new_lines[lineNumber].innerText);
-            const substring = part.value;
-            const lines = substring.split("\n");
-            if (part.added) {
-                lines.forEach((line, index) => {
-                    if(index>0) {
-                        lineNumber++;
-                        string_count = 0;
-                    }
-                    const text = new_lines[lineNumber].innerText;
-                    const raw = new_lines[lineNumber].innerHTML;
-                    // console.log(string_count, text.slice(string_count, string_count + 2))
-                    const transform_text = this.transformADDText(raw, text, string_count, line);
-                    new_lines[lineNumber].innerHTML = transform_text;
-                })
+    // private addCodeDiff = (diff_container, new_code, old_code): void => {
+    //     const parts = Diff.diffChars(old_code, new_code);
+    //     const new_container = diff_container.querySelector('.cell.diff-new');
+    //     const old_container = diff_container.querySelector('.cell.diff-old');
+    //     const new_lines = new_container.querySelectorAll('.CodeMirror-line');
+    //     const old_lines = old_container.querySelectorAll('.CodeMirror-line');
+    //     let lineNumber = 0;
+    //     let string_count = 0;
+    //     parts.forEach((part, partIndex) => {
+    //         console.log(part, partIndex, lineNumber, string_count, new_lines[lineNumber].innerText);
+    //         const substring = part.value;
+    //         const lines = substring.split("\n");
+    //         if (part.added) {
+    //             lines.forEach((line, index) => {
+    //                 if(index>0) {
+    //                     lineNumber++;
+    //                     string_count = 0;
+    //                 }
+    //                 const text = new_lines[lineNumber].innerText;
+    //                 const raw = new_lines[lineNumber].innerHTML;
+    //                 // console.log(string_count, text.slice(string_count, string_count + 2))
+    //                 const transform_text = this.transformADDText(raw, text, string_count, line);
+    //                 new_lines[lineNumber].innerHTML = transform_text;
+    //             });
 
-                // const transform_text = this.transformADDText(new_lines[startLineNumber], string_count, part.value);
-                // new_lines[startLineNumber].innerHTML = transform_text;
-            } else if (part.removed) {
-                // add multiple lines to new_lines?
-                // may not work out
-                const text = new_lines[lineNumber].innerText;
-                const raw = new_lines[lineNumber].innerHTML;
-                const transform_text = this.transformDELText(raw, text, string_count, part.value);
-                new_lines[lineNumber].innerHTML = transform_text;
-                lineNumber++;
-            }
-            else {
-                string_count = string_count + part.count;
-                if(lines.length > 1) {
-                    lineNumber = lineNumber + lines.length-1;
-                    string_count = lines[lines.length-1].length;
-                }
-            }
-        })
-    }
+    //             // const transform_text = this.transformADDText(new_lines[startLineNumber], string_count, part.value);
+    //             // new_lines[startLineNumber].innerHTML = transform_text;
+    //         } else if (part.removed) {
+    //             // add multiple lines to new_lines?
+    //             // may not work out
+    //             const text = new_lines[lineNumber].innerText;
+    //             const raw = new_lines[lineNumber].innerHTML;
+    //             const transform_text = this.transformDELText(raw, text, string_count, part.value);
+    //             new_lines[lineNumber].innerHTML = transform_text;
+    //             lineNumber++;
+    //         }
+    //         else {
+    //             string_count = string_count + part.count;
+    //             if(lines.length > 1) {
+    //                 lineNumber = lineNumber + lines.length-1;
+    //                 string_count = lines[lines.length-1].length;
+    //             }
+    //         }
+    //     });
+    // }
 
-    private transformDELText = (raw, text, string_count, value): string => {
-        console.log('transform del, ', text, string_count, value)
-        let i_count = 0;
-        let e_count = 0;
-        let e_key;
-        let flag = false;
-        // console.log(string_count)
-        while(e_count < raw.length) {
-            switch(raw[e_count]) {
-                case '<':
-                    flag = true;
-                    break;
-                case '>':
-                    flag = false;
-                    break;
-                default:
-                    if(!flag) {
-                        // console.log(i_count);
-                        // console.log(e_count, raw[e_count])
-                        if(i_count==string_count-1) e_key = e_count;
-                        i_count ++;
-                    }
-                    break;
-            }
-            e_count ++;
-        }
-        console.log(raw);
-        // console.log(e_key)
-        const p1 = raw.slice(0,e_key+1);
-        const p2 = raw.slice(e_key+1, raw.length);
-        console.log(p1);
-        console.log(p2);
-        const new_raw = p1 + '<span class="diff-del">' + value + '</span>' + p2;
-        return new_raw;
-    }
+    // private transformDELText = (raw, text, string_count, value): string => {
+    //     console.log('transform del, ', text, string_count, value)
+    //     let i_count = 0;
+    //     let e_count = 0;
+    //     let e_key;
+    //     let flag = false;
+    //     // console.log(string_count)
+    //     while(e_count < raw.length) {
+    //         switch(raw[e_count]) {
+    //             case '<':
+    //                 flag = true;
+    //                 break;
+    //             case '>':
+    //                 flag = false;
+    //                 break;
+    //             default:
+    //                 if(!flag) {
+    //                     // console.log(i_count);
+    //                     // console.log(e_count, raw[e_count])
+    //                     if(i_count==string_count-1) e_key = e_count;
+    //                     i_count ++;
+    //                 }
+    //                 break;
+    //         }
+    //         e_count ++;
+    //     }
+    //     console.log(raw);
+    //     // console.log(e_key)
+    //     const p1 = raw.slice(0,e_key+1);
+    //     const p2 = raw.slice(e_key+1, raw.length);
+    //     console.log(p1);
+    //     console.log(p2);
+    //     const new_raw = p1 + '<span class="diff-del">' + value + '</span>' + p2;
+    //     return new_raw;
+    // }
 
-    private transformADDText = (raw, text, string_count, value): string =>{
-        console.log('transform add, ', text, string_count, value)
-        let i_count = 0;
-        let e_count = 0;
-        let e_start;
-        let e_end;
-        let last_end;
-        let flag = false;
-        let next_end = false;
-        let num_flag = 0;
-        const length = value.length;
-        // console.log(string_count, length)
-        while(e_count < raw.length) {
-            switch(raw[e_count]) {
-                case '<':
-                    last_end = e_count;
-                    flag = true;
-                    break;
-                case '>':
-                    flag = false;
-                    num_flag ++;
-                    if(next_end) {
-                        e_end = e_count;
-                        next_end = false;
-                    }
-                    break;
-                default:
-                    if(!flag) {
-                        // console.log(i_count, e_count, raw[e_count])
-                        if(i_count==string_count) {
-                            // if e_start needs to include the <span> tag
-                            // console.log(e_count, raw.slice(e_count-3, e_count+3))
-                            if (raw[e_count-1]==='>' && (num_flag % 2 ==0)) e_start = last_end;
-                            else e_start = e_count;
-                        }
-                        if(i_count==string_count+length-1) {
-                            // console.log(e_count, raw.slice(e_count-3, e_count+3))
-                            if(raw[e_count+1] === '<' && (num_flag % 2 == 0)) next_end = true;
-                            else e_end = e_count;
-                        } 
-                        i_count ++;
-                    }
-                    break;
-            }
-            e_count ++;
-        }
-        console.log(raw);
-        const p1 = raw.slice(0,e_start);
-        const p2 = raw.slice(e_start, e_end+1);
-        const p3 = raw.slice(e_end+1, raw.length);
-        console.log(p1)
-        console.log(p2)
-        console.log(p3);
-        const new_raw = p1 + '<span class="diff-add">' + p2 + '</span>' + p3;
-        return new_raw;
-    }
+    // private transformADDText = (raw, text, string_count, value): string =>{
+    //     console.log('transform add, ', text, string_count, value)
+    //     let i_count = 0;
+    //     let e_count = 0;
+    //     let e_start;
+    //     let e_end;
+    //     let last_end;
+    //     let flag = false;
+    //     let next_end = false;
+    //     let num_flag = 0;
+    //     const length = value.length;
+    //     // console.log(string_count, length)
+    //     while(e_count < raw.length) {
+    //         switch(raw[e_count]) {
+    //             case '<':
+    //                 last_end = e_count;
+    //                 flag = true;
+    //                 break;
+    //             case '>':
+    //                 flag = false;
+    //                 num_flag ++;
+    //                 if(next_end) {
+    //                     e_end = e_count;
+    //                     next_end = false;
+    //                 }
+    //                 break;
+    //             default:
+    //                 if(!flag) {
+    //                     // console.log(i_count, e_count, raw[e_count])
+    //                     if(i_count==string_count) {
+    //                         // if e_start needs to include the <span> tag
+    //                         // console.log(e_count, raw.slice(e_count-3, e_count+3))
+    //                         if (raw[e_count-1]==='>' && (num_flag % 2 ==0)) e_start = last_end;
+    //                         else e_start = e_count;
+    //                     }
+    //                     if(i_count==string_count+length-1) {
+    //                         // console.log(e_count, raw.slice(e_count-3, e_count+3))
+    //                         if(raw[e_count+1] === '<' && (num_flag % 2 == 0)) next_end = true;
+    //                         else e_end = e_count;
+    //                     } 
+    //                     i_count ++;
+    //                 }
+    //                 break;
+    //         }
+    //         e_count ++;
+    //     }
+    //     console.log(raw);
+    //     const p1 = raw.slice(0,e_start);
+    //     const p2 = raw.slice(e_start, e_end+1);
+    //     const p3 = raw.slice(e_end+1, raw.length);
+    //     console.log(p1)
+    //     console.log(p2)
+    //     console.log(p3);
+    //     const new_raw = p1 + '<span class="diff-add">' + p2 + '</span>' + p3;
+    //     return new_raw;
+    // }
 
     private addCell = (cell: Cell): void => {
         const cell_container = document.createElement('div');

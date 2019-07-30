@@ -89,9 +89,9 @@ export class CursorWidget implements ICursorWidget {
         // update style
         const sheet = document.createElement('style');
         sheet.innerHTML += '.selectedtext-' + user.user_id + '{ background-color:' + user.color + '}\n';
-        sheet.innerHTML += '.cursor-right-' + user.user_id + '{ border-right: 2px solid'+ user.color + '}\n';
+        sheet.innerHTML += '.cursor-right-' + user.user_id + '{ border-right: 2px solid '+ user.color + '}\n';
         // todo: 2 more users, overlap
-        sheet.innerHTML += '#cell-users-' + user.user_id + '{position: absolute; right: 8px; top: 10px; width: 20px; text-align: center; font-weight: bold; z-index:2;} \n';
+        // sheet.innerHTML += '#cell-users-' + user.user_id + '{} \n';
         sheet.innerHTML += '#active-cell-' + user.user_id + '{width:100%; margin-left:5px; float:right; color:'+user.color+';} \n';
         sheet.innerHTML += '#tooltip-text-' + user.user_id + '{z-index: 101; position:absolute; display:none; bottom: 100%; right: 0%; padding: 5px;} \n';
         document.body.appendChild(sheet);
@@ -151,8 +151,17 @@ export class CursorWidget implements ICursorWidget {
         const cell_container = document.createElement('div');
         cell_container.setAttribute('class','cell-users');
         cell_container.setAttribute('id', 'cell-users-' + cursor.user.user_id);
-        const parent_container = document.getElementsByClassName('cell')[cm.index];
-        parent_container.prepend(cell_container);
+
+        const parent_cell_container = document.getElementsByClassName('cell')[cm.index];
+
+        let label_container = parent_cell_container.querySelector('#cell-users-container');
+        if(label_container == null) {
+            label_container = document.createElement('div');
+            label_container.id = 'cell-users-container';
+            parent_cell_container.prepend(label_container);
+        }
+
+        label_container.append(cell_container);
 
         const user_box = document.createElement('div');
         user_box.textContent = cursor.user.username.toString().charAt(0).toUpperCase();
