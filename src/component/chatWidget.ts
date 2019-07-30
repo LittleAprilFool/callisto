@@ -457,9 +457,10 @@ export class ChatWidget implements IChatWidget {
 
     private getMessageInfo = (message: Message, index: number): MessageItem => {
         const re = /\[(.*?)\]\((.*?)\)/g;
+        const url_re = /(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:/?#[\]@!\$&'\(\)\*\+,;=.]+/g;
         this.sender = message.sender;
         const origin_text = message.content;    
-        const formated_text = origin_text.replace(re, this.replaceLR);
+        const formated_text = origin_text.replace(re, this.replaceLR).replace(url_re, this.replaceURL);
     
         const message_info: MessageItem = {
             'message-sender': message.sender.username,
@@ -587,6 +588,14 @@ export class ChatWidget implements IChatWidget {
 
         refEl.classList.add('line_ref');
         return refEl.outerHTML;
+    }
+
+    private replaceURL = (p1: string, p2: string, p3: string): string => {
+        const URL_el = document.createElement('a');
+        URL_el.href = p1;
+        URL_el.innerHTML = p1;
+        URL_el.target = '_blank';
+        return URL_el.outerHTML;
     }
 
     private updateCellHighlight = (flag: boolean): void => {
