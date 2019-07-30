@@ -19,8 +19,11 @@ export class UserListWidget implements IUserListWidget {
         });
     }
 
-    private handleClick = (): void => {
+    private handleClick = (e): void => {
         // navigate to cursor
+        const uid = e.currentTarget.getAttribute('uid');
+        const active_cell = document.querySelector('#active-cell-'+uid);
+        if(active_cell) active_cell.scrollIntoView();
     }
 
     private initContainer = (): void => {
@@ -53,6 +56,7 @@ export class UserListWidget implements IUserListWidget {
         el.innerText = user.username;
         el.classList.add('userlist-username');
         container.style.color = user.color;
+        container.setAttribute('uid', user.user_id);
 
         container.appendChild(icon);
         container.appendChild(el);

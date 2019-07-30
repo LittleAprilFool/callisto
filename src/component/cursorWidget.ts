@@ -112,7 +112,7 @@ export class CursorWidget implements ICursorWidget {
         const cursor_type = 'selectedtext-' + cursor.user.user_id;
         const cursorEl = cm.markText(stPos, edPos, {className: cursor_type});
         const cursorHTMLEl = document.querySelector('.'+cursor_type) as HTMLElement;
-        cursorHTMLEl.style.backgroundColor = cursor.user.color;
+        if(cursorHTMLEl) cursorHTMLEl.style.backgroundColor = cursor.user.color;
         this.markers[cursor.user.user_id] = cursorEl;
     }
 
@@ -125,7 +125,7 @@ export class CursorWidget implements ICursorWidget {
         const cursor_type = 'cursor cursor-right-' + cursor.user.user_id;
         const cursorEl = cm.markText(stPos, edPos, {className: cursor_type});
         const cursorHTMLEl = document.querySelector('.cursor-right-'+cursor.user.user_id) as HTMLElement;
-        cursorHTMLEl.style.borderRightColor = cursor.user.color;
+        if(cursorHTMLEl) cursorHTMLEl.style.borderRightColor = cursor.user.color;
         this.markers[cursor.user.user_id] = cursorEl;
     }
 
@@ -138,8 +138,8 @@ export class CursorWidget implements ICursorWidget {
 
         // add new label
         const cell_container = document.createElement('div');
-        cell_container.setAttribute('class','cell-users');
-        cell_container.setAttribute('id', 'cell-users-' + cursor.user.user_id);
+        cell_container.classList.add('cell-users');
+        cell_container.id = 'cell-users-' + cursor.user.user_id;
 
         const parent_cell_container = document.getElementsByClassName('cell')[cm.index];
 
