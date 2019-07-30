@@ -476,6 +476,7 @@ export class DiffWidget implements IDiffWidget {
         sheet.innerHTML += '.img-overlay { position: absolute; }\n';
         sheet.innerHTML += '.img-diff { position: absolute; opacity: 0;}\n';
         sheet.innerHTML += '.hover-container:hover .img-diff{ opacity: 1; z-index: 2;}\n';
+        sheet.innerHTML += '.hover-container { position: relative; }\n';
         sheet.innerHTML += '.img-slider { margin: 10px 0 5px 0; }\n';
         document.body.appendChild(sheet);
     }
