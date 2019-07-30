@@ -611,6 +611,10 @@ export class ChatWidget implements IChatWidget {
                 cell.classList.add('highlight');
             });
         }
+
+        const highlighted_cells = document.querySelectorAll('.cell.highlight');
+        const tool_linking = document.getElementById('tool-linking');
+        tool_linking.childNodes[0].nodeValue = 'EDIT LINK(' + highlighted_cells.length.toString() + ')';
     }
 
     private updateFilter = (flag: boolean): void => {
@@ -938,6 +942,7 @@ export class ChatWidget implements IChatWidget {
         tool_snapshot.addEventListener('click', this.handleSnapshot);
 
         const tool_linking = document.createElement('div');
+        tool_linking.id = 'tool-linking';
         tool_linking.innerText = 'EDIT LINK';
         const linking_icon = document.createElement('i');
         linking_icon.innerHTML = '<i class="fa fa-link">';
