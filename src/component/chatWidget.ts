@@ -1029,7 +1029,7 @@ export class ChatWidget implements IChatWidget {
         // update style
         const sheet = document.createElement('style');
         sheet.innerHTML += '#notebook.select * {cursor: crosshair}\n';
-        sheet.innerHTML += '#chat-container { height: 500px; width: 300px; float:right; margin-right: 50px; position: fixed; bottom: -460px; right: 0px; z-index:2; border-radius:10px; box-shadow: 0px 0px 12px 0px rgba(87, 87, 87, 0.2); background: white;  transition: bottom .5s; } \n';
+        sheet.innerHTML += '#chat-container { height: 500px; width: 300px; float:right; margin-right: 50px; position: fixed; bottom: -460px; right: 0px; z-index:20; border-radius:10px; box-shadow: 0px 0px 12px 0px rgba(87, 87, 87, 0.2); background: white;  transition: bottom .5s; } \n';
         sheet.innerHTML += '#head-container { color: #516766; font-weight: bold; text-align: center; background-color: #9dc5a7; border-radius: 10px 10px 0px 0px; } \n';
         sheet.innerHTML += '#tool-container { text-align: right; margin-top: 5px; padding: 5px; background: white; border-bottom: 1px solid #eee}\n';
         sheet.innerHTML += '.tool-button {font-size:10px; margin-left: 10px; display: inline-block; padding: 5px 10px; background: #709578;color: white; border-radius: 3px; cursor: pointer; }\n';
