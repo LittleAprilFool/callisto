@@ -88,7 +88,7 @@ export class ChatWidget implements IChatWidget {
             const cuid = Jupyter.notebook.get_cell(cell_index).uid;
             this.messageBox.appendRef('marker', {
                 type: "MARKER",
-                cell_index: cuid,
+                cell_index,
                 marker_index: object_index
             });
         }
@@ -108,7 +108,7 @@ export class ChatWidget implements IChatWidget {
                 const text = cell.code_mirror.getSelection();
                 this.messageBox.appendRef(text, {
                     type: "CODE",
-                    cell_index: cuid,
+                    cell_index: cursor.cm_index,
                     code_from: cursor.from,
                     code_to: cursor.to
                 });
@@ -156,8 +156,8 @@ export class ChatWidget implements IChatWidget {
                     const cuid = info.cell.uid;
                     const cm_index = info.cell.code_mirror.index;
                     this.messageBox.appendRef("cell", {
-                    type: "CELL",
-                    cell_index: cuid
+                        type: "CELL",
+                        cell_index: cm_index
                     });
                     this.handleMagicToggle();
                 }
