@@ -14,15 +14,21 @@ export class DiffTabWidget implements IDiffTabWidget {
     private version_notebook: Notebook;
     private version_title: string;
     private chatCallback: any;
-
+    private diffList: DiffWidget[];
 
     constructor(private client: any, private id: any) {
         this.initContainer();
         this.initStyle();
+        this.diffList = [];
     }
 
     public destroy = (): void => {
         this.container.parentNode.removeChild(this.container);
+        const notebook_widget = document.querySelector('#notebook-container');
+        notebook_widget.setAttribute('style', 'display:block');
+        this.diffList.forEach(widget => {
+            widget.container.parentNode.removeChild(widget.container);
+        })
     }
     public checkTab = (label: string): boolean => {
         const checkTabEl = document.querySelector('.diff-tab.'+label);
@@ -88,11 +94,13 @@ export class DiffTabWidget implements IDiffTabWidget {
     private createDiffWidget = (err, snapshot): void => {
         this.old_notebook = snapshot.data.notebook;
         const diffWidget = new DiffWidget('diff', [this.new_notebook, this.old_notebook], this.diff_title, [this.new_timestamp, this.old_timestamp]);
+        this.diffList.push(diffWidget);
     }
 
     private createVersionWidget = (err, snapshot): void => {
         this.version_notebook = snapshot.data.notebook;
         const versionWidget = new DiffWidget('version', [this.version_notebook], this.version_title, [this.version_timestamp]);
+        this.diffList.push(versionWidget);
     }
 
     private closeTabHandler = (e): void => {

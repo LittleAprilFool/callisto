@@ -7,7 +7,6 @@ export class UserListWidget implements IUserListWidget {
         this.initStyle();
     }
     public destroy = (): void => {
-        this.cleanContainer();
         this.container.parentNode.removeChild(this.container);
     }
     public update = (user_list: User[]): void => {
