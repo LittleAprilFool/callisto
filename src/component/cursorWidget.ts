@@ -51,7 +51,6 @@ export class CursorWidget implements ICursorWidget {
         // delete label, if have
         const old_cell_container = document.querySelector('#cell-users-' + user.user_id);
         if(old_cell_container) old_cell_container.parentNode.removeChild(old_cell_container);
-        // todo: delete style
     }
     public bindChatAction = (callback): void => {
         this.chatCallback = callback;
@@ -85,26 +84,12 @@ export class CursorWidget implements ICursorWidget {
         }
     }
 
-    private initStyle = (user: User): void => {
-        // update style
-        const sheet = document.createElement('style');
-        sheet.innerHTML += '.selectedtext-' + user.user_id + '{ background-color:' + user.color + '}\n';
-        sheet.innerHTML += '.cursor-right-' + user.user_id + '{ border-right: 2px solid'+ user.color + '}\n';
-        // todo: 2 more users, overlap
-        sheet.innerHTML += '#cell-users-' + user.user_id + '{position: absolute; right: 8px; top: 10px; width: 20px; text-align: center; font-weight: bold; z-index:2;} \n';
-        sheet.innerHTML += '#active-cell-' + user.user_id + '{width:100%; margin-left:5px; float:right; color:'+user.color+';} \n';
-        sheet.innerHTML += '#tooltip-text-' + user.user_id + '{z-index: 101; position:absolute; display:none; bottom: 100%; right: 0%; padding: 5px;} \n';
-        document.body.appendChild(sheet);
-    }
-
     private updateCursorDisplay = (newCursor: Cursor, oldCursor: Cursor): void => {
         // if have cursor information
         // remove cursor selection and cursor bar
         if(this.markers[newCursor.user.user_id])    {
             this.markers[newCursor.user.user_id].clear();
         }
-        // if not, initialize style
-        else this.initStyle(newCursor.user);
 
         if(newCursor.cm_index!== oldCursor.cm_index) {
             // update cursor label
@@ -126,6 +111,8 @@ export class CursorWidget implements ICursorWidget {
         const edPos = cm.posFromIndex(cursor.to);
         const cursor_type = 'selectedtext-' + cursor.user.user_id;
         const cursorEl = cm.markText(stPos, edPos, {className: cursor_type});
+        const cursorHTMLEl = document.querySelector('.'+cursor_type) as HTMLElement;
+        cursorHTMLEl.style.backgroundColor = cursor.user.color;
         this.markers[cursor.user.user_id] = cursorEl;
     }
 
@@ -137,6 +124,8 @@ export class CursorWidget implements ICursorWidget {
         // issue: will not show cursor if it is the end of the line
         const cursor_type = 'cursor cursor-right-' + cursor.user.user_id;
         const cursorEl = cm.markText(stPos, edPos, {className: cursor_type});
+        const cursorHTMLEl = document.querySelector('.cursor-right-'+cursor.user.user_id) as HTMLElement;
+        cursorHTMLEl.style.borderRightColor = cursor.user.color;
         this.markers[cursor.user.user_id] = cursorEl;
     }
 
@@ -151,17 +140,29 @@ export class CursorWidget implements ICursorWidget {
         const cell_container = document.createElement('div');
         cell_container.setAttribute('class','cell-users');
         cell_container.setAttribute('id', 'cell-users-' + cursor.user.user_id);
-        const parent_container = document.getElementsByClassName('cell')[cm.index];
-        parent_container.prepend(cell_container);
+
+        const parent_cell_container = document.getElementsByClassName('cell')[cm.index];
+
+        let label_container = parent_cell_container.querySelector('#cell-users-container');
+        if(label_container == null) {
+            label_container = document.createElement('div');
+            label_container.id = 'cell-users-container';
+            parent_cell_container.prepend(label_container);
+        }
+
+        label_container.append(cell_container);
 
         const user_box = document.createElement('div');
         user_box.textContent = cursor.user.username.toString().charAt(0).toUpperCase();
-        user_box.setAttribute('id', 'active-cell-'+ cursor.user.user_id);
+        user_box.id = 'active-cell-'+ cursor.user.user_id;
+        user_box.style.color = cursor.user.color;
+        user_box.classList.add('active-cell');
      
 
         const tooltip = document.createElement('span');
         tooltip.textContent = cursor.user.username;
-        tooltip.setAttribute('id', 'tooltip-text-'+ cursor.user.user_id);
+        tooltip.id = 'tooltip-text-'+ cursor.user.user_id;
+        tooltip.classList.add('tooltip-text');
         user_box.appendChild(tooltip);
 
         user_box.addEventListener('mouseover', () => {

@@ -3,10 +3,8 @@ import { IUserListWidget, User } from "types";
 export class UserListWidget implements IUserListWidget {
     private container: HTMLElement;
     constructor() {
-        this.container = document.createElement('div');
-        this.container.setAttribute('style', 'display: inline; margin-left: 20px;');
-        const main_container = document.querySelector('#maintoolbar-container');
-        main_container.appendChild(this.container);
+        this.initContainer();
+        this.initStyle();
     }
     public destroy = (): void => {
         this.cleanContainer();
@@ -16,8 +14,28 @@ export class UserListWidget implements IUserListWidget {
         this.cleanContainer();
         user_list.forEach(user => {
             const display = this.createUserIcon(user);
+            display.addEventListener('click', this.handleClick);
             this.container.appendChild(display);
         });
+    }
+
+    private handleClick = (): void => {
+        // navigate to cursor
+    }
+
+    private initContainer = (): void => {
+        this.container = document.createElement('div');
+        this.container.classList.add('userlist-container');
+        const main_container = document.querySelector('#maintoolbar-container');
+        main_container.appendChild(this.container);
+    }
+
+    private initStyle = (): void => {
+        const sheet = document.createElement('style');
+        sheet.innerHTML += '.userlist-container {display:inline; margin-left: 20px;}\n';
+        sheet.innerHTML += '.userlist-username {margin-left: 6px; display:inline; font-size: 12px; font-weight: bold;}\n';
+        sheet.innerHTML += '.userlist-wrapper {cursor: pointer; display:inline; background: #f8f8f8; border: 1px solid #e7e7e7; margin: 5px; padding: 4px 8px; border-radius: 4px;}\n';
+        document.body.appendChild(sheet);
     }
 
     private cleanContainer = (): void => {
@@ -27,23 +45,14 @@ export class UserListWidget implements IUserListWidget {
     }
     private createUserIcon = (user: User): HTMLElement => {
         const container = document.createElement('div');
-        container.setAttribute('class', 'btn-group');
+        container.classList.add('userlist-wrapper', 'btn-group');
         const el = document.createElement('div');
         const icon = document.createElement('i');
         icon.innerHTML = '<i class="fa fa-user"></i>';
 
         el.innerText = user.username;
-        el.style.marginLeft = '6px';
-        el.style.display = 'inline';
-        el.style.fontSize = '12px';
-        el.style.fontWeight = 'bold';
-        container.style.display = 'inline';
-        container.style.backgroundColor = '#f8f8f8';
-        container.style.borderColor = '#e7e7e7';
-        container.style.margin = '5px';
+        el.classList.add('userlist-username');
         container.style.color = user.color;
-        container.style.padding = '4px 8px';
-        container.style.borderRadius = '4px';
 
         container.appendChild(icon);
         container.appendChild(el);

@@ -57,8 +57,8 @@ export class ChatWidget implements IChatWidget {
         Jupyter.notebook.events.on('select.Cell', this.onSelectCell);
         this.doc.subscribe(this.onSDBDocEvent);
         this.initMouseListener();
-
         this.messageBox.initQuill();
+        this.initKeyboardListener();
     }
 
     public destroy = (): void => {
@@ -669,6 +669,7 @@ export class ChatWidget implements IChatWidget {
                 this.currentAnnotationHighlight = null;
             }
         };
+
     }
 
     private handleCancel = (e?): void => {
@@ -786,6 +787,13 @@ export class ChatWidget implements IChatWidget {
         else {
             this.messageList.search(keyword, ['message-content']);
             message_container.classList.add('searchmode');
+        }
+    }
+
+    private handleEnterKey = (e: KeyboardEvent): void => {
+        if(e.which === 13) {
+            this.handleSubmitting();
+            e.preventDefault();
         }
     }
 
@@ -1085,5 +1093,10 @@ export class ChatWidget implements IChatWidget {
         sheet.innerHTML += '[data-title]:hover::before {content: attr(data-title);position: absolute;bottom: -30px;display: inline-block;padding: 3px 6px;border-radius: 2px;background: #000;color: #fff;font-size: 10px;font-family: sans-serif;white-space: nowrap;}\n';
         sheet.innerHTML += '[data-title]:hover::after {content: "";position: absolute;bottom: -10px;left: 17px;display: inline-block;color: #fff;border: 8px solid transparent;	border-bottom: 8px solid #000;}\n';
         document.body.appendChild(sheet);
+    }
+
+    private initKeyboardListener = () => {
+        const message_box = document.querySelector('#editor');
+        message_box.addEventListener('keydown', this.handleEnterKey);
     }
 }

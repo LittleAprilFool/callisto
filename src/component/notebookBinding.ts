@@ -750,6 +750,11 @@ export class NotebookBinding implements INotebookBinding {
         const sheet = document.createElement('style');
         sheet.innerHTML += '#notebook-container {box-shadow: none !important; border: 1px solid #ddd;}\n';
         sheet.innerHTML += '.notebook_app > #header {box-shadow: none !important; border-bottom: 1px solid #ddd;}\n';
+        sheet.innerHTML += '.cell-users {display:inline-block; width: 20px; text-align: center; font-weight: bold; z-index:2;}\n'; 
+        sheet.innerHTML += '#cell-users-container {position:absolute; right: 8px; top: 10px; z-index: 10}\n';
+        sheet.innerHTML += '.cursor {border-right: 2px solid;}\n';
+        sheet.innerHTML += '.active-cell {width:100%; margin-left:5px; float:right;}\n';
+        sheet.innerHTML += '.tooltip-text {z-index: 101; position:absolute; display:none; bottom: 100%; right: 0%; padding: 5px;}\n';
         document.body.appendChild(sheet);
     }
 }
