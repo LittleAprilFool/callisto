@@ -520,9 +520,9 @@ export class ChatWidget implements IChatWidget {
         this.isEditLinking = false;
 
         if(status === 'save') {
+            this.isEditLinking = true;
             this.handleLinkingDisplay();
             save.setAttribute('style', 'display: block');
-            this.isEditLinking = true;
             return;
         }
 
@@ -606,10 +606,17 @@ export class ChatWidget implements IChatWidget {
         
         if(flag) {
             const cells = document.querySelectorAll('.cell.selected');
+            if (cells[0] && !this.isEditLinking) {
+                cells[0].scrollIntoView();
+            }
             cells.forEach(cell => {
                 cell.classList.add('highlight');
             });
         }
+
+        const highlighted_cells = document.querySelectorAll('.cell.highlight');
+        const tool_linking = document.getElementById('tool-linking');
+        tool_linking.childNodes[0].nodeValue = 'EDIT LINK(' + highlighted_cells.length.toString() + ')';
     }
 
     private updateFilter = (flag: boolean): void => {
@@ -937,6 +944,7 @@ export class ChatWidget implements IChatWidget {
         tool_snapshot.addEventListener('click', this.handleSnapshot);
 
         const tool_linking = document.createElement('div');
+        tool_linking.id = 'tool-linking';
         tool_linking.innerText = 'EDIT LINK';
         const linking_icon = document.createElement('i');
         linking_icon.innerHTML = '<i class="fa fa-link">';
