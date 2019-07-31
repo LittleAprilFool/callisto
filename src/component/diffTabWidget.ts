@@ -164,17 +164,36 @@ export class DiffTabWidget implements IDiffTabWidget {
         notebook_tab.addEventListener('click', this.activeTabHandler);
 
         this.container.appendChild(notebook_tab);
-        const main_container = document.querySelector('#notebook');
-        main_container.insertBefore(this.container, main_container.firstChild);
+        
+        const container_wrapper = document.createElement('div');
+        container_wrapper.classList.add('tab-container-wrapper');
+        container_wrapper.appendChild(this.container);
+
+        const header = document.querySelector('#header');
+        header.appendChild(container_wrapper);
     }
 
     private initStyle = (): void => {
         const sheet = document.createElement('style');
-        sheet.innerHTML += '#difftab-container { height: 30px; } \n';
+        sheet.innerHTML += '#difftab-container { height: 40px; background: #eee; padding-top: 10px; border-bottom: 1px solid #ddd; } \n';
         sheet.innerHTML += '.diff-tab { cursor: pointer; display: inline-block; color:#ccc; border: solid 1px #dedede; font-size: 12px; min-width: 150px; height: 100%; background: white; text-align: center; font-weight: bold; padding: 5px 0; border-radius: 10px 10px 0 0; } \n';
         sheet.innerHTML += '.diff-tab i {margin-right: 5px; margin-left: 5px; font-weight: bold;} \n';
         sheet.innerHTML += '.tab-active {color: black !important;} \n';
         sheet.innerHTML += '.close-tab { font-size: 12px; margin-left: 20px;}\n';
+
+        const header = document.querySelector('#header');
+        header.classList.add('header-customized');
+        sheet.innerHTML += '.header-customized { border-bottom: none !important; left: -8px; }\n';
+
+        const notebook = document.querySelector('#notebook');
+        notebook.classList.add('notebook-customized');
+        sheet.innerHTML += '#notebook.notebook-customized { padding-top: 0; }\n';
+
+        const notebook_container = document.querySelector('#notebook-container');
+        notebook_container.classList.add('notebook-container-customized');
+        sheet.innerHTML += '#notebook-container.notebook-container-customized { border-top: none; }\n';
+
+        sheet.innerHTML += '.tab-container-wrapper { margin: 0; background-color: #eee;}\n';
         document.body.appendChild(sheet);
     }
 }
