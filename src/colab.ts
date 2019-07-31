@@ -1,9 +1,10 @@
 import { loadNotebook } from './action/notebookAction';
 import { SharedButton } from './component/sharedButton';
 // import './external/diff';
-import './external/diff2html';
+// import './external/diff2html';
 import './external/list';
 import './external/sdb';
+// import './external/difflib';
 
 const Jupyter = require('base/js/namespace');
 

@@ -784,8 +784,46 @@ export class NotebookBinding implements INotebookBinding {
         sheet.innerHTML += '.cell-users {display:inline-block; width: 20px; text-align: center; font-weight: bold; z-index:2;}\n'; 
         sheet.innerHTML += '#cell-users-container {position:absolute; right: 8px; top: 10px; z-index: 10}\n';
         sheet.innerHTML += '.cursor {border-right: 2px solid;}\n';
+        sheet.innerHTML += '#header {left: 0px}\n';
         sheet.innerHTML += '.active-cell {width:100%; margin-left:5px; float:right;}\n';
         sheet.innerHTML += '.tooltip-text {z-index: 101; position:absolute; display:none; bottom: 100%; right: 0%; padding: 5px;}\n';
         document.body.appendChild(sheet);
+        const head = document.getElementsByTagName('HEAD')[0];  
+        const style_python = document.createElement('link');
+        style_python.rel = 'stylesheet';
+        style_python.type = 'text/css';
+        style_python.href = '/nbextensions/external/ipython.css';
+        head.append(style_python);
+        const style_diff2html = document.createElement('link'); 
+        style_diff2html.rel = 'stylesheet';  
+        style_diff2html.type = 'text/css';
+        style_diff2html.href = 'https://cdnjs.cloudflare.com/ajax/libs/diff2html/2.11.2/diff2html.css';
+        head.appendChild(style_diff2html);  
+        const link_difflib = document.createElement('script'); 
+        link_difflib.type = 'text/javascript';
+        link_difflib.src = '/nbextensions/external/difflib-browser.js';
+        head.appendChild(link_difflib);
+
+        const link_diff2html = document.createElement('script'); 
+        link_diff2html.type = 'text/javascript';
+        link_diff2html.src = 'https://cdnjs.cloudflare.com/ajax/libs/diff2html/2.11.2/diff2html.js';
+        head.appendChild(link_diff2html);
+
+        const link_jquery = document.createElement('script');
+        link_jquery.type = 'text/javascript';
+        link_jquery.src = 'https://cdnjs.cloudflare.com/ajax/libs/jquery/2.2.3/jquery.js';
+        head.appendChild(link_jquery);
+        const link_highlight = document.createElement('script');
+        link_highlight.type = 'text/javascript';
+        link_highlight.src = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.9/highlight.min.js';
+        head.appendChild(link_highlight);
+        const link_python = document. createElement('script');
+        link_python.type = 'text/javascript';
+        link_python.src = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.9/languages/python.min.js';
+        head.appendChild(link_python);
+        const link_diff2html_ui = document.createElement('script'); 
+        link_diff2html_ui.type = 'text/javascript';
+        link_diff2html_ui.src = 'https://cdnjs.cloudflare.com/ajax/libs/diff2html/2.11.2/diff2html-ui.js';
+        head.appendChild(link_diff2html_ui);
     }
 }

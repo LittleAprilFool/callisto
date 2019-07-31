@@ -139,6 +139,8 @@ export class DiffTabWidget implements IDiffTabWidget {
         const notebook_widget = document.querySelector('#notebook-container');
         if(label === 'version-current') {
             notebook_widget.setAttribute('style', 'display:block');
+            const alert = document.querySelector('#SwitchAlert') as HTMLElement;
+            alert.style.display = 'none';
         }
         else notebook_widget.setAttribute('style', 'display:none');
 
@@ -171,6 +173,13 @@ export class DiffTabWidget implements IDiffTabWidget {
 
         const header = document.querySelector('#header');
         header.appendChild(container_wrapper);
+
+        const alert = document.createElement('div');
+        alert.classList.add('alert', 'alert-primary','container');
+        alert.id = 'SwitchAlert';
+        alert.setAttribute('role', 'alert');
+        alert.innerText = 'The diff/snapshot view is readonly, please switch to the current notebook to make edits.';
+        container_wrapper.appendChild(alert);
     }
 
     private initStyle = (): void => {
@@ -180,6 +189,8 @@ export class DiffTabWidget implements IDiffTabWidget {
         sheet.innerHTML += '.diff-tab i {margin-right: 5px; margin-left: 5px; font-weight: bold;} \n';
         sheet.innerHTML += '.tab-active {color: black !important;} \n';
         sheet.innerHTML += '.close-tab { font-size: 12px; margin-left: 20px;}\n';
+        sheet.innerHTML += '.alert { display: none; margin-bottom: 0px; border: 1px solid transparent; border-radius: .25rem;}\n';
+        sheet.innerHTML += '.alert-primary {color: #004085; background-color: #cce5ff; border-color: #b8daff}\n';
 
         const header = document.querySelector('#header');
         header.classList.add('header-customized');

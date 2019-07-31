@@ -1,5 +1,4 @@
 import { Cell, IDiffWidget, Notebook } from "types";
-import * as Diff from '../external/diff';
 import * as resemble from "../external/resemble";
 
 export class DiffWidget implements IDiffWidget {
@@ -19,7 +18,7 @@ export class DiffWidget implements IDiffWidget {
     private displayDiff = (): void => {
         if(this.type === 'version') {
             this.notebook[0].cells.forEach(cell=> {
-                this.addCell(cell);
+                this.addCell(cell, cell);
             });
         }
         else {
@@ -42,16 +41,16 @@ export class DiffWidget implements IDiffWidget {
                 switch (index) {
                     case -1:
                         // if the current cell is not in the old version
-                        this.addDiffCell(new_notebook.cells[nindex], null);
+                        this.addCell(new_notebook.cells[nindex], null);
                         new_uids.shift();
                         nindex ++;
                         break;
                     case 0:
                         // if the current cell is the corresponding cell in the old version
                         if(new_notebook.cells[nindex].source === old_notebook.cells[oindex].source) {
-                            this.addCell(new_notebook.cells[nindex]);
+                            this.addCell(new_notebook.cells[nindex], old_notebook.cells[oindex]);
                         }
-                        else this.addDiffCell(new_notebook.cells[nindex], old_notebook.cells[oindex]);
+                        else this.addCell(new_notebook.cells[nindex], old_notebook.cells[oindex]);
                         new_uids.shift();
                         nindex ++;
                         old_uids.shift();
@@ -59,7 +58,7 @@ export class DiffWidget implements IDiffWidget {
                         break;
                     default:
                         // if the current cell is in the old version, but not the corresponding cell
-                        this.addDiffCell(null, old_notebook.cells[oindex]);
+                        this.addCell(null, old_notebook.cells[oindex]);
                         old_uids.shift();
                         oindex ++;
                         break;
@@ -67,213 +66,33 @@ export class DiffWidget implements IDiffWidget {
             }
 
             while (old_uids.length > 0) {
-                this.addDiffCell(null, old_notebook.cells[oindex]);
+                this.addCell(null, old_notebook.cells[oindex]);
                 old_uids.shift();
                 oindex ++;
             }
 
             while (new_uids.length > 0) {
-                this.addDiffCell(new_notebook.cells[nindex], null);
+                this.addCell(new_notebook.cells[nindex], null);
                 new_uids.shift();
                 nindex ++;
             }
         }
-
-        const diffHtml = window['Diff2Html'].getPrettyHtml(
-            '<Unified Diff String>',
-            {inputFormat: 'diff', showFiles: true, matching: 'lines', outputFormat: 'side-by-side'}
-          );
-    }
-
-    private addDiffCell = (new_cell: Cell, old_cell: Cell): void => {
-        const diff_container = document.createElement('div');
-        diff_container.classList.add('diff-cell-container');
-        this.container.appendChild(diff_container);
-
-        const new_cell_container = document.createElement('div');
-        new_cell_container.classList.add('cell', 'diff','diff-new');
-        const old_cell_container = document.createElement('div');
-        old_cell_container.classList.add('cell', 'diff','diff-old');
-        diff_container.appendChild(new_cell_container);
-        diff_container.appendChild(old_cell_container);
-
-
-        this.createCellUnit(new_cell, new_cell_container, false);
-        this.createCellUnit(old_cell, old_cell_container, true, new_cell);
-        // this.computeDiff(new_cell.source, old_cell.source)
-        // jsdiff does not work here!!
-        // this.addCodeDiff(diff_container, new_cell.source, old_cell.source);
         this.onSliderDemo();
     }
 
-    // private computeDiff = (new_code, old_code): void => {
-    //     // send a request to server
+    private createCodeDiffUnit = (new_cell, old_cell, cell_container) => {
+        const diff_container = document.createElement('div');
+        diff_container.classList.add('diff-cell-container');
+        cell_container.appendChild(diff_container);
 
-    //     // get a diff file
-
-    //     // render the diff using html2diff
-    // }
-
-    // private addCodeDiff = (diff_container, new_code, old_code): void => {
-    //     const parts = Diff.diffChars(old_code, new_code);
-    //     const new_container = diff_container.querySelector('.cell.diff-new');
-    //     const old_container = diff_container.querySelector('.cell.diff-old');
-    //     const new_lines = new_container.querySelectorAll('.CodeMirror-line');
-    //     const old_lines = old_container.querySelectorAll('.CodeMirror-line');
-    //     let lineNumber = 0;
-    //     let string_count = 0;
-    //     parts.forEach((part, partIndex) => {
-    //         console.log(part, partIndex, lineNumber, string_count, new_lines[lineNumber].innerText);
-    //         const substring = part.value;
-    //         const lines = substring.split("\n");
-    //         if (part.added) {
-    //             lines.forEach((line, index) => {
-    //                 if(index>0) {
-    //                     lineNumber++;
-    //                     string_count = 0;
-    //                 }
-    //                 const text = new_lines[lineNumber].innerText;
-    //                 const raw = new_lines[lineNumber].innerHTML;
-    //                 // console.log(string_count, text.slice(string_count, string_count + 2))
-    //                 const transform_text = this.transformADDText(raw, text, string_count, line);
-    //                 new_lines[lineNumber].innerHTML = transform_text;
-    //             });
-
-    //             // const transform_text = this.transformADDText(new_lines[startLineNumber], string_count, part.value);
-    //             // new_lines[startLineNumber].innerHTML = transform_text;
-    //         } else if (part.removed) {
-    //             // add multiple lines to new_lines?
-    //             // may not work out
-    //             const text = new_lines[lineNumber].innerText;
-    //             const raw = new_lines[lineNumber].innerHTML;
-    //             const transform_text = this.transformDELText(raw, text, string_count, part.value);
-    //             new_lines[lineNumber].innerHTML = transform_text;
-    //             lineNumber++;
-    //         }
-    //         else {
-    //             string_count = string_count + part.count;
-    //             if(lines.length > 1) {
-    //                 lineNumber = lineNumber + lines.length-1;
-    //                 string_count = lines[lines.length-1].length;
-    //             }
-    //         }
-    //     });
-    // }
-
-    // private transformDELText = (raw, text, string_count, value): string => {
-    //     console.log('transform del, ', text, string_count, value)
-    //     let i_count = 0;
-    //     let e_count = 0;
-    //     let e_key;
-    //     let flag = false;
-    //     // console.log(string_count)
-    //     while(e_count < raw.length) {
-    //         switch(raw[e_count]) {
-    //             case '<':
-    //                 flag = true;
-    //                 break;
-    //             case '>':
-    //                 flag = false;
-    //                 break;
-    //             default:
-    //                 if(!flag) {
-    //                     // console.log(i_count);
-    //                     // console.log(e_count, raw[e_count])
-    //                     if(i_count==string_count-1) e_key = e_count;
-    //                     i_count ++;
-    //                 }
-    //                 break;
-    //         }
-    //         e_count ++;
-    //     }
-    //     console.log(raw);
-    //     // console.log(e_key)
-    //     const p1 = raw.slice(0,e_key+1);
-    //     const p2 = raw.slice(e_key+1, raw.length);
-    //     console.log(p1);
-    //     console.log(p2);
-    //     const new_raw = p1 + '<span class="diff-del">' + value + '</span>' + p2;
-    //     return new_raw;
-    // }
-
-    // private transformADDText = (raw, text, string_count, value): string =>{
-    //     console.log('transform add, ', text, string_count, value)
-    //     let i_count = 0;
-    //     let e_count = 0;
-    //     let e_start;
-    //     let e_end;
-    //     let last_end;
-    //     let flag = false;
-    //     let next_end = false;
-    //     let num_flag = 0;
-    //     const length = value.length;
-    //     // console.log(string_count, length)
-    //     while(e_count < raw.length) {
-    //         switch(raw[e_count]) {
-    //             case '<':
-    //                 last_end = e_count;
-    //                 flag = true;
-    //                 break;
-    //             case '>':
-    //                 flag = false;
-    //                 num_flag ++;
-    //                 if(next_end) {
-    //                     e_end = e_count;
-    //                     next_end = false;
-    //                 }
-    //                 break;
-    //             default:
-    //                 if(!flag) {
-    //                     // console.log(i_count, e_count, raw[e_count])
-    //                     if(i_count==string_count) {
-    //                         // if e_start needs to include the <span> tag
-    //                         // console.log(e_count, raw.slice(e_count-3, e_count+3))
-    //                         if (raw[e_count-1]==='>' && (num_flag % 2 ==0)) e_start = last_end;
-    //                         else e_start = e_count;
-    //                     }
-    //                     if(i_count==string_count+length-1) {
-    //                         // console.log(e_count, raw.slice(e_count-3, e_count+3))
-    //                         if(raw[e_count+1] === '<' && (num_flag % 2 == 0)) next_end = true;
-    //                         else e_end = e_count;
-    //                     } 
-    //                     i_count ++;
-    //                 }
-    //                 break;
-    //         }
-    //         e_count ++;
-    //     }
-    //     console.log(raw);
-    //     const p1 = raw.slice(0,e_start);
-    //     const p2 = raw.slice(e_start, e_end+1);
-    //     const p3 = raw.slice(e_end+1, raw.length);
-    //     console.log(p1)
-    //     console.log(p2)
-    //     console.log(p3);
-    //     const new_raw = p1 + '<span class="diff-add">' + p2 + '</span>' + p3;
-    //     return new_raw;
-    // }
-
-    private addCell = (cell: Cell): void => {
-        const cell_container = document.createElement('div');
-        cell_container.classList.add('cell');
-        this.container.appendChild(cell_container);
-
-        this.createCellUnit(cell, cell_container, false);
-    }
-
-    private createCellUnit = (cell: Cell, cell_container: HTMLElement, is_old_cell: boolean, new_cell?: Cell): void => {
         const input_container = document.createElement('div');
         input_container.classList.add('input');
-        if(cell==null) {
-            cell_container.appendChild(input_container);
-            return;
-        }
         
         const prompt_container = document.createElement('div');
         prompt_container.classList.add('prompt_container');
         const input_prompt = document.createElement('div');
         input_prompt.classList.add('prompt', 'input_prompt');
-        input_prompt.innerHTML = cell.execution_count==null? '<bdi>In</bdi>&nbsp;[ ]:': '<bdi>In</bdi>&nbsp;['+cell.execution_count + ']:';
+        input_prompt.innerHTML = new_cell.execution_count==null? '<bdi>In</bdi>&nbsp;[ ]:': '<bdi>In</bdi>&nbsp;['+new_cell.execution_count + ']:';
         prompt_container.appendChild(input_prompt);
         input_container.appendChild(prompt_container);
 
@@ -284,22 +103,40 @@ export class DiffWidget implements IDiffWidget {
         inner_cell.appendChild(input_area);
         input_container.appendChild(inner_cell);
         
-        cell_container.appendChild(input_container);
+        diff_container.appendChild(input_container);
 
-        const code_cell = (window as any).CodeMirror(input_area, {
-            value: cell ==null? '': cell.source,
-            mode:  'python',
-            lineNumbers: true,
-            readOnly: true,
-            showCursorWhenSelecting: false,
-            theme: 'ipython'
+        const option = {
+            fromfile: 'Original',
+            tofile: 'Current',
+            fromfiledate: '2005-01-26 23:30:50',
+            tofiledate: '2010-04-02 10:20:52'
+        };
+  
+        const diff_content = window['difflib'].unifiedDiff(new_cell.source.split('\n'), old_cell.source.split('\n'), option);
+        let diff_test_string = '';
+        diff_content.forEach(diff=> {
+            if(diff.endsWith('\n')) {
+                diff_test_string+=diff;
+            }
+            else {
+                diff_test_string= diff_test_string + diff + '\n'; 
+            }
         });
 
-        // add output to the cell
+        const diff_El = document.createElement('div');
+        const id = 'diff-highlight-' + new_cell.uid;
+        diff_El.id = id;
+        input_area.appendChild(diff_El);
+
+        const diff2htmlUi = new window['Diff2HtmlUI']({diff: diff_test_string});
+        diff2htmlUi.draw('#'+id, {inputFormat: 'diff', showFiles: false, matching: 'lines', outputFormat: 'side-by-side'});
+        diff2htmlUi.highlightCode('#'+id);
+    }
+
+    private createOutputUnit = (cell, cell_container) => {
         const output_wrapper = document.createElement('div');
         output_wrapper.classList.add('output_wrapper');
-        // todo: this causes trouble when the outputs from the two sides are not the same.
-        if(cell.outputs) {
+        if (cell.outputs) {
             cell.outputs.forEach((output, output_index) => {
                 const outputEl = document.createElement('div');
                 outputEl.classList.add('output');
@@ -318,13 +155,7 @@ export class DiffWidget implements IDiffWidget {
                         img.setAttribute('src', 'data:image/png;base64,'+output.data['image/png']);
                         // use cell number and output as index. Shouldn't cause any trouble as the diff is static.
                         img.id = "output-img-" + this.notebook[0].cells.indexOf(cell).toString() + "-" + output_index.toString();
-                        if (new_cell && is_old_cell && new_cell.outputs.length > output_index && new_cell.outputs[output_index].output_type === 'display_data') {
-                            const data_old = output.data['image/png'];
-                            const data_new = new_cell.outputs[output_index].data['image/png'];
-                            this.renderImageDiff(output_subarea, img, data_old, data_new);                        
-                        } else {
                             output_subarea.appendChild(img);
-                        }
                         break;
                     case 'stream':
                         output_subarea.classList.add('output_stream', 'output_text', 'output_stdout');
@@ -365,31 +196,172 @@ export class DiffWidget implements IDiffWidget {
         cell_container.appendChild(output_wrapper);
     }
 
-    private renderImageDiff = (output_subarea, img, data_old, data_new): void => {
+    private isImageDiff = (new_cell: Cell, old_cell: Cell): boolean => {
+        const new_outputs = new_cell.outputs;
+        const old_outputs = old_cell.outputs;
+        if (!new_outputs || !old_outputs) return false;
+        if (new_outputs[0].output_type === 'display_data' && old_outputs[0].output_type === 'display_data') return true;
+        return false;
+    }
+
+    private createOutputDiffUnit = (new_cell, old_cell, cell_container) => {
+        const diff_container = document.createElement('div');
+        diff_container.classList.add('diff-cell-container');
+
+        const right_cell_container = document.createElement('div');
+        right_cell_container.classList.add('output-diff', 'diff','diff-right');
+        const left_cell_container = document.createElement('div');
+        left_cell_container.classList.add('output-diff', 'diff','diff-left');
+        diff_container.appendChild(left_cell_container);
+        diff_container.appendChild(right_cell_container);
+
+        if(this.isImageDiff(new_cell, old_cell)) {
+            cell_container.appendChild(diff_container);
+            this.renderImageDiff(new_cell, old_cell, left_cell_container); 
+            this.createOutputUnit(new_cell, right_cell_container);
+        }
+
+        if(new_cell.outputs.length > 1 || old_cell.outputs.length > 1) {
+            cell_container.appendChild(diff_container);
+            this.createOutputUnit(new_cell, right_cell_container);
+            this.createOutputUnit(old_cell, left_cell_container);
+            return;
+        }
+    }
+
+
+    private addCell = (new_cell: Cell, old_cell: Cell): void => {
+        const cell_container = document.createElement('div');
+        cell_container.classList.add('cell');
+        this.container.appendChild(cell_container);
+
+        this.addCode(new_cell, old_cell, cell_container);
+        // render output
+        this.addOutput(new_cell, old_cell, cell_container);
+        return;
+    }
+
+
+    private addCode = (new_cell: Cell, old_cell: Cell, cell_container: HTMLElement): void => {
+        const diff_container = document.createElement('div');
+        diff_container.classList.add('diff-cell-container');
+
+        const new_cell_container = document.createElement('div');
+        new_cell_container.classList.add('cell', 'diff','diff-new');
+        const old_cell_container = document.createElement('div');
+        old_cell_container.classList.add('cell', 'diff','diff-old');
+        diff_container.appendChild(old_cell_container);
+        diff_container.appendChild(new_cell_container);
+
+        if(old_cell==null) {
+            // insert a new cell
+            this.container.appendChild(diff_container);
+            this.createCodeUnit(new_cell, new_cell_container);
+            this.addOutput(new_cell, null, new_cell_container);
+            return;
+        }
+
+        if(new_cell == null) {
+            // delete a cell
+            this.container.appendChild(diff_container);
+            this.createCodeUnit(old_cell, old_cell_container);
+            this.addOutput(old_cell, null, old_cell_container);
+            return;
+        }
+     
+        // render cell
+        if(new_cell.source === old_cell.source) this.createCodeUnit(new_cell, cell_container);
+        else this.createCodeDiffUnit(new_cell, old_cell, cell_container);
+    }
+
+    private addOutput = (new_cell: Cell, old_cell: Cell, cell_container: HTMLElement): void => {
+        if(old_cell == null) {
+            this.createOutputUnit(new_cell, cell_container);
+            return;
+        }
+
+        if((new_cell.outputs == null || new_cell.outputs.length === 0) && (old_cell.outputs == null||old_cell.outputs.length===0)) {
+            return;
+        }
+
+        if(window['_'].isEqual(new_cell.outputs, old_cell.outputs)) {
+            this.createOutputUnit(new_cell, cell_container);
+            return;
+        }
+        this.createOutputDiffUnit(new_cell, old_cell, cell_container);
+    }
+
+    // create a single code unit
+    private createCodeUnit = (cell: Cell, cell_container: HTMLElement): void => {
+        const input_container = document.createElement('div');
+        input_container.classList.add('input');
+        if(cell==null) {
+            cell_container.appendChild(input_container);
+            return;
+        }
+        
+        const prompt_container = document.createElement('div');
+        prompt_container.classList.add('prompt_container');
+        const input_prompt = document.createElement('div');
+        input_prompt.classList.add('prompt', 'input_prompt');
+        input_prompt.innerHTML = cell.execution_count==null? '<bdi>In</bdi>&nbsp;[ ]:': '<bdi>In</bdi>&nbsp;['+cell.execution_count + ']:';
+        prompt_container.appendChild(input_prompt);
+        input_container.appendChild(prompt_container);
+
+        const inner_cell = document.createElement('div');
+        inner_cell.classList.add('inner_cell');
+        const input_area = document.createElement('div');
+        input_area.classList.add('input_area');
+        inner_cell.appendChild(input_area);
+        input_container.appendChild(inner_cell);
+        
+        cell_container.appendChild(input_container);
+
+        (window as any).CodeMirror(input_area, {
+            value: cell ==null? '': cell.source,
+            mode:  'python',
+            lineNumbers: true,
+            readOnly: true,
+            showCursorWhenSelecting: false,
+            theme: 'ipython'
+        });
+    }
+
+    private renderImageDiff = (new_cell, old_cell, diff_container): void => {
+        const data_old = old_cell.outputs[0].data['image/png'];
+        const data_new = new_cell.outputs[0].data['image/png'];
+
+        const old_src = 'data:image/png;base64,'+ data_old;
+        const new_src = 'data:image/png;base64,'+ data_new;
+
+        const output_wrapper = document.createElement('div');
+        output_wrapper.classList.add('output_wrapper');
+        const outputEl = document.createElement('div');
+        outputEl.classList.add('output');
+        const output_area = document.createElement('div');
+        output_area.classList.add('output_area');
+        const output_prompt = document.createElement('div');
+        output_prompt.classList.add('prompt');
+        output_area.appendChild(output_prompt);
+        const output_subarea = document.createElement('div');
+        output_subarea.classList.add('output_subarea');
+        output_area.appendChild(output_subarea);
+        outputEl.appendChild(output_area);
+        output_wrapper.appendChild(output_area);
+        diff_container.appendChild(output_wrapper);
+
+        const img = document.createElement('img');
+        img.setAttribute('src', old_src);
+        // use cell number and output as index. Shouldn't cause any trouble as the diff is static.
+        img.id = "output-img-" + this.notebook[0].cells.indexOf(old_cell).toString() + "-0";
         // Only show diff when the new cell has at least the same number of output as the index and the corresponding index is still an image.
         // creating diff image which appears on hover
         const hover_container = document.createElement('div');
         hover_container.classList.add('hover-container');
 
-        const old_src = 'data:image/png;base64,'+ data_old;
-        const new_src = 'data:image/png;base64,'+ data_new;
-
-        const img_diff = document.createElement('img');
-        img_diff.setAttribute('src', old_src);
-        img_diff.classList.add("img-diff");
-        hover_container.appendChild(img_diff);
-
-        const resemble_control = resemble(old_src).compareTo(new_src).onComplete(data => {
-            img_diff.setAttribute('src', data.getImageDataUrl());
-        });
-        resemble_control.outputSettings({
-            errorColor: {
-                red: 255,
-                green: 0,
-                blue: 255
-            },
-            errorType: 'movement'
-        }).repaint();
+        // ISSUE:https://github.com/LittleAprilFool/jupyter-sharing/issues/53
+        // comment out the next line to disable resemble 
+        // this.enableResemble(new_src, old_src, hover_container);
 
         // adding css to original img
         img.classList.add('img-overlay');
@@ -415,6 +387,25 @@ export class DiffWidget implements IDiffWidget {
         output_subarea.appendChild(slider);
     }
 
+    private enableResemble = (new_src, old_src, hover_container): void => {
+        const img_diff = document.createElement('img');
+        img_diff.setAttribute('src', old_src);
+        img_diff.classList.add("img-diff");
+        hover_container.appendChild(img_diff);
+
+        const resemble_control = resemble(old_src).compareTo(new_src).onComplete(data => {
+            img_diff.setAttribute('src', data.getImageDataUrl());
+        });
+        resemble_control.outputSettings({
+            errorColor: {
+                red: 255,
+                green: 0,
+                blue: 255
+            },
+            errorType: 'movement'
+        }).repaint();
+    }
+
     private initContainer = (): void => {
         this.container = document.createElement('div');
         const label = this.type === 'diff'? 'diff-'+this.timestamp[0]+'-'+this.timestamp[1]:'version-'+this.timestamp[0];  
@@ -437,14 +428,20 @@ export class DiffWidget implements IDiffWidget {
             label_old.innerText = 'Old';
             label_old.classList.add('version-label');
             label_old.id = 'label-old';
-            label_container.appendChild(label_new);
             label_container.appendChild(label_old);
+            label_container.appendChild(label_new);
             trigger.appendChild(label_container);
         }
 
         this.container.appendChild(trigger);
         const main_container = document.querySelector('#notebook');
         main_container.insertBefore(this.container, main_container.firstChild.nextSibling);
+        this.container.addEventListener('keydown', this.handleKeyPress);
+    }
+
+    private handleKeyPress = (e): void => {
+        const alert = document.querySelector('#SwitchAlert') as HTMLElement;
+        alert.style.display = 'block';
     }
 
     private onSliderInput = (e?: Event): void => {
@@ -472,7 +469,7 @@ export class DiffWidget implements IDiffWidget {
 
     private initStyle = (): void => {
         const sheet = document.createElement('style');
-        sheet.innerHTML += '.diffwidget-container { padding: 15px; background-color: #f7f7f7; box-shadow: 0px 0px 12px 0px rgba(87, 87, 87, 0.2); margin-bottom: 20px } \n';
+        sheet.innerHTML += '.diffwidget-container { padding: 15px; background-color: #fff; box-shadow: 0px 0px 12px 0px rgba(87, 87, 87, 0.2); margin-bottom: 20px } \n';
         sheet.innerHTML += '.diffwidget-trigger { font-size: 15px; text-align: center; position: relative; font-weight: bold;} \n';
         sheet.innerHTML += '.version-label { font-size: 12px; text-align: center; display: inline-block; width: 50%; font-weight: bold;} \n';
         sheet.innerHTML += '#label-new { background:rgba(0, 200, 20, 0.3); } \n';
@@ -489,6 +486,12 @@ export class DiffWidget implements IDiffWidget {
         sheet.innerHTML += '.hover-container:hover .img-diff{ opacity: 1; z-index: 2;}\n';
         sheet.innerHTML += '.hover-container { position: relative; }\n';
         sheet.innerHTML += '.img-slider { margin: 10px 0 5px 0; }\n';
+        sheet.innerHTML += '.d2h-file-header {display: none}\n';
+        sheet.innerHTML += '.d2h-file-wrapper {margin-bottom: 0px; border: none; padding-bottom: 5px;}\n';
+        sheet.innerHTML += '.d2h-diff-table {font-family: monospace !important; font-size: 14px; }\n';
+        sheet.innerHTML += '.d2h-code-side-linenumber {width: 34px; border-color: #ddd}\n';
+        sheet.innerHTML += '.d2h-cntx {background-color: #fff6dd}\n';
+        sheet.innerHTML += '.d2h-info {background-color: #fff6dd; border-color: #ddd}\n';
         document.body.appendChild(sheet);
     }
 }

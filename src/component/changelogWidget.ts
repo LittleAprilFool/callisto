@@ -55,7 +55,7 @@ export class ChangelogWidget implements IChangelogWidget {
 
     private initStyle = (): void => {
         const sheet = document.createElement('style');
-        sheet.innerHTML += '#changelog-container { height: calc(100% - 110px); width: 300px; margin-right: 50px; position: fixed; bottom: 0px; left: -300px; z-index:100; box-shadow: 0px 0px 12px 0px rgba(87, 87, 87, 0.2); background: white;  transition: left .5s; } \n';
+        sheet.innerHTML += '#changelog-container { height: calc(100% - 110px); width: 300px; margin-right: 50px; position: fixed; bottom: 0px; left: -300px; z-index:100; border-top: 1px solid #e2e2e2; border-right:1px solid #e2e2e2; background: white;  transition: left .5s; } \n';
         // sheet.innerHTML += '.left-toolbox { height: 100%; width: 400px; position: fixed; bottom: 0px; background: white; border-right: 1px solid #ddd;}\n';
         sheet.innerHTML += '#changelog-trigger { height: 60px; width: 50px; font-size: 20px; text-align: center; color: #516766; font-weight: bold; position: relative; padding-top: 16px; bottom: -200px; left: 300px; z-index:2; box-shadow: 0px 0px 12px 0px rgba(87, 87, 87, 0.2); background: #9dc5a7; border-radius: 0px 10px 10px 0px;} \n';
         sheet.innerHTML += '#log-container { position: relative; top: -40px; padding-left:20px; height: 100%; overflow: scroll;}';
