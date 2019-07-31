@@ -32,6 +32,13 @@ export class AnnotationWidget implements IAnnotationWidget {
         this.canvas.renderAll();
     }
 
+    public disableDrawing = (): void => {
+        if(this.canvas.isDrawingMode) {
+            this.canvas.isDrawingMode = false;
+            this.changePaintColor(false);
+        }
+    }
+
     private initView = (): void => {
         // init canvas container
         const [canvasEl, canvasContainer] = this.initCanvasContainer();
@@ -114,8 +121,8 @@ export class AnnotationWidget implements IAnnotationWidget {
 
     private handleMouseUp = (options): void => {
         if(this.canvas.isDrawingMode) {
-            this.canvas.isDrawingMode = !this.canvas.isDrawingMode;
-            this.changePaintColor(false);
+            // this.canvas.isDrawingMode = !this.canvas.isDrawingMode;
+            // this.changePaintColor(false);
             this.saveDrawing();
         }
         if (options.target) {
@@ -140,13 +147,16 @@ export class AnnotationWidget implements IAnnotationWidget {
 
     private handlePaint = (event): void => {
         this.canvas.isDrawingMode = !this.canvas.isDrawingMode;
-        this.changePaintColor(true);
+        this.changePaintColor(this.canvas.isDrawingMode);
     }
 
     private handleClear = (event): void => {
         this.canvas.clear();
         this.saveDrawing();
         this.clearTool.blur();
+        if(this.canvas.isDrawingMode) {
+            this.disableDrawing();
+        }
     }
 
     private saveDrawing(): void {

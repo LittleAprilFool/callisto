@@ -616,7 +616,7 @@ export class ChatWidget implements IChatWidget {
 
         const highlighted_cells = document.querySelectorAll('.cell.highlight');
         const tool_linking = document.getElementById('tool-linking');
-        tool_linking.childNodes[0].nodeValue = 'EDIT LINK(' + highlighted_cells.length.toString() + ')';
+        tool_linking.childNodes[0].nodeValue = 'EDIT LINK (' + highlighted_cells.length.toString() + ')';
     }
 
     private updateFilter = (flag: boolean): void => {
