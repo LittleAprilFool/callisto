@@ -372,7 +372,8 @@ export class NotebookBinding implements INotebookBinding {
             case 'RenderMarkdown': {
                 Jupyter.ignoreRender = true;
                 const index = this.sdbDoc.getData().event.render_markdown;
-                Jupyter.notebook.get_cell(index).render();
+                const cell = Jupyter.notebook.get_cell(index);
+                if(cell) cell.render();
                 Jupyter.ignoreRender = false;
                 break;
             }
@@ -590,11 +591,11 @@ export class NotebookBinding implements INotebookBinding {
     }
 
     private onRenderedMarkdownCell = (evt, info): void => {
-        const index = getSafeIndex(info.cell);
         // when cell type changes to markdown, Jupyter will render once. 
         // In this case, index will be undefined.
-        if(!this.suppressChanges) {
-            if(index!==null && !Jupyter.ignoreRender) {
+        if(!this.suppressChanges && !Jupyter.ignoreRender && !Jupyter.ignoreInsert) {
+            const index = getSafeIndex(info.cell);
+            if(index!==null) {
                 const old_number = this.sdbDoc.getData().event.render_markdown;
                 const op = {
                     p: ['event', 'render_markdown'],
@@ -606,8 +607,8 @@ export class NotebookBinding implements INotebookBinding {
     }
 
     private onUnrenderedMarkdownCell = (evt, cell): void => {
-        const index = getSafeIndex(cell);
-        if(!this.suppressChanges) {
+        if(!this.suppressChanges && !Jupyter.ignoreRender && !Jupyter.ignoreInsert) {
+            const index = getSafeIndex(cell);
             if(index!==null && !Jupyter.ignoreRender) {
                 const old_number = this.sdbDoc.getData().event.unrender_markdown;
                 const op = {
