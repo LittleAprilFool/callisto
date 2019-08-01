@@ -10,6 +10,15 @@ const utils = require('base/js/utils');
 const contents_service = require('contents');
 const config = require('services/config');
 
+export const getSafeIndex = (cell): number => {
+    const cells = Jupyter.notebook.get_cells();
+    let id = -1;
+    cells.forEach((c, index) => {
+        if(c.uid === cell.uid) id = index;
+    });
+    return id;
+};
+
 export const loadNotebook = (): Promise<INotebookBinding> => {
     return new Promise<INotebookBinding> (resolve => {
         joinDoc(Jupyter.notebook.metadata.doc_name).then(({doc, client, ws}) => {

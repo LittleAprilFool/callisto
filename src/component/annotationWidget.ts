@@ -1,4 +1,5 @@
 import { IAnnotationWidget } from 'types';
+import { getSafeIndex } from '../action/notebookAction';
 import * as fabric from '../external/fabric';
 
 export class AnnotationWidget implements IAnnotationWidget {
@@ -129,7 +130,7 @@ export class AnnotationWidget implements IAnnotationWidget {
             this.saveDrawing();
             const object_list = this.canvas.getObjects();
             const object_index = object_list.indexOf(options.target);
-            const cell_index = this.cell.code_mirror.index;
+            const cell_index = getSafeIndex(this.cell);
             this.chatCallback(cell_index, object_index);
         }
     }

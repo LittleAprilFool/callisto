@@ -1,6 +1,6 @@
 import { SDBDoc } from "sdb-ts";
 import { Changelog, ICellBinding, IChangelogWidget, IChatWidget, ICursorWidget, IDiffTabWidget, INotebookBinding, IUserListWidget, SharedDoc, SharedDocOption, User } from "types";
-import { getNotebookMirror} from '../action/notebookAction';
+import { getNotebookMirror, getSafeIndex} from '../action/notebookAction';
 import { getUserName } from '../action/userAction';
 import { generateUUID, getRandomColor, getTime, getTimestamp} from '../action/utils';
 import { AnnotationWidget } from './annotationWidget';
@@ -278,6 +278,7 @@ export class NotebookBinding implements INotebookBinding {
     // apply the operations to the local Code Mirror Cells
     private applyOp = (op): void => {
         this.suppressChanges = true;
+        // console.log(checkOpType(op), op);
         switch(checkOpType(op)) {
             case 'InsertCell': {
                 const {p, li} = op;
@@ -391,6 +392,7 @@ export class NotebookBinding implements INotebookBinding {
                 const {p, od, oi} = op;
                 this.chatWidget.broadcastMessage('The new host is ' + oi.username);
                 const theHost = this.sdbDoc.getData().host;
+                this.isHost = false;
                 if (theHost.username === this.user.username) this.isHost = true;
                 break;
             }
@@ -546,7 +548,7 @@ export class NotebookBinding implements INotebookBinding {
 
     private onFinishedExecuteCodeCell = (evt, info): void => {
         if(!this.suppressChanges && this.isHost) {
-            const index = info.cell.code_mirror.index;
+            const index = getSafeIndex(info.cell);
             const remoteOutputs = this.sharedCells[index].doc.getData().outputs;
             const newOutputs = info.cell.output_area.outputs;
 
@@ -576,7 +578,7 @@ export class NotebookBinding implements INotebookBinding {
     }
 
     private onRenderedMarkdownCell = (evt, info): void => {
-        const index = info.cell.code_mirror.index;
+        const index = getSafeIndex(info.cell);
         // when cell type changes to markdown, Jupyter will render once. 
         // In this case, index will be undefined.
         if(!this.suppressChanges) {
@@ -592,7 +594,7 @@ export class NotebookBinding implements INotebookBinding {
     }
 
     private onUnrenderedMarkdownCell = (evt, info): void => {
-        const index = info.code_mirror.index;
+        const index = getSafeIndex(info.cell);
         if(!this.suppressChanges) {
             if(index!==null && !Jupyter.ignoreRender) {
                 const old_number = this.sdbDoc.getData().event.unrender_markdown;
@@ -624,10 +626,10 @@ export class NotebookBinding implements INotebookBinding {
     }
 
     private onSyncInputPrompt = (cell): void => {
-        if(!this.suppressChanges) {
+        if(!this.suppressChanges && this.isHost) {
 
             // update the execution_count of the cell
-            const index = cell.code_mirror.index;
+            const index = getSafeIndex(cell);
             const remoteExecutionCount = this.sharedCells[index].doc.getData().execution_count;
             const newCount = cell.input_prompt_number;
             const op = {
@@ -642,7 +644,7 @@ export class NotebookBinding implements INotebookBinding {
 
     private onUpdateAnnotation(cell): void {
         if(!this.suppressChanges) {
-            const index = cell.code_mirror.index;
+            const index = getSafeIndex(cell);
             const outputs = this.sharedCells[index].doc.getData().outputs;
             const last_output = outputs[outputs.length - 1];
 
@@ -762,7 +764,7 @@ export class NotebookBinding implements INotebookBinding {
     }
 
     private addAnnotation = (cell): void => {
-        const index = cell.code_mirror.index;
+        const index = getSafeIndex(cell);
         const widget = new AnnotationWidget(cell, this.onUpdateAnnotation.bind(this), null);
         widget.bindChatAction(this.chatWidget.onSelectAnnotation.bind(this.chatWidget));
         this.sharedCells[index].annotationWidget = widget;

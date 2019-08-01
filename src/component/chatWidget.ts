@@ -1,4 +1,5 @@
 import { Cursor, IChatWidget, IDiffTabWidget, Message, MessageItem, User } from 'types';
+import { getSafeIndex } from '../action/notebookAction';
 import { getTime, getTimestamp, timeAgo } from '../action/utils';
 
 import { MessageBox } from './messageBox';
@@ -147,6 +148,7 @@ export class ChatWidget implements IChatWidget {
 
     private onSelectCell = (evt, info): void => {
         const cell = info.cell;
+        const id = getSafeIndex(cell);
 
         if(this.isFold) return;
         if(this.isSelect) {
@@ -154,10 +156,9 @@ export class ChatWidget implements IChatWidget {
             setTimeout(() => {
                 if(this.isSelect) {
                     const cuid = info.cell.uid;
-                    const cm_index = info.cell.code_mirror.index;
                     this.messageBox.appendRef("cell", {
                         type: "CELL",
-                        cell_index: cm_index
+                        cell_index: id
                     });
                     this.handleMagicToggle();
                 }
@@ -165,7 +166,7 @@ export class ChatWidget implements IChatWidget {
         }
         if(this.isEditLinking) {
             const cellEl_list = document.querySelectorAll('.cell');
-            const cellEl_select = cellEl_list[cell.code_mirror.index];
+            const cellEl_select = cellEl_list[id];
             const flag = cellEl_select.classList.contains('highlight');
             if(flag) {
                 cellEl_select.classList.remove('highlight');
