@@ -280,6 +280,10 @@ export class DiffWidget implements IDiffWidget {
             return;
         }
 
+        if(new_cell == null) {
+            return;
+        }
+
         if((new_cell.outputs == null || new_cell.outputs.length === 0) && (old_cell.outputs == null||old_cell.outputs.length===0)) {
             return;
         }

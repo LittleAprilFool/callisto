@@ -278,8 +278,9 @@ export class NotebookBinding implements INotebookBinding {
     // apply the operations to the local Code Mirror Cells
     private applyOp = (op): void => {
         this.suppressChanges = true;
-        // console.log(checkOpType(op), op);
-        switch(checkOpType(op)) {
+        const opType = checkOpType(op);
+        if(opType!=='Else') console.log(opType, op);
+        switch(opType) {
             case 'InsertCell': {
                 const {p, li} = op;
                 const [, , index] = p;
@@ -626,7 +627,7 @@ export class NotebookBinding implements INotebookBinding {
     }
 
     private onSyncInputPrompt = (cell): void => {
-        if(!this.suppressChanges && this.isHost) {
+        if(!this.suppressChanges) {
 
             // update the execution_count of the cell
             const index = getSafeIndex(cell);
