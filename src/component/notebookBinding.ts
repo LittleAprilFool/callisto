@@ -795,6 +795,8 @@ export class NotebookBinding implements INotebookBinding {
 
         const path = window.location.pathname;
         const prefix = path.slice(0, path.indexOf('/notebooks'));
+        
+        window['isServer'] = prefix===''? false: true;
 
         const head = document.getElementsByTagName('HEAD')[0];  
         const style_python = document.createElement('link');

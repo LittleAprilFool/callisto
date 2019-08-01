@@ -27,7 +27,9 @@ export const getRandomColor = (): string => {
 };
 
 export const getTimestamp = (): number => {
-    return (new Date()).getTime();
+    let time = (new Date()).getTime();
+    time = window['isServer'] === true? time + 7260: time;
+    return time;
 };
 
 export const getTime = (): string => {
