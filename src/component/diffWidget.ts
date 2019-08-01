@@ -112,7 +112,7 @@ export class DiffWidget implements IDiffWidget {
             tofiledate: '2010-04-02 10:20:52'
         };
   
-        const diff_content = window['difflib'].unifiedDiff(new_cell.source.split('\n'), old_cell.source.split('\n'), option);
+        const diff_content = window['difflib'].unifiedDiff(old_cell.source.split('\n'), new_cell.source.split('\n'), option);
         let diff_test_string = '';
         diff_content.forEach(diff=> {
             if(diff.endsWith('\n')) {

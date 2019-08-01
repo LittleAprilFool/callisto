@@ -76,7 +76,7 @@ export class DiffTabWidget implements IDiffTabWidget {
     public addDiff = (new_timestamp: number, old_timestamp: number, title: string): void => {
         this.new_timestamp = new_timestamp;
         this.old_timestamp = old_timestamp;
-        this.diff_title = 'Notebook diff between snapshot-' + new_timestamp.toString() + ' (' + timeAgo(new_timestamp) + ') and snapshot-' + old_timestamp.toString() + ' (' + timeAgo(old_timestamp) + ')';
+        this.diff_title = 'Notebook diff between old-' + old_timestamp.toString() + ' (' + timeAgo(old_timestamp) + ') and new-' + new_timestamp.toString() + ' (' + timeAgo(new_timestamp) + ')';
         this.client.connection.fetchSnapshotByTimestamp(this.id[0], this.id[1], new_timestamp, this.fetchOld);
     }
 
