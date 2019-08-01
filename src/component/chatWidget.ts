@@ -459,9 +459,10 @@ export class ChatWidget implements IChatWidget {
     private getMessageInfo = (message: Message, index: number): MessageItem => {
         const re = /\[(.*?)\]\((.*?)\)/g;
         const url_re = /(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:/?#[\]@!\$&'\(\)\*\+,;=.]+/g;
+        const line_break_re = /\n/g;
         this.sender = message.sender;
         const origin_text = message.content;    
-        const formated_text = origin_text.replace(re, this.replaceLR).replace(url_re, this.replaceURL);
+        const formated_text = origin_text.replace(re, this.replaceLR).replace(url_re, this.replaceURL).replace(line_break_re, '<br/>');
     
         const message_info: MessageItem = {
             'message-sender': message.sender.username,
@@ -799,7 +800,7 @@ export class ChatWidget implements IChatWidget {
     }
 
     private handleEnterKey = (e: KeyboardEvent): void => {
-        if(e.which === 13) {
+        if(e.which === 13 && !e.shiftKey) {
             this.handleSubmitting();
             e.preventDefault();
         }
