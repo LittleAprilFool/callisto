@@ -451,12 +451,15 @@ export class DiffWidget implements IDiffWidget {
         alert.style.display = 'block';
     }
 
-    private onSliderInput = (e?: Event): void => {
+    private onSliderInput = (e: Event): void => {
         const parent = ( e.target as HTMLElement ).parentElement;
         const target_slider = parent.childNodes[1] as HTMLInputElement;
         const target_img = parent.childNodes[0].childNodes[1] as HTMLImageElement;
+        const bottom_img = parent.childNodes[0].childNodes[2] as HTMLImageElement;
         const opacity = ((+target_slider.value) - (+target_slider.min)) / ((+target_slider.max) - (+target_slider.min));
+        const bottom_opacity = 1 - opacity;
         target_img.style.opacity = opacity.toString();
+        bottom_img.style.opacity = bottom_opacity.toString();
     }
 
     private onSliderDemo = (): void => {
@@ -468,7 +471,10 @@ export class DiffWidget implements IDiffWidget {
             setTimeout(() => {
                 value = value + 1;
                 target_slider.value = value.toString();
-                this.onSliderInput();
+                target_slider.dispatchEvent(new Event('input', {
+                    'bubbles': true,
+                    'cancelable': true
+                }));
                 startTimer(value);
             }, 20);
         };
