@@ -368,7 +368,7 @@ export class DiffWidget implements IDiffWidget {
 
         // ISSUE:https://github.com/LittleAprilFool/jupyter-sharing/issues/53
         // comment out the next line to disable resemble 
-        // this.enableResemble(new_src, old_src, hover_container);
+        this.enableResemble(new_src, old_src, hover_container);
 
         // adding css to original img
         img.classList.add('img-overlay');
