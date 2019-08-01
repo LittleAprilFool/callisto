@@ -221,6 +221,7 @@ export class DiffWidget implements IDiffWidget {
             cell_container.appendChild(diff_container);
             this.renderImageDiff(new_cell, old_cell, left_cell_container); 
             this.createOutputUnit(new_cell, right_cell_container);
+            return;
         }
 
         if(new_cell.outputs.length > 0 || old_cell.outputs.length > 0) {
