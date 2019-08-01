@@ -280,7 +280,7 @@ export class NotebookBinding implements INotebookBinding {
     private applyOp = (op): void => {
         this.suppressChanges = true;
         const opType = checkOpType(op);
-        // if(opType!=='Else') console.log(opType, op);
+        // if(opType!=='Else' && opType!=='EditCell') console.log(opType, op);
         switch(opType) {
             case 'InsertCell': {
                 const {p, li} = op;
@@ -339,24 +339,34 @@ export class NotebookBinding implements INotebookBinding {
                 const {p, li, ld} = op;
                 const [, , index] = p;
                 Jupyter.ignoreInsert = true;
+                const cell_uid = li.uid;
 
                 switch (li.cell_type) {
                     case 'markdown': {
                         Jupyter.notebook.to_markdown(index);
+                        const cell = Jupyter.notebook.get_cell(index);
+                        cell.uid = cell_uid;
                         break;
                     }
                     case 'code': {
                         Jupyter.notebook.to_code(index);
+                        const cell = Jupyter.notebook.get_cell(index);
+                        cell.uid = cell_uid;
                         break;
                     }
                     case 'raw': {
                         Jupyter.notebook.to_raw(index);
+                        const cell = Jupyter.notebook.get_cell(index);
+                        cell.uid = cell_uid;
                         break;
                     }
                     default:
                         console.log("Unrecognized cell type: " + li.cell_type);
                 }
                 Jupyter.ignoreInsert = false;
+                const newCell = Jupyter.notebook.get_cell(index);
+                this.deleteSharedCell(index);
+                this.insertSharedCell(index, newCell.code_mirror);
                 break;
             }
             case 'RenderMarkdown': {
@@ -595,8 +605,8 @@ export class NotebookBinding implements INotebookBinding {
         }
     }
 
-    private onUnrenderedMarkdownCell = (evt, info): void => {
-        const index = getSafeIndex(info.cell);
+    private onUnrenderedMarkdownCell = (evt, cell): void => {
+        const index = getSafeIndex(cell);
         if(!this.suppressChanges) {
             if(index!==null && !Jupyter.ignoreRender) {
                 const old_number = this.sdbDoc.getData().event.unrender_markdown;
@@ -614,10 +624,14 @@ export class NotebookBinding implements INotebookBinding {
             // replace the cell with the new cell
             const remoteCell = this.sharedCells[index].doc.getData(); 
             const newCell = Jupyter.notebook.get_cell(index);
+            const cell_string = JSON.parse(JSON.stringify(newCell));
+            const uid = generateUUID();
+            newCell.uid = uid;
+            cell_string.uid = uid;
             const op = {
                 p: ['notebook', 'cells', index],
                 ld: remoteCell,
-                li: newCell
+                li: cell_string
             };
 
             this.deleteSharedCell(index);
