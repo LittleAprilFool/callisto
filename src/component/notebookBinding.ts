@@ -67,6 +67,7 @@ export class NotebookBinding implements INotebookBinding {
     private cellChangeBuffer: string[] = [];
     private cellExecutionBuffer: string[] = [];
     private diffTabWidget: IDiffTabWidget;
+
     constructor(private sdbDoc: SDBDoc<SharedDoc>, private client: any, private ws: WebSocket, private option: SharedDocOption = {
         annotation: true,
         chat: true,
@@ -791,11 +792,15 @@ export class NotebookBinding implements INotebookBinding {
         sheet.innerHTML += '.active-cell {width:100%; margin-left:5px; float:right;}\n';
         sheet.innerHTML += '.tooltip-text {z-index: 101; position:absolute; display:none; bottom: 100%; right: 0%; padding: 5px;}\n';
         document.body.appendChild(sheet);
+
+        const path = window.location.pathname;
+        const prefix = path.slice(0, path.indexOf('/notebooks'));
+
         const head = document.getElementsByTagName('HEAD')[0];  
         const style_python = document.createElement('link');
         style_python.rel = 'stylesheet';
         style_python.type = 'text/css';
-        style_python.href = '/nbextensions/external/ipython.css';
+        style_python.href = prefix + '/nbextensions/external/ipython.css';
         head.append(style_python);
         const style_diff2html = document.createElement('link'); 
         style_diff2html.rel = 'stylesheet';  
@@ -804,7 +809,7 @@ export class NotebookBinding implements INotebookBinding {
         head.appendChild(style_diff2html);  
         const link_difflib = document.createElement('script'); 
         link_difflib.type = 'text/javascript';
-        link_difflib.src = '/nbextensions/external/difflib-browser.js';
+        link_difflib.src = prefix + '/nbextensions/external/difflib-browser.js';
         head.appendChild(link_difflib);
 
         const link_diff2html = document.createElement('script'); 
