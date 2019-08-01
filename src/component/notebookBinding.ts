@@ -428,7 +428,7 @@ export class NotebookBinding implements INotebookBinding {
                     eventName: 'executed a modified cell',
                     event: 'edit',
                     time: getTime(),
-                    timestamp: getTimestamp() + 100
+                    timestamp: getTimestamp() + 1000
                 };
                 const op_log = {
                     p: ['changelog', log_index],

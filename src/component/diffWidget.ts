@@ -199,7 +199,9 @@ export class DiffWidget implements IDiffWidget {
     private isImageDiff = (new_cell: Cell, old_cell: Cell): boolean => {
         const new_outputs = new_cell.outputs;
         const old_outputs = old_cell.outputs;
+        
         if (!new_outputs || !old_outputs) return false;
+        if (new_outputs.length === 0 || old_outputs.length === 0) return false;
         if (new_outputs[0].output_type === 'display_data' && old_outputs[0].output_type === 'display_data') return true;
         return false;
     }
@@ -221,7 +223,7 @@ export class DiffWidget implements IDiffWidget {
             this.createOutputUnit(new_cell, right_cell_container);
         }
 
-        if(new_cell.outputs.length > 1 || old_cell.outputs.length > 1) {
+        if(new_cell.outputs.length > 0 || old_cell.outputs.length > 0) {
             cell_container.appendChild(diff_container);
             this.createOutputUnit(new_cell, right_cell_container);
             this.createOutputUnit(old_cell, left_cell_container);
@@ -485,6 +487,7 @@ export class DiffWidget implements IDiffWidget {
         sheet.innerHTML += 'span.diff-del {background: #e4cabd}\n';
         sheet.innerHTML += '.diff-new .input_area {background: rgba(0, 200, 20, 0.1); }\n';
         sheet.innerHTML += '.diff-old .input_area {background: rgba(255, 20, 0, 0.1); }\n';
+        sheet.innerHTML += '.diff-right {float: right}\n';
         sheet.innerHTML += '.img-overlay { position: absolute; }\n';
         sheet.innerHTML += '.img-diff { position: absolute; opacity: 0;}\n';
         sheet.innerHTML += '.hover-container:hover .img-diff{ opacity: 1; z-index: 2;}\n';
