@@ -6,7 +6,8 @@
   "scripts": {
     "test": "cross-env TS_NODE_COMPILER_OPTIONS='{ \"module\": \"commonjs\" }' mocha -r ts-node/register src/*/*.spec.ts ",
     "watch": "tsc-watch --onSuccess 'sh ./deployment/jupyter/update.sh'",
-    "build": "tsc",
+    "build": "tsc; npm run copyExternal",
+    "copyExternal": "find ./src/external -name '*.css' -type f -exec cp -P {} ./extensions/external \\;",
     "watchify": "browserify src/colab.ts -p [ tsify ] > build/bundle.js",
     "lint": "tslint --project tsconfig.json src/*.ts src/**/*.ts",
     "clean": "sh ./deployment/jupyter/uninstall.sh"
