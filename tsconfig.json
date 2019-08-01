@@ -1,7 +1,6 @@
 {
     "compilerOptions": {
         "alwaysStrict": true,
-        "allowJs": true,
         "module": "amd",
         "target": "es6",
         "baseUrl": ".",
