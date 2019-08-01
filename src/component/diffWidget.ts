@@ -467,7 +467,7 @@ export class DiffWidget implements IDiffWidget {
         if(target_slider == null) return;
 
         const startTimer = value => {
-            if(value > 100) return;
+            if(value > 80) return;
             setTimeout(() => {
                 value = value + 1;
                 target_slider.value = value.toString();
