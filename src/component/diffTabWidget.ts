@@ -117,7 +117,8 @@ export class DiffTabWidget implements IDiffTabWidget {
 
     private activeTabHandler = (e): void => {
         const label = e.currentTarget.getAttribute('label');
-        this.chatCallback(label);
+        if(this.chatCallback) this.chatCallback(label);
+        else console.log('No chatcallback in difftab widget');
         this.activeTab(e.currentTarget);
     }
 

@@ -26,10 +26,10 @@ export const getRandomColor = (): string => {
     return color;
 };
 
-export const getTimestamp = (): number => {
-    let time = (new Date()).getTime();
-    time = window['isServer'] === true? time + 8000: time;
-    return time;
+export const getTimestamp = (): Promise<string> => {
+  const port = 5555;
+  const url = window.location.protocol + '//' + document.domain + ':' + port.toString();
+  return fetch(url + '/timestamp').then(res=> res.json());
 };
 
 export const getTime = (): string => {

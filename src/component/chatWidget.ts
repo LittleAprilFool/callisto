@@ -402,23 +402,24 @@ export class ChatWidget implements IChatWidget {
             const current_cell = Jupyter.notebook.get_selected_cell();
             if(current_cell) related_cells.push(current_cell.uid);
         }
-
-        const newMessage: Message = {
-            sender: this.user,
-            content: this.messageBox.getSubmissionValue(),
-            time: getTime(),
-            timestamp: getTimestamp(),
-            cells: related_cells
-        };
-        const index = this.doc.getData().length;
-
-        const op = {
-            p: [index],
-            li: newMessage
-        };
-
-        if (this.messageBox.getSubmissionValue()) this.doc.submitOp([op], this);
-        this.messageBox.clear();
+        getTimestamp().then(data=> {
+            const newMessage: Message = {
+                sender: this.user,
+                content: this.messageBox.getSubmissionValue(),
+                time: getTime(),
+                timestamp: parseInt(data, 0),
+                cells: related_cells
+            };
+            const index = this.doc.getData().length;
+    
+            const op = {
+                p: [index],
+                li: newMessage
+            };
+    
+            if (this.messageBox.getSubmissionValue()) this.doc.submitOp([op], this);
+            this.messageBox.clear();
+        });
     }
 
     private handleMessageSelect = (e): void => {
@@ -738,12 +739,9 @@ export class ChatWidget implements IChatWidget {
     }
 
     private handleLinkingSave = (): void => {
-
         const cell_list = this.getCurrentList();
         const new_list = this.getNewList();
-        
         const messages = document.querySelectorAll('.message-wrapper');
-
         const history = this.doc.getData();
         messages.forEach((message, id) => {
             if(message.classList.contains('select')) {

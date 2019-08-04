@@ -212,38 +212,42 @@ export class NotebookBinding implements INotebookBinding {
         switch(checkOpType(op)) {
             case 'InsertCell': {
                 // send a modification log
-                const log_index = this.sdbDoc.getData().changelog.length;
-                const log: Changelog = {
-                    user: this.user,
-                    eventName: 'inserted a cell',
-                    event: 'insert',
-                    time: getTime(),
-                    timestamp: getTimestamp() + 100
-                };
-                const op_log = {
-                    p: ['changelog', log_index],
-                    li: log
-                };
-                this.sdbDoc.submitOp([op_log], this);
+                getTimestamp().then(data => {
+                    const log_index = this.sdbDoc.getData().changelog.length;
+                    const log: Changelog = {
+                        user: this.user,
+                        eventName: 'inserted a cell',
+                        event: 'insert',
+                        time: getTime(),
+                        timestamp: parseInt(data, 0) + 100
+                    };
+                    const op_log = {
+                        p: ['changelog', log_index],
+                        li: log
+                    };
+                    this.sdbDoc.submitOp([op_log], this);
+                });
                 break;
             }
             case 'DeleteCell': {
                 // send a delete log
                 // todo: there is a lag between sending the delete log, and changing the sharedb snapshot
                 // current solution, manually add a 100 ms delay
-                const log_index = this.sdbDoc.getData().changelog.length;
-                const log: Changelog = {
-                    user: this.user,
-                    eventName: 'deleted a cell',
-                    event: 'delete',
-                    time: getTime(),
-                    timestamp: getTimestamp() + 100
-                };
-                const op_log = {
-                    p: ['changelog', log_index],
-                    li: log
-                };
-                this.sdbDoc.submitOp([op_log], this);
+                getTimestamp().then(data => {
+                    const log_index = this.sdbDoc.getData().changelog.length;
+                    const log: Changelog = {
+                        user: this.user,
+                        eventName: 'deleted a cell',
+                        event: 'delete',
+                        time: getTime(),
+                        timestamp: parseInt(data, 0) + 100
+                    };
+                    const op_log = {
+                        p: ['changelog', log_index],
+                        li: log
+                    };
+                    this.sdbDoc.submitOp([op_log], this);
+                });
                 break;
             }
             case 'UpdateOutputs': {
@@ -255,19 +259,21 @@ export class NotebookBinding implements INotebookBinding {
             }
             case 'JoinChannel': {
                 // update log
-                const log_index = this.sdbDoc.getData().changelog.length;
-                const log: Changelog = {
-                    user: this.user,
-                    eventName: 'joined the channel',
-                    event: 'join',
-                    time: getTime(),
-                    timestamp: getTimestamp()
-                };
-                const op_log = {
-                    p: ['changelog', log_index],
-                    li: log
-                };
-                this.sdbDoc.submitOp([op_log], this);
+                getTimestamp().then(data => {
+                    const log_index = this.sdbDoc.getData().changelog.length;
+                    const log: Changelog = {
+                        user: this.user,
+                        eventName: 'joined the channel',
+                        event: 'join',
+                        time: getTime(),
+                        timestamp: parseInt(data, 0) + 100
+                    };
+                    const op_log = {
+                        p: ['changelog', log_index],
+                        li: log
+                    };
+                    this.sdbDoc.submitOp([op_log], this);
+                });
                 break;
             }
             default: {
@@ -434,18 +440,20 @@ export class NotebookBinding implements INotebookBinding {
                 const id2 = this.cellChangeBuffer.indexOf(cell.uid);
                 this.cellChangeBuffer.splice(id2, 1);
                 const log_index = this.sdbDoc.getData().changelog.length;
-                const log: Changelog = {
-                    user: this.user,
-                    eventName: 'executed a modified cell',
-                    event: 'edit',
-                    time: getTime(),
-                    timestamp: getTimestamp() + 1000
-                };
-                const op_log = {
-                    p: ['changelog', log_index],
-                    li: log
-                };
-                this.sdbDoc.submitOp([op_log], this);
+                getTimestamp().then(data => {
+                    const log: Changelog = {
+                        user: this.user,
+                        eventName: 'executed a modified cell',
+                        event: 'edit',
+                        time: getTime(),
+                        timestamp: parseInt(data, 0) + 1000
+                    };
+                    const op_log = {
+                        p: ['changelog', log_index],
+                        li: log
+                    };
+                    this.sdbDoc.submitOp([op_log], this);
+                });
             }
         }
         else { 

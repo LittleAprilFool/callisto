@@ -213,7 +213,8 @@ export class CursorWidget implements ICursorWidget {
                 li: newCursor
             };
             this.doc.submitOp([op], this);
-            if(this.mouseDown===0) this.chatCallback(newCursor);
+            if(this.mouseDown===0 && this.chatCallback) this.chatCallback(newCursor);
+            else console.log('No chatcallback in cursor widget');
         }
     }
 }

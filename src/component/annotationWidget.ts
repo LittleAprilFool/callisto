@@ -131,7 +131,8 @@ export class AnnotationWidget implements IAnnotationWidget {
             const object_list = this.canvas.getObjects();
             const object_index = object_list.indexOf(options.target);
             const cell_index = getSafeIndex(this.cell);
-            this.chatCallback(cell_index, object_index);
+            if(this.chatCallback) this.chatCallback(cell_index, object_index);
+            else console.log('No chatcallback in annotation widget');
         }
     }
 
