@@ -227,6 +227,7 @@ export class NotebookBinding implements INotebookBinding {
                         eventName: 'inserted a cell',
                         event: 'insert',
                         time: getTime(),
+                        diff: null,
                         timestamp: parseInt(data, 0) + 100
                     };
                     const op_log = {
@@ -248,6 +249,7 @@ export class NotebookBinding implements INotebookBinding {
                         eventName: 'deleted a cell',
                         event: 'delete',
                         time: getTime(),
+                        diff: null,
                         timestamp: parseInt(data, 0) + 100
                     };
                     const op_log = {
@@ -273,6 +275,7 @@ export class NotebookBinding implements INotebookBinding {
                         user: this.user,
                         eventName: 'joined the channel',
                         event: 'join',
+                        diff: null,
                         time: getTime(),
                         timestamp: parseInt(data, 0) + 100
                     };
@@ -463,6 +466,7 @@ export class NotebookBinding implements INotebookBinding {
                         eventName: 'executed a modified cell',
                         event: 'edit',
                         time: getTime(),
+                        diff:null,
                         timestamp: parseInt(data, 0) + 1000
                     };
                     const op_log = {

@@ -37,6 +37,7 @@ interface Changelog {
     event: string;
     eventName: string;
     timestamp: number;
+    diff: string;
     time: string;
 }
 
@@ -202,6 +203,7 @@ interface IDiffTabWidget {
     addDiff(new_timestamp: number, old_timestamp: number, title: string): void;
     addVersion(timestamp: number, title: string): void;
     bindChatAction(callback: any): void;
+    diffThumb(new_timestamp: number, old_timestamp: number): Promise<string[]>;
 }
 
 interface IChangelogWidget {

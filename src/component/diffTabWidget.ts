@@ -7,12 +7,8 @@ export class DiffTabWidget implements IDiffTabWidget {
 
     private new_timestamp: number;
     private old_timestamp: number;
-    private new_notebook: Notebook;
-    private old_notebook: Notebook;
+
     private diff_title: string;
-    private version_timestamp: number;
-    private version_notebook: Notebook;
-    private version_title: string;
     private chatCallback: any;
     private diffList: DiffWidget[];
 
@@ -73,36 +69,69 @@ export class DiffTabWidget implements IDiffTabWidget {
         this.activeTab(new_tab);
     }
 
+    public diffThumb = (new_timestamp: number, old_timestamp: number): Promise<string[]> => {
+        this.new_timestamp = new_timestamp;
+        this.old_timestamp = old_timestamp;
+        return new Promise((resolve, reject) => {
+            this.fetchTwoSnapShot(this.id[0], this.id[1], new_timestamp, old_timestamp)
+            .then(notebook=> {
+                const new_notebook = notebook[0];
+                const old_notebook = notebook[1];
+                let diff_new;
+                let diff_old;
+                new_notebook.cells.forEach((cell, index) => {
+                    if(cell.source !== old_notebook.cells[index].source){
+                        diff_new = cell.source;
+                        diff_old = old_notebook.cells[index].source;
+                    }
+                })
+                resolve([diff_new, diff_old]);
+            });
+        })
+    }
+
     public addDiff = (new_timestamp: number, old_timestamp: number, title: string): void => {
         this.new_timestamp = new_timestamp;
         this.old_timestamp = old_timestamp;
         this.diff_title = 'Notebook diff between old-' + old_timestamp.toString() + ' (' + timeAgo(old_timestamp) + ') and new-' + new_timestamp.toString() + ' (' + timeAgo(new_timestamp) + ')';
-        this.client.connection.fetchSnapshotByTimestamp(this.id[0], this.id[1], new_timestamp, this.fetchOld);
+        this.fetchTwoSnapShot(this.id[0], this.id[1], new_timestamp, old_timestamp)
+        .then(notebook=> {
+            const diffWidget = new DiffWidget('diff', notebook, this.diff_title, [this.new_timestamp, this.old_timestamp]);
+            this.diffList.push(diffWidget);
+        });
     }
 
     public addVersion = (timestamp: number, title: string): void => {
-        this.version_timestamp = timestamp;
-        this.version_title = 'Notebook snapshot-' + timestamp.toString() + ' (' + timeAgo(timestamp) + ')';
-        this.client.connection.fetchSnapshotByTimestamp(this.id[0], this.id[1], timestamp, this.createVersionWidget);
+        const version_timestamp = timestamp;
+        const version_title = 'Notebook snapshot-' + timestamp.toString() + ' (' + timeAgo(timestamp) + ')';
+        this.fetchSnapShot(this.id[0], this.id[1], timestamp).then(snapshot => {
+            const version_notebook = snapshot.data.notebook;
+            const versionWidget = new DiffWidget('version', [version_notebook], version_title, [version_timestamp]);
+            this.diffList.push(versionWidget);
+        })
     }
 
-    private fetchOld = (err, snapshot): void => {
-        this.new_notebook = snapshot.data.notebook;
-        this.client.connection.fetchSnapshotByTimestamp(this.id[0], this.id[1], this.old_timestamp, this.createDiffWidget);
+    private fetchTwoSnapShot = (para0, para1, new_timestamp, old_timestamp): Promise<any> => {
+        let new_notebook;
+        let old_notebook;
+        return new Promise((resolve, reject) => {
+            this.fetchSnapShot(para0, para1, new_timestamp)
+            .then((new_snapshot) =>{new_notebook = new_snapshot.data.notebook})
+            .then(()=> {
+                this.fetchSnapShot(para0, para1, old_timestamp)
+                .then((old_snapshot)=>{old_notebook = old_snapshot.data.notebook})
+                .then(()=>resolve([new_notebook, old_notebook]));
+            });
+        });
     }
 
-    private createDiffWidget = (err, snapshot): void => {
-        this.old_notebook = snapshot.data.notebook;
-        const diffWidget = new DiffWidget('diff', [this.new_notebook, this.old_notebook], this.diff_title, [this.new_timestamp, this.old_timestamp]);
-        this.diffList.push(diffWidget);
+    private fetchSnapShot = (para0, para1, timestamp): Promise<any> => {
+        return new Promise((resolve, reject)=> {
+            this.client.connection.fetchSnapshotByTimestamp(para0, para1, timestamp, (err, snapshot)=>{
+                resolve(snapshot);
+            });
+        })
     }
-
-    private createVersionWidget = (err, snapshot): void => {
-        this.version_notebook = snapshot.data.notebook;
-        const versionWidget = new DiffWidget('version', [this.version_notebook], this.version_title, [this.version_timestamp]);
-        this.diffList.push(versionWidget);
-    }
-
     private closeTabHandler = (e): void => {
         const label = e.currentTarget.getAttribute('label');
         const related_eles = document.querySelectorAll('.'+ label);
