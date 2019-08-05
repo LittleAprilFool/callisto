@@ -72,9 +72,7 @@ export class CursorWidget implements ICursorWidget {
 
     private onSDBDocEvent = (type, ops, source): void => {
         if(type === 'op') {
-            if(source !== this) {
-                ops.forEach(op => this.applyOp(op));
-            }
+            ops.forEach(op => this.applyOp(op));
         }
     }
 
