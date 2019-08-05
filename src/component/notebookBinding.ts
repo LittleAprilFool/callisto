@@ -12,7 +12,6 @@ import { DiffTabWidget } from './diffTabWidget';
 import { UserListWidget } from './userListWidget';
 
 const Jupyter = require('base/js/namespace');
-const Notebook = require('notebook/js/notebook');
 const dialog = require('base/js/dialog');
 
 // TODO: I need a better way to check the Op type
@@ -723,7 +722,7 @@ export class NotebookBinding implements INotebookBinding {
     }
 
     private createKernelRestartEvent = (): void => {
-
+        const Notebook = require('notebook/js/notebook');
         Notebook.Notebook.prototype._restart_kernel = function (options) {
             if(!(window as any).isHost) {
                 console.log("Forwarding the request to the host notebook");
@@ -781,7 +780,7 @@ export class NotebookBinding implements INotebookBinding {
     // when change type, Jupyter Notebook would delete the original cell, and insert a new cell
     private createTypeChangeEvent = (): void => {
         Jupyter.ignoreInsert = false;
-
+        const Notebook = require('notebook/js/notebook');
         // to markdown
         // https://github.com/jupyter/notebook/blob/master/notebook/static/notebook/js/notebook.js#L1470
         Notebook.Notebook.prototype.cells_to_markdown = function (indices) {
