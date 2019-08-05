@@ -51,7 +51,11 @@ export const createDoc = (doc_name: string): Promise<{doc: SDBDoc<SharedDoc>, cl
             users: [],
             chat: [],
             cursor: [],
-            changelog:[]
+            changelog:[],
+            kernel: {
+                id: null,
+                operation: null
+            }
         };
         sdbDoc.createIfEmpty(emptyDoc).then(()=> {
             resolve({doc: sdbDoc, client: sdbClient, ws});

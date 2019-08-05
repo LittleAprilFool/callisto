@@ -11,8 +11,8 @@ export class UserListWidget implements IUserListWidget {
     }
     public update = (user_list: User[]): void => {
         this.cleanContainer();
-        user_list.forEach(user => {
-            const display = this.createUserIcon(user);
+        user_list.forEach((user, index) => {
+            const display = this.createUserIcon(user, index);
             display.addEventListener('click', this.handleClick);
             this.container.appendChild(display);
         });
@@ -45,12 +45,12 @@ export class UserListWidget implements IUserListWidget {
             this.container.removeChild(this.container.firstChild);
         }
     }
-    private createUserIcon = (user: User): HTMLElement => {
+    private createUserIcon = (user: User, index: number): HTMLElement => {
         const container = document.createElement('div');
         container.classList.add('userlist-wrapper', 'btn-group');
         const el = document.createElement('div');
         const icon = document.createElement('i');
-        icon.innerHTML = '<i class="fa fa-user"></i>';
+        icon.innerHTML = index===0?'<i class="fa fa-user-plus"></i>':'<i class="fa fa-user"></i>';
 
         el.innerText = user.username;
         el.classList.add('userlist-username');

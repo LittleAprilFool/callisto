@@ -26,6 +26,10 @@ interface SharedDoc {
     chat: Message[];
     cursor: Cursor[];
     changelog: Changelog[];
+    kernel: {
+        id: string,
+        operation: string
+    };
 }
 
 interface Changelog {

@@ -1,5 +1,5 @@
 import { SDBDoc } from "sdb-ts";
-import { Changelog, ICellBinding, IChangelogWidget, IChatWidget, ICursorWidget, IDiffTabWidget, INotebookBinding, IUserListWidget, SharedDoc, SharedDocOption, User } from "types";
+import { Changelog, ICellBinding, IChangelogWidget, IChatWidget, ICursorWidget, IDiffTabWidget, INotebookBinding, IUserListWidget, SharedDoc, SharedDocOption, User} from "types";
 import { getNotebookMirror, getSafeIndex} from '../action/notebookAction';
 import { getUserName } from '../action/userAction';
 import { generateUUID, getRandomColor, getTime, getTimestamp} from '../action/utils';
@@ -12,6 +12,8 @@ import { DiffTabWidget } from './diffTabWidget';
 import { UserListWidget } from './userListWidget';
 
 const Jupyter = require('base/js/namespace');
+const Notebook = require('notebook/js/notebook');
+const dialog = require('base/js/dialog');
 
 // TODO: I need a better way to check the Op type
 const checkOpType = (op): string => {
@@ -47,6 +49,10 @@ const checkOpType = (op): string => {
 
     // UpdateHost
     if (op.p.length === 1 && op.p[0] === 'host' && op.oi!==null) return 'UpdateHost';
+    
+    // UpdateKernel
+    if (op.p.length === 1 && op.p[0] === 'kernel' && op.oi!==null) return 'UpdateKernel';
+
 
     // UpdateAnnotation
     // { p:['notebook', 'cells', index, 'outputs', outputs.length-1, 'metadata'], od, oi}
@@ -59,7 +65,6 @@ export class NotebookBinding implements INotebookBinding {
     private suppressChanges: boolean = false;
     private sharedCells: ICellBinding[];
     private user: User;
-    private isHost: boolean = false;
     private userListWidget: IUserListWidget;
     private chatWidget: IChatWidget;
     private cursorWidget: ICursorWidget;
@@ -75,6 +80,7 @@ export class NotebookBinding implements INotebookBinding {
         cursor: true,
         changelog: true
     }) {
+        this.initWindow();
         this.initStyle();
         this.sdbDoc.subscribe(this.onSDBDocEvent);
         this.eventsOn();
@@ -186,6 +192,9 @@ export class NotebookBinding implements INotebookBinding {
         // customized event type change
         this.createTypeChangeEvent();
         Jupyter.notebook.events.on('type.Change', this.onTypeChange);
+
+        // customized event kernal restart
+        this.createKernelRestartEvent();
         // onUpdateAnnotation
         // this recall function is passed into each annotation widget
     }
@@ -315,7 +324,7 @@ export class NotebookBinding implements INotebookBinding {
                 cell.set_input_prompt(oi);
                 
                 // if host receives the execution operation from the client
-                if(oi==="*" && this.isHost) {
+                if(oi==="*" && (window as any).isHost) {
                     // Jupyter.notebook.execute_cell(index) wouldn't call event trigger 'onExecuteCodeCell'
                     // change it to Jupyter.notebook.get_cell(index).execute()
                     Jupyter.notebook.get_cell(index).execute();
@@ -411,8 +420,17 @@ export class NotebookBinding implements INotebookBinding {
                 const {p, od, oi} = op;
                 this.chatWidget.broadcastMessage('The new host is ' + oi.username);
                 const theHost = this.sdbDoc.getData().host;
-                this.isHost = false;
-                if (theHost.username === this.user.username) this.isHost = true;
+                (window as any).isHost = false;
+                if (theHost.username === this.user.username) this.setHost();
+                break;
+            }
+            case 'UpdateKernel': {
+                const {p, od, oi} = op;
+                const kernel_id = oi;
+                if(oi.id === "" && (window as any).isHost) {
+                    const new_dialog = (window as any).getHostKernelDialog(oi.operation);
+                    dialog.modal(new_dialog);
+                }
                 break;
             }
             case 'EditCell': {
@@ -489,8 +507,7 @@ export class NotebookBinding implements INotebookBinding {
             // check if the notebook has host
             const oldHost = this.sdbDoc.getData().host;
             if(oldHost == null) {
-                this.isHost = true;
-                console.log('This is the host');
+                this.setHost();
                 const op_host = {
                     p: ['host'],
                     od: oldHost,
@@ -506,6 +523,25 @@ export class NotebookBinding implements INotebookBinding {
                 'user': this.user 
             }));
         }
+    }
+
+    private setHost = (): void => {
+        (window as any).isHost = true;
+        console.log('This is the host');
+
+        // update kernel id
+        const kernel = {
+            id: Jupyter.notebook.kernel.id,
+            operation: 'none'
+        };
+        const oldKernel = this.sdbDoc.getData().kernel;
+
+        const op_kernel = {
+            p: ['kernel'],
+            od: oldKernel,
+            oi: kernel
+        };
+        this.sdbDoc.submitOp([op_kernel], this);
     }
 
     // when the local notebook deletes a cell
@@ -568,7 +604,7 @@ export class NotebookBinding implements INotebookBinding {
     }
 
     private onFinishedExecuteCodeCell = (evt, info): void => {
-        if(!this.suppressChanges && this.isHost) {
+        if(!this.suppressChanges && (window as any).isHost) {
             const index = getSafeIndex(info.cell);
             const remoteOutputs = this.sharedCells[index].doc.getData().outputs;
             const newOutputs = info.cell.output_area.outputs;
@@ -686,9 +722,64 @@ export class NotebookBinding implements INotebookBinding {
         }
     }
 
+    private createKernelRestartEvent = (): void => {
+
+        Notebook.Notebook.prototype._restart_kernel = function (options) {
+            if(!(window as any).isHost) {
+                console.log("Forwarding the request to the host notebook");
+                const new_dialog = (window as any).getKernelDialog(options.dialog.title);
+                dialog.modal(new_dialog);
+                return;
+            }
+            console.log("This host is restarting the kernel!");
+            // const that = this;
+            options = options || {};
+            let resolve_promise;
+            let reject_promise;
+            const promise = new Promise((resolve, reject) => {
+                resolve_promise = resolve;
+                reject_promise = reject;
+            });
+            
+            const restart_and_resolve = () => {
+                this.kernel.restart(() => {
+                    // resolve when the kernel is *ready* not just started
+                    this.events.one('kernel_ready.Kernel', resolve_promise);
+                }, reject_promise);
+            };
+    
+            const do_kernel_action = options.kernel_action || restart_and_resolve;
+           
+            // no need to confirm if the kernel is not connected
+            if (options.confirm === false || !this.kernel.is_connected()) {
+                const default_button = options.dialog.buttons[Object.keys(options.dialog.buttons)[0]];
+                promise.then(default_button.click);
+                do_kernel_action();
+                return promise;
+            }
+            options.dialog.notebook = this;
+            options.dialog.keyboard_manager = this.keyboard_manager;
+            // add 'Continue running' cancel button
+            const buttons = {
+                "Continue Running": {},
+            };
+            // hook up button.click actions after restart promise resolves
+            Object.keys(options.dialog.buttons).map(key => {
+                const button = buttons[key] = options.dialog.buttons[key];
+                const click = button.click;
+                button.click = () => {
+                    promise.then(click);
+                    do_kernel_action();
+                };
+            });
+            options.dialog.buttons = buttons;
+            dialog.modal(options.dialog);
+            return promise;
+        };
+    }
+
     // when change type, Jupyter Notebook would delete the original cell, and insert a new cell
     private createTypeChangeEvent = (): void => {
-        const Notebook = require('notebook/js/notebook');
         Jupyter.ignoreInsert = false;
 
         // to markdown
@@ -802,6 +893,110 @@ export class NotebookBinding implements INotebookBinding {
             const focus_cell = document.querySelectorAll('.cell')[cell_index];
             focus_cell.scrollIntoView();
         }
+    }
+
+    private forwardKernel = (title): void => {
+        const kernel = {
+            id: "",
+            operation: title
+        };
+        const oldKernel = this.sdbDoc.getData().kernel;
+
+        const op_kernel = {
+            p: ['kernel'],
+            od: oldKernel,
+            oi: kernel
+        };
+        this.sdbDoc.submitOp([op_kernel], this);
+    }
+
+    private initWindow = (): void => {
+        (window as any).isHost = false;
+        (window as any).getHostKernelDialog = (title): any => {
+            const form = document.createElement('form');
+            form.setAttribute('id', 'kernel_form');
+            form.setAttribute('onSubmit', 'return false;');
+            
+            const form_label = document.createElement('p');
+            form.appendChild(form_label);
+            
+            const buttons = {
+                'Confirm': {
+                    'class': 'btn-primary', 
+                    'click' : null,
+                    'id': 'confirm-button'
+                },
+                'Cancel': {
+                    'class': 'btn-default',
+                    'click': () => {
+                        // cancel join
+                        console.log('Cancel restarting kernel');
+                    },
+                    'id': 'confirm-close'
+                }
+            };
+
+            switch (title) {
+                case 'Restart kernel?':
+                    form_label.innerText = 'A collaborator would like to restart the kernel.';
+                    buttons.Confirm.click = () => {Jupyter.notebook.restart_kernel();};
+                break;
+                case 'Shutdown kernel?':
+                    form_label.innerText = 'A collaborator would like to shutdown the kernel.';
+                    buttons.Confirm.click = () => {Jupyter.notebook.shutdown_kernel();};
+                break;
+                case 'Restart kernel and clear all output?':
+                    form_label.innerText = 'A collaborator would like to restart the kernel and clear all output.';
+                    buttons.Confirm.click = () => {Jupyter.notebook.restart_clear_output();};
+                break;
+                case 'Restart kernel and re-run the whole notebook?':
+                    form_label.innerText = 'A collaborator would like to restart the kernel and re-run the whole notebook.';
+                    buttons.Confirm.click = () => {Jupyter.notebook.restart_run_all();};
+                break;
+                default:
+                    console.log(title);
+            }
+
+            return {
+                body: form,
+                buttons,
+                title
+            };
+        };
+        (window as any).getKernelDialog = (title): any => {
+            const form = document.createElement('form');
+            form.setAttribute('id', 'kernel_form');
+            form.setAttribute('onSubmit', 'return false;');
+            
+            const form_label = document.createElement('p');
+            form_label.innerText = 'We will forward your request to the host notebook.';
+            form.appendChild(form_label);
+
+            const buttons = {
+                'Confirm': {
+                    'class': 'btn-primary', 
+                    'click': () => {
+                        this.forwardKernel(title);
+                        if(title==='Restart kernel and clear all output?') Jupyter.notebook.clear_all_output();
+                    },
+                    'id': 'confirm-button'
+                },
+                'Cancel': {
+                    'class': 'btn-default',
+                    'click': () => {
+                        // cancel join
+                        console.log('Cancel forwarding kernel');
+                    },
+                    'id': 'confirm-close'
+                }
+            };
+
+            return {
+                body: form,
+                buttons,
+                title
+            };
+        };
     }
 
     private initStyle = (): void => {
