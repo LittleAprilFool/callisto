@@ -152,17 +152,12 @@ export class ChatWidget implements IChatWidget {
 
         if(this.isFold) return;
         if(this.isSelect) {
-            // a naive way to wait for annotation/cursor
-            setTimeout(() => {
-                if(this.isSelect) {
-                    const cuid = info.cell.uid;
-                    this.messageBox.appendRef("cell", {
-                        type: "CELL",
-                        cell_index: id
-                    });
-                    this.handleMagicToggle();
-                }
-            }, 500);
+            const cuid = info.cell.uid;
+            this.messageBox.appendRef("cell", {
+                type: "CELL",
+                cell_index: id
+            });
+            this.handleMagicToggle();
         }
         if(this.isEditLinking) {
             const cellEl_list = document.querySelectorAll('.cell');

@@ -9,9 +9,9 @@ const checkOpType = (op): string => {
 
 export class CursorWidget implements ICursorWidget {
     private markers;
-    private mouseDown: number;
     private lineref: any;
     private chatCallback: any;
+    private active_cursor: Cursor;
     constructor(private user: User, private sharedCells: ICellBinding[], private doc: any) {
         this.initCursorListener();
         this.doc.subscribe(this.onSDBDocEvent);
@@ -36,7 +36,7 @@ export class CursorWidget implements ICursorWidget {
         }
         else {
             if(this.lineref) this.lineref.clear();
-            ++this.mouseDown;
+            ++(window as any).mouseDown;
         }
 
     }
@@ -57,9 +57,10 @@ export class CursorWidget implements ICursorWidget {
     }
 
     private initMouseDown = (): void => {
-        this.mouseDown = 0;
+        (window as any).mouseDown = 0;
         document.body.onmouseup = ()=> {
-            --this.mouseDown;
+            --(window as any).mouseDown;
+            if((window as any).mouseDown === 0) this.sendChat();
         };
     }
 
@@ -180,6 +181,11 @@ export class CursorWidget implements ICursorWidget {
         this.onCursorChange(info.cell.code_mirror);
     }
 
+    private sendChat = (): void => {
+        if (this.chatCallback) this.chatCallback(this.active_cursor);
+        else console.log('No chatcallback in cursor widget');
+    }
+
     private onCursorChange = (cm: CodeMirror): void => {
         // ignore cursor change if it is not in active 
         if(cm.index === Jupyter.notebook.get_selected_cells_indices()[0]) {
@@ -205,14 +211,13 @@ export class CursorWidget implements ICursorWidget {
                 from: stindex,
                 to: edindex
             };
+            this.active_cursor = newCursor;
             const op = {
                 p: [targetIndex],
                 ld: targetCursor,
                 li: newCursor
             };
             this.doc.submitOp([op], this);
-            if(this.mouseDown===0 && this.chatCallback) this.chatCallback(newCursor);
-            else console.log('No chatcallback in cursor widget');
         }
     }
 }
