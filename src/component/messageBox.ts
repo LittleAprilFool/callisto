@@ -36,7 +36,7 @@ export class MessageBox implements IMessageBox {
                 submission_string += insertion.insert;
             }
         });
-        return submission_string;
+        return submission_string.slice(0, submission_string.length - 1);
     }
 
     public clear(): void {
