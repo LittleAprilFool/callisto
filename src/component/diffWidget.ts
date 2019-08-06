@@ -394,7 +394,7 @@ export class DiffWidget implements IDiffWidget {
         slider.type = "range";
         slider.min = "0";
         slider.max = "100";
-        slider.value = "0";
+        slider.value = "100";
         slider.setAttribute("img-id", img.id);
         slider.classList.add("img-slider");
         slider.addEventListener("input", this.onSliderInput);
@@ -463,7 +463,7 @@ export class DiffWidget implements IDiffWidget {
         const target_slider = parent.childNodes[1] as HTMLInputElement;
         const target_img = parent.childNodes[0].childNodes[1] as HTMLImageElement;
         const bottom_img = parent.childNodes[0].childNodes[2] as HTMLImageElement;
-        const opacity = ((+target_slider.value) - (+target_slider.min)) / ((+target_slider.max) - (+target_slider.min));
+        const opacity = ((+target_slider.max) - (+target_slider.value)) / ((+target_slider.max) - (+target_slider.min));
         const bottom_opacity = 1 - opacity;
         target_img.style.opacity = opacity.toString();
         bottom_img.style.opacity = bottom_opacity.toString();
@@ -474,9 +474,9 @@ export class DiffWidget implements IDiffWidget {
         if(target_slider == null) return;
 
         const startTimer = value => {
-            if(value > 80) return;
+            if(value < 20) return;
             setTimeout(() => {
-                value = value + 1;
+                value = value - 1;
                 target_slider.value = value.toString();
                 target_slider.dispatchEvent(new Event('input', {
                     'bubbles': true,
@@ -485,7 +485,7 @@ export class DiffWidget implements IDiffWidget {
                 startTimer(value);
             }, 20);
         };
-        startTimer(0);
+        startTimer(100);
     }
 
     private initStyle = (): void => {
