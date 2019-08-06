@@ -15,7 +15,7 @@ export class ChangelogWidget implements IChangelogWidget {
     constructor(private doc: any, private tabWidget: IDiffTabWidget) {
         this.initContainer();
         this.initStyle();
-        this.loadHistory();
+        setTimeout(this.loadHistory, 300);
         
         this.doc.subscribe(this.onSDBDocEvent);
     }
@@ -93,9 +93,12 @@ export class ChangelogWidget implements IChangelogWidget {
         sheet.innerHTML += '#changelog-container { height: calc(100% - 110px); width: 300px; margin-right: 50px; position: fixed; bottom: 0px; left: -300px; z-index:100; border-top: 1px solid #e2e2e2; border-right:1px solid #e2e2e2; background: white;  transition: left .5s; } \n';
         // sheet.innerHTML += '.left-toolbox { height: 100%; width: 400px; position: fixed; bottom: 0px; background: white; border-right: 1px solid #ddd;}\n';
         sheet.innerHTML += '#changelog-trigger { height: 60px; width: 50px; font-size: 20px; text-align: center; color: #516766; font-weight: bold; position: relative; padding-top: 16px; bottom: -200px; left: 300px; z-index:2; box-shadow: 0px 0px 12px 0px rgba(87, 87, 87, 0.2); background: #9dc5a7; border-radius: 0px 10px 10px 0px;} \n';
-        sheet.innerHTML += '#log-container { position: relative; top: -40px; padding-left:20px; height: calc(100% - 40px); overflow: scroll;}';
+        sheet.innerHTML += '#log-container { position: relative; top: -40px; padding-left:10px; padding-right:10px; height: calc(100% - 40px); overflow: scroll;}\n';
         sheet.innerHTML += '.log-thumbnail > .d2h-wrapper > .d2h-file-wrapper > .d2h-file-header {display: none}\n';
-        sheet.innerHTML += '.log-item {cursor: pointer}';
+        sheet.innerHTML += '.log-thumbnail > .d2h-wrapper > .d2h-file-wrapper > .d2h-file-diff > .d2h-code-wrapper > .d2h-diff-table {font-size: 12px; }\n';
+        sheet.innerHTML += '.log-thumbnail > .d2h-wrapper > .d2h-file-wrapper > .d2h-file-diff > .d2h-code-wrapper > .d2h-diff-table > .d2h-diff-tbody > tr > .d2h-code-linenumber {display: none !important;}\n';
+        sheet.innerHTML += '.log-thumbnail > .d2h-wrapper > .d2h-file-wrapper > .d2h-file-diff > .d2h-code-wrapper > .d2h-diff-table > .d2h-diff-tbody > tr > td > .d2h-code-line {padding: 0 1em}\n';
+        sheet.innerHTML += '.log-item {cursor: pointer}\n';
         sheet.innerHTML += '.log-item:hover {color: red} \n';
         sheet.innerHTML += '.log-item.disable {color: #ccc; cursor: default;} \n';
         sheet.innerHTML += '.log-item.disable:hover {color: #ccc} \n';
@@ -130,8 +133,8 @@ export class ChangelogWidget implements IChangelogWidget {
     }
 
     private displayChanges = (e): void => {
-        const new_timestamp = parseInt(e.target.getAttribute('timestamp'), 0);
-        const old_timestamp = parseInt(e.target.previousSibling.getAttribute('timestamp'), 0);
+        const new_timestamp = parseInt(e.currentTarget.getAttribute('timestamp'), 0);
+        const old_timestamp = parseInt(e.currentTarget.previousSibling.getAttribute('timestamp'), 0);
 
         const label = 'diff-'+new_timestamp.toString() + '-'+old_timestamp.toString();
         if(this.tabWidget.checkTab(label)) return;

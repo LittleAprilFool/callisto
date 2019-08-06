@@ -508,12 +508,7 @@ export class DiffWidget implements IDiffWidget {
         sheet.innerHTML += '.hover-container:hover .img-diff{ opacity: 1; z-index: 2;}\n';
         sheet.innerHTML += '.hover-container { position: relative; }\n';
         sheet.innerHTML += '.img-slider { margin: 10px 0 5px 0; }\n';
-        sheet.innerHTML += '.d2h-file-header {display: none}\n';
-        sheet.innerHTML += '.d2h-file-wrapper {margin-bottom: 0px; border: none; padding-bottom: 5px;}\n';
-        sheet.innerHTML += '.d2h-diff-table {font-family: monospace !important; font-size: 14px; }\n';
-        sheet.innerHTML += '.d2h-code-side-linenumber {width: 34px; border-color: #ddd}\n';
-        sheet.innerHTML += '.d2h-cntx {background-color: #fff6dd}\n';
-        sheet.innerHTML += '.d2h-info {background-color: #fff6dd; border-color: #ddd}\n';
+        sheet.innerHTML += ' .inner_cell> .input_area > div > .d2h-wrapper > .d2h-file-wrapper {margin-bottom: 0px; border: none; padding-bottom: 5px;}\n';
         document.body.appendChild(sheet);
     }
 }

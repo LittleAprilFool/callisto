@@ -221,6 +221,11 @@ export class DiffTabWidget implements IDiffTabWidget {
         sheet.innerHTML += '.close-tab { font-size: 12px; margin-left: 20px;}\n';
         sheet.innerHTML += '.alert { display: none; margin-bottom: 0px; border: 1px solid transparent; border-radius: .25rem;}\n';
         sheet.innerHTML += '.alert-primary {color: #004085; background-color: #cce5ff; border-color: #b8daff}\n';
+        sheet.innerHTML += '.d2h-diff-table {font-family: monospace !important; font-size: 14px; }\n';
+        sheet.innerHTML += '.d2h-code-side-linenumber {width: 34px; border-color: #ddd}\n';
+        sheet.innerHTML += '.d2h-cntx {background-color: #fff6dd}\n';
+        sheet.innerHTML += '.d2h-info {background-color: #fff6dd; border-color: #ddd}\n';
+        sheet.innerHTML += '.d2h-file-header {display: none}\n';
 
         const header = document.querySelector('#header');
         header.classList.add('header-customized');
