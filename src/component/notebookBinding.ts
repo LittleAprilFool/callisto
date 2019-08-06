@@ -9,6 +9,7 @@ import { ChangelogWidget } from './changelogWidget';
 import { ChatWidget } from './chatWidget';
 import { CursorWidget } from "./cursorWidget";
 import { DiffTabWidget } from './diffTabWidget';
+import { overwritePrototype } from './notebookPrototype';
 import { UserListWidget } from './userListWidget';
 
 const Jupyter = require('base/js/namespace');
@@ -175,27 +176,16 @@ export class NotebookBinding implements INotebookBinding {
     }
 
     private eventsOn = (): void => {
+        overwritePrototype();
         // https://github.com/jupyter/notebook/blob/master/notebook/static/notebook/js/notebook.js#L1325
         Jupyter.notebook.events.on('create.Cell', this.onInsertCell);
-        
         // https://github.com/jupyter/notebook/blob/master/notebook/static/notebook/js/notebook.js#L1184
         Jupyter.notebook.events.on('delete.Cell', this.onDeleteCell);
-        
         Jupyter.notebook.events.on('execute.CodeCell', this.onExecuteCodeCell);
         Jupyter.notebook.events.on('finished_execute.CodeCell', this.onFinishedExecuteCodeCell);
         Jupyter.notebook.events.on('rendered.MarkdownCell', this.onRenderedMarkdownCell);
-
-        this.createUnrenderedMarkdownCellEvent();
         Jupyter.notebook.events.on('unrendered.MarkdownCell', this.onUnrenderedMarkdownCell);
-        
-        // customized event type change
-        this.createTypeChangeEvent();
         Jupyter.notebook.events.on('type.Change', this.onTypeChange);
-
-        // customized event kernal restart
-        this.createKernelRestartEvent();
-        // onUpdateAnnotation
-        // this recall function is passed into each annotation widget
     }
 
     private eventsOff = (): void => {
@@ -324,7 +314,6 @@ export class NotebookBinding implements INotebookBinding {
                 const [, , index, ] = p;
                 const cell = Jupyter.notebook.get_cell(index);
                 cell.set_input_prompt(oi);
-                
                 // if host receives the execution operation from the client
                 if(oi==="*" && (window as any).isHost) {
                     // Jupyter.notebook.execute_cell(index) wouldn't call event trigger 'onExecuteCodeCell'
@@ -412,7 +401,7 @@ export class NotebookBinding implements INotebookBinding {
             case 'LeaveChannel': {
                 const {p, ld} = op;
                 const [, index] = p;
-                this.chatWidget.broadcastMessage(ld.username + ' leaved the channel');
+                this.chatWidget.broadcastMessage(ld.username + ' left the channel');
                 const user_list = this.sdbDoc.getData().users;
                 this.userListWidget.update(user_list);
                 this.cursorWidget.deleteCursor(ld);
@@ -724,132 +713,6 @@ export class NotebookBinding implements INotebookBinding {
             this.sdbDoc.submitOp([op], this);        
         }
     }
-
-    private createKernelRestartEvent = (): void => {
-        const Notebook = require('notebook/js/notebook');
-        Notebook.Notebook.prototype._restart_kernel = function (options) {
-            if(!(window as any).isHost) {
-                console.log("Forwarding the request to the host notebook");
-                const new_dialog = (window as any).getKernelDialog(options.dialog.title);
-                dialog.modal(new_dialog);
-                return;
-            }
-            console.log("This host is restarting the kernel!");
-            // const that = this;
-            options = options || {};
-            let resolve_promise;
-            let reject_promise;
-            const promise = new Promise((resolve, reject) => {
-                resolve_promise = resolve;
-                reject_promise = reject;
-            });
-            
-            const restart_and_resolve = () => {
-                this.kernel.restart(() => {
-                    // resolve when the kernel is *ready* not just started
-                    this.events.one('kernel_ready.Kernel', resolve_promise);
-                }, reject_promise);
-            };
-    
-            const do_kernel_action = options.kernel_action || restart_and_resolve;
-           
-            // no need to confirm if the kernel is not connected
-            if (options.confirm === false || !this.kernel.is_connected()) {
-                const default_button = options.dialog.buttons[Object.keys(options.dialog.buttons)[0]];
-                promise.then(default_button.click);
-                do_kernel_action();
-                return promise;
-            }
-            options.dialog.notebook = this;
-            options.dialog.keyboard_manager = this.keyboard_manager;
-            // add 'Continue running' cancel button
-            const buttons = {
-                "Continue Running": {},
-            };
-            // hook up button.click actions after restart promise resolves
-            Object.keys(options.dialog.buttons).map(key => {
-                const button = buttons[key] = options.dialog.buttons[key];
-                const click = button.click;
-                button.click = () => {
-                    promise.then(click);
-                    do_kernel_action();
-                };
-            });
-            options.dialog.buttons = buttons;
-            dialog.modal(options.dialog);
-            return promise;
-        };
-    }
-
-    // when change type, Jupyter Notebook would delete the original cell, and insert a new cell
-    private createTypeChangeEvent = (): void => {
-        Jupyter.ignoreInsert = false;
-        const Notebook = require('notebook/js/notebook');
-        // to markdown
-        // https://github.com/jupyter/notebook/blob/master/notebook/static/notebook/js/notebook.js#L1470
-        Notebook.Notebook.prototype.cells_to_markdown = function (indices) {
-            Jupyter.ignoreInsert = true;
-
-            // pulled from Jupyter notebook source code
-            if (indices === undefined) {
-                indices = this.get_selected_cells_indices();
-            }
-
-
-            indices.forEach(indice => {
-                this.to_markdown(indice);
-                this.events.trigger('type.Change', indice);
-            });
-
-            Jupyter.ignoreInsert = false;
-        };
-
-
-        // to code
-        Notebook.Notebook.prototype.cells_to_code = function (indices) {
-            Jupyter.ignoreInsert = true;
-
-            if (indices === undefined) {
-                indices = this.get_selected_cells_indices();
-            }
-
-            indices.forEach(indice => {
-                this.to_code(indice);
-                this.events.trigger('type.Change', indice);
-            });
-            
-            Jupyter.ignoreInsert = false;
-        };
-
-        // to raw
-        Notebook.Notebook.prototype.cells_to_raw = function (indices) {
-            Jupyter.ignoreInsert = true;
-
-            // this.Jupyter.Notebook.prototype.cells_to_raw = function (indices) {
-                if (indices === undefined) {
-                    indices = this.get_selected_cells_indices();
-                }
-    
-                indices.forEach(indice => {
-                    this.to_raw(indice);
-                    this.events.trigger('type.Change', indice);                    
-                });
-    
-            Jupyter.ignoreInsert = false;
-        };
-    }
-
-    private createUnrenderedMarkdownCellEvent = (): void => {
-        const TextCell = require('notebook/js/textcell');
-        Jupyter.ignoreRender = false;
-
-        TextCell.MarkdownCell.prototype.unrender = function () {
-            const cont = TextCell.TextCell.prototype.unrender.apply(this);
-            this.notebook.set_insert_image_enabled(true);
-            this.events.trigger('unrendered.MarkdownCell', this);
-        };
-    }
-
     // update shared cell bindings
     private insertSharedCell = (index: number, codeMirror): void => {
         const path = ['notebook', 'cells', index];

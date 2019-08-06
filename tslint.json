@@ -21,6 +21,7 @@
       "object-literal-sort-keys": false,
       "no-console": false,
       "prefer-object-spread": false,
+      "prefer-conditional-expression": false,
       "curly": [true, "ignore-same-line"],
       "only-arrow-functions": true,
       "typedef-whitespace": [

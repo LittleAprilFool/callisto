@@ -80,14 +80,14 @@ export class DiffTabWidget implements IDiffTabWidget {
                 let diff_new;
                 let diff_old;
                 new_notebook.cells.forEach((cell, index) => {
-                    if(cell.source !== old_notebook.cells[index].source){
+                    if(cell.source !== old_notebook.cells[index].source) {
                         diff_new = cell.source;
                         diff_old = old_notebook.cells[index].source;
                     }
-                })
+                });
                 resolve([diff_new, diff_old]);
             });
-        })
+        });
     }
 
     public addDiff = (new_timestamp: number, old_timestamp: number, title: string): void => {
@@ -108,7 +108,7 @@ export class DiffTabWidget implements IDiffTabWidget {
             const version_notebook = snapshot.data.notebook;
             const versionWidget = new DiffWidget('version', [version_notebook], version_title, [version_timestamp]);
             this.diffList.push(versionWidget);
-        })
+        });
     }
 
     private fetchTwoSnapShot = (para0, para1, new_timestamp, old_timestamp): Promise<any> => {
@@ -116,21 +116,21 @@ export class DiffTabWidget implements IDiffTabWidget {
         let old_notebook;
         return new Promise((resolve, reject) => {
             this.fetchSnapShot(para0, para1, new_timestamp)
-            .then((new_snapshot) =>{new_notebook = new_snapshot.data.notebook})
-            .then(()=> {
+            .then(new_snapshot => {new_notebook = new_snapshot.data.notebook;})
+            .then(() => {
                 this.fetchSnapShot(para0, para1, old_timestamp)
-                .then((old_snapshot)=>{old_notebook = old_snapshot.data.notebook})
-                .then(()=>resolve([new_notebook, old_notebook]));
+                .then(old_snapshot => {old_notebook = old_snapshot.data.notebook;})
+                .then(() => resolve([new_notebook, old_notebook]));
             });
         });
     }
 
     private fetchSnapShot = (para0, para1, timestamp): Promise<any> => {
         return new Promise((resolve, reject)=> {
-            this.client.connection.fetchSnapshotByTimestamp(para0, para1, timestamp, (err, snapshot)=>{
+            this.client.connection.fetchSnapshotByTimestamp(para0, para1, timestamp, (err, snapshot) => {
                 resolve(snapshot);
             });
-        })
+        });
     }
     private closeTabHandler = (e): void => {
         const label = e.currentTarget.getAttribute('label');

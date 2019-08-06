@@ -50,7 +50,7 @@ export class UserListWidget implements IUserListWidget {
         container.classList.add('userlist-wrapper', 'btn-group');
         const el = document.createElement('div');
         const icon = document.createElement('i');
-        icon.innerHTML = index===0?'<i class="fa fa-user-plus"></i>':'<i class="fa fa-user"></i>';
+        icon.innerHTML = index===0?'<i class="fa fa-home"></i>':'<i class="fa fa-user"></i>';
 
         el.innerText = user.username;
         el.classList.add('userlist-username');

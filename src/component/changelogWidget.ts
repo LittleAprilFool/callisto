@@ -85,7 +85,7 @@ export class ChangelogWidget implements IChangelogWidget {
             const diff2htmlUi = new window['Diff2HtmlUI']({diff: diff_test_string});
             diff2htmlUi.draw('#'+id, {inputFormat: 'diff', showFiles: false, matching: 'lines', outputFormat: 'line-by-line'});
             diff2htmlUi.highlightCode('#'+id);
-        })
+        });
     }
 
     private initStyle = (): void => {
