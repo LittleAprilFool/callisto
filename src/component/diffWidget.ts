@@ -133,7 +133,7 @@ export class DiffWidget implements IDiffWidget {
         diff2htmlUi.highlightCode('#'+id);
     }
 
-    private createOutputUnit = (cell, cell_container) => {
+    private createOutputUnit = (cell, cell_container, has_image_diff: boolean = false) => {
         const output_wrapper = document.createElement('div');
         output_wrapper.classList.add('output_wrapper');
         if (cell.outputs) {
@@ -150,6 +150,9 @@ export class DiffWidget implements IDiffWidget {
                 output_area.appendChild(output_subarea);
                 switch(output.output_type) {
                     case 'display_data':
+                        if (has_image_diff) {
+                            break;
+                        }
                         output_subarea.classList.add('output_png');
                         const img = document.createElement('img');
                         img.setAttribute('src', 'data:image/png;base64,'+output.data['image/png']);
@@ -202,7 +205,7 @@ export class DiffWidget implements IDiffWidget {
         
         if (!new_outputs || !old_outputs) return false;
         if (new_outputs.length === 0 || old_outputs.length === 0) return false;
-        if (new_outputs[0].output_type === 'display_data' && old_outputs[0].output_type === 'display_data') return true;
+        if (new_outputs[new_outputs.length - 1].output_type === 'display_data' && old_outputs[old_outputs.length - 1].output_type === 'display_data') return true;
         return false;
     }
 
@@ -219,6 +222,10 @@ export class DiffWidget implements IDiffWidget {
 
         if(this.isImageDiff(new_cell, old_cell)) {
             cell_container.appendChild(diff_container);
+            if (new_cell.outputs.length > 1) {
+                // might have text outputs
+                this.createOutputUnit(old_cell, left_cell_container, true);
+            }
             this.renderImageDiff(new_cell, old_cell, left_cell_container); 
             this.createOutputUnit(new_cell, right_cell_container);
             return;
@@ -335,8 +342,8 @@ export class DiffWidget implements IDiffWidget {
     }
 
     private renderImageDiff = (new_cell, old_cell, diff_container): void => {
-        const data_old = old_cell.outputs[0].data['image/png'];
-        const data_new = new_cell.outputs[0].data['image/png'];
+        const data_old = old_cell.outputs[old_cell.outputs.length - 1].data['image/png'];
+        const data_new = new_cell.outputs[new_cell.outputs.length - 1].data['image/png'];
 
         const old_src = 'data:image/png;base64,'+ data_old;
         const new_src = 'data:image/png;base64,'+ data_new;
@@ -387,7 +394,7 @@ export class DiffWidget implements IDiffWidget {
         slider.type = "range";
         slider.min = "0";
         slider.max = "100";
-        slider.value = "0";
+        slider.value = "100";
         slider.setAttribute("img-id", img.id);
         slider.classList.add("img-slider");
         slider.addEventListener("input", this.onSliderInput);
@@ -456,7 +463,7 @@ export class DiffWidget implements IDiffWidget {
         const target_slider = parent.childNodes[1] as HTMLInputElement;
         const target_img = parent.childNodes[0].childNodes[1] as HTMLImageElement;
         const bottom_img = parent.childNodes[0].childNodes[2] as HTMLImageElement;
-        const opacity = ((+target_slider.value) - (+target_slider.min)) / ((+target_slider.max) - (+target_slider.min));
+        const opacity = ((+target_slider.max) - (+target_slider.value)) / ((+target_slider.max) - (+target_slider.min));
         const bottom_opacity = 1 - opacity;
         target_img.style.opacity = opacity.toString();
         bottom_img.style.opacity = bottom_opacity.toString();
@@ -467,9 +474,9 @@ export class DiffWidget implements IDiffWidget {
         if(target_slider == null) return;
 
         const startTimer = value => {
-            if(value > 80) return;
+            if(value < 20) return;
             setTimeout(() => {
-                value = value + 1;
+                value = value - 1;
                 target_slider.value = value.toString();
                 target_slider.dispatchEvent(new Event('input', {
                     'bubbles': true,
@@ -478,7 +485,7 @@ export class DiffWidget implements IDiffWidget {
                 startTimer(value);
             }, 20);
         };
-        startTimer(0);
+        startTimer(100);
     }
 
     private initStyle = (): void => {

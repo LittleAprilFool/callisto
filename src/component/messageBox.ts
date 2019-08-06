@@ -20,9 +20,11 @@ export class MessageBox implements IMessageBox {
     }
 
     public getSubmissionValue(): string {
+        this.foldForSubmission();
         const delta: Delta = this.quill_object.getContents(0, this.quill_object.getLength() - 1);
         let submission_string = "";
         let index = 0;
+        console.log(delta);
         delta.ops.forEach(insertion => {
             if ('attributes' in insertion) {
                 // references
@@ -36,7 +38,7 @@ export class MessageBox implements IMessageBox {
                 submission_string += insertion.insert;
             }
         });
-        return submission_string.slice(0, submission_string.length - 1);
+        return submission_string;
     }
 
     public clear(): void {
@@ -107,6 +109,72 @@ export class MessageBox implements IMessageBox {
 
         quill_div.setAttribute('style', 'height: 44px; width: 220px;');
         this.el.setAttribute('style', 'height: 44px; width: 220px;');
+    }
+
+
+    private foldForSubmission(): void {
+        const content = this.quill_object.getContents();
+        let char_count = 0;
+        let ref_index = 0;
+        const delta: Delta = {
+            ops: new Array()
+        };
+
+        content.ops.forEach(op => {
+            if ('attributes' in op) {
+                if (delta.ops.length !== 0 && 'retain' in delta.ops[delta.ops.length - 1]) {
+                    delta.ops[delta.ops.length - 1].retain = delta.ops[delta.ops.length - 1].retain + op.insert.length;
+                } else {
+                    delta.ops.push({'retain': op.insert.length});
+                }
+                ref_index += 1;
+            }
+            else {
+                const matches = this.stringToCollapse(char_count, op, -1);
+                if (matches.length === 0) {
+                    // shouldn't collapse
+                    if (delta.ops.length !== 0 && 'retain' in delta.ops[delta.ops.length - 1]) {
+                        delta.ops[delta.ops.length - 1].retain = delta.ops[delta.ops.length - 1].retain + op.insert.length;
+                    } else {
+                        delta.ops.push({'retain': op.insert.length});
+                    }
+                } else {
+                    // collapse
+                    let local_char_count = 0;
+                    matches.forEach((match: {from: number, to: number, text: string, ref_type: RefType}) => {
+                        // dealing with ref list
+                        const new_message_line_ref: MessageLineRef = this.expandedStringToMessageLineRef(match.text, match.ref_type);
+                        this.ref_list.splice(ref_index, 0, new_message_line_ref);
+                        ref_index += 1;
+
+                        // dealing with text
+                        if (match.from > local_char_count) {
+                            // padding front retain part
+                            if (delta.ops.length !== 0 && 'retain' in delta.ops[delta.ops.length - 1]) {
+                                delta.ops[delta.ops.length - 1].retain = delta.ops[delta.ops.length - 1].retain + match.from - local_char_count;
+                            } else {
+                                delta.ops.push({'retain': match.from - local_char_count});
+                            }
+                        }
+                        local_char_count = match.to;
+                        delta.ops.push({'insert': new_message_line_ref.text, 'attributes': this.getAttributes(new_message_line_ref.line_ref.type)});
+                        delta.ops.push({'delete': match.text.length});
+                    });
+                    if (op.insert.length > local_char_count) {
+                        // padding rear retain part
+                        if (delta.ops.length !== 0 && 'retain' in delta.ops[delta.ops.length - 1]) {
+                            delta.ops[delta.ops.length - 1].retain = delta.ops[delta.ops.length - 1].retain + op.insert.length - local_char_count;
+                        } else {
+                            delta.ops.push({'retain': op.insert.length - local_char_count});
+                        }
+                    }
+                }
+            }
+            char_count += op.insert.length;
+        });
+        if (delta.ops.length > 1) {
+            this.quill_object.updateContents(delta);
+        }
     }
 
     private handleCaretMove = (): void => {
@@ -284,7 +352,6 @@ export class MessageBox implements IMessageBox {
     private messageLineRefToExpandedString(message_line_ref: MessageLineRef, submitting: boolean): string {
         const line_ref = message_line_ref.line_ref;
         const code_str = line_ref.cell_index === undefined ? '' : (submitting ? Jupyter.notebook.get_cell(line_ref.cell_index).uid : line_ref.cell_index.toString());
-        console.log(code_str);
         switch (line_ref.type) {
             case "URL": {
                 // not implemented
