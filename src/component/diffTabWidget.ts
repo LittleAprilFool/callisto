@@ -23,7 +23,7 @@ export class DiffTabWidget implements IDiffTabWidget {
         const notebook_widget = document.querySelector('#notebook-container');
         notebook_widget.setAttribute('style', 'display:block');
         this.diffList.forEach(widget => {
-            widget.container.parentNode.removeChild(widget.container);
+            if(widget.container.parentNode) widget.container.parentNode.removeChild(widget.container);
         });
     }
 
@@ -32,7 +32,7 @@ export class DiffTabWidget implements IDiffTabWidget {
         if((window as any).study_condition === 'control') {
             this.container.parentNode.removeChild(this.container);
             this.diffList.forEach(widget => {
-                widget.container.parentNode.removeChild(widget.container);
+                if(widget.container.parentNode) widget.container.parentNode.removeChild(widget.container);
             });
             this.diffList = [];
             this.initContainer();
