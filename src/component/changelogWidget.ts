@@ -98,10 +98,15 @@ export class ChangelogWidget implements IChangelogWidget {
         sheet.innerHTML += '.log-thumbnail > .d2h-wrapper > .d2h-file-wrapper > .d2h-file-diff > .d2h-code-wrapper > .d2h-diff-table {font-size: 12px; }\n';
         sheet.innerHTML += '.log-thumbnail > .d2h-wrapper > .d2h-file-wrapper > .d2h-file-diff > .d2h-code-wrapper > .d2h-diff-table > .d2h-diff-tbody > tr > .d2h-code-linenumber {display: none !important;}\n';
         sheet.innerHTML += '.log-thumbnail > .d2h-wrapper > .d2h-file-wrapper > .d2h-file-diff > .d2h-code-wrapper > .d2h-diff-table > .d2h-diff-tbody > tr > td > .d2h-code-line {padding: 0 1em}\n';
-        sheet.innerHTML += '.log-item {cursor: pointer}\n';
-        sheet.innerHTML += '.log-item:hover {color: red} \n';
-        sheet.innerHTML += '.log-item.disable {color: #ccc; cursor: default;} \n';
-        sheet.innerHTML += '.log-item.disable:hover {color: #ccc} \n';
+        sheet.innerHTML += '.log-thumbnail > .d2h-wrapper > .d2h-file-wrapper > .d2h-file-diff {overflow:hidden;}\n';
+        sheet.innerHTML += '.log-thumbnail {margin-top: 5px}\n';
+        sheet.innerHTML += '.log-item {color:#888; font-size:12px; background: #fbfbfb; padding: 5px 10px; cursor: pointer; margin: 10px 0px;}\n';
+        sheet.innerHTML += '.log-item:hover {background: #f5f5f5} \n';
+        sheet.innerHTML += '.log-item.disable {color: #ccc; cursor: default; background: none; text-align: center; margin:0px 0px; padding: 2px 0px;} \n';
+        sheet.innerHTML += '.log-item.disable:hover {background: none} \n';
+        sheet.innerHTML += '.log-user-name {font-size: 10px; font-weight: bold; display: inline-block}\n';
+        sheet.innerHTML += '.log-time {font-size: 10px; display:inline-block; float: right; color: #ccc}\n';
+
         document.body.appendChild(sheet);
     }
 
@@ -116,13 +121,33 @@ export class ChangelogWidget implements IChangelogWidget {
     private createNewLog = (log: Changelog, index: number, container): void => {
         const logEL = document.createElement('div');
         logEL.classList.add('log-item');
-        if(log.event==='join') logEL.classList.add('disable');
-        logEL.innerHTML = log.user.username + ' ' + log.eventName + ' '+ log.time;
+        container.appendChild(logEL);
         logEL.setAttribute('timestamp', log.timestamp.toString());
         logEL.setAttribute('username', log.user.username);
         logEL.setAttribute('event', log.event);
-        container.appendChild(logEL);
-        if (['edit', 'delete', 'insert'].includes(log.event)) logEL.addEventListener('click', this.displayChanges);
+        if(log.event === 'join' || log.event === 'leave') {
+            logEL.classList.add('disable');
+            const message = document.createElement('div');
+            message.classList.add('log-disable-message');
+            message.innerText = log.user.username + ' ' + log.eventName + ' ' + log.time;
+            logEL.appendChild(message);
+            return;
+        }
+        logEL.style.borderLeft = "5px solid " + log.user.color;
+        const username = document.createElement('div');
+        username.innerText = log.user.username;
+        username.classList.add('log-user-name');
+        username.style.color = log.user.color;
+        const eventname = document.createElement('div');
+        eventname.innerText = log.eventName;
+        eventname.classList.add('log-event-name');
+        const time = document.createElement('div');
+        time.innerText = log.time;
+        time.classList.add('log-time');
+        logEL.appendChild(username);
+        logEL.appendChild(time);
+        logEL.appendChild(eventname);
+        logEL.addEventListener('click', this.displayChanges);
         if (['edit'].includes(log.event)) this.createThumbnail(logEL, log, index);
     }
 

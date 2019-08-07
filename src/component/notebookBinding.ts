@@ -452,7 +452,7 @@ export class NotebookBinding implements INotebookBinding {
                 getTimestamp().then(data => {
                     const log: Changelog = {
                         user: this.user,
-                        eventName: 'executed a modified cell',
+                        eventName: 'Execute a modified cell',
                         event: 'edit',
                         time: getTime(),
                         diff:null,
