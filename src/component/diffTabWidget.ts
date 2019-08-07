@@ -73,8 +73,8 @@ export class DiffTabWidget implements IDiffTabWidget {
         new_tab.appendChild(close_icon);
 
         new_tab.addEventListener('click', this.activeTabHandler);
-       
-        document.querySelector('.tab-active').classList.remove('tab-active');
+        const tab_active = document.querySelector('.tab-active');
+        if(tab_active) tab_active.classList.remove('tab-active');
         new_tab.classList.add('tab-active');
         this.container.appendChild(new_tab);
 
@@ -92,9 +92,12 @@ export class DiffTabWidget implements IDiffTabWidget {
                 let diff_new;
                 let diff_old;
                 new_notebook.cells.forEach((cell, index) => {
-                    if(cell.source !== old_notebook.cells[index].source) {
-                        diff_new = cell.source;
-                        diff_old = old_notebook.cells[index].source;
+                    const old_cell = old_notebook.cells[index];
+                    const new_source = cell.hasOwnProperty('source')? cell.source: '';
+                    const old_source = old_cell.hasOwnProperty('source')?old_cell.source : '';
+                    if(new_source !== old_source) {
+                        diff_new = new_source;
+                        diff_old = old_source;
                     }
                 });
                 resolve([diff_new, diff_old]);
