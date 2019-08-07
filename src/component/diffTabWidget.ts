@@ -26,6 +26,18 @@ export class DiffTabWidget implements IDiffTabWidget {
             widget.container.parentNode.removeChild(widget.container);
         });
     }
+
+    public reload = (): void => {
+        // if this is control group, remove all opened tabs
+        if((window as any).study_condition === 'control') {
+            this.container.parentNode.removeChild(this.container);
+            this.diffList.forEach(widget => {
+                widget.container.parentNode.removeChild(widget.container);
+            });
+            this.diffList = [];
+            this.initContainer();
+        }
+    }
     public checkTab = (label: string): boolean => {
         const checkTabEl = document.querySelector('.diff-tab.'+label);
         if(label === 'version-current') {

@@ -175,6 +175,7 @@ interface IUserListWidget {
 
 interface IChatWidget {
     destroy(): void;
+    reload():void;
     broadcastMessage(message: string): void;
     onSelectCursor(cursor: Cursor): void;
     onSelectAnnotation(cell_index: number, object_index: number): void;
@@ -203,10 +204,12 @@ interface IDiffTabWidget {
     addDiff(new_timestamp: number, old_timestamp: number, title: string): void;
     addVersion(timestamp: number, title: string): void;
     bindChatAction(callback: any): void;
+    reload(): void;
     diffThumb(new_timestamp: number, old_timestamp: number): Promise<string[]>;
 }
 
 interface IChangelogWidget {
+    reload(): void;
     destroy(): void;
 }
 

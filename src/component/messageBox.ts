@@ -24,7 +24,6 @@ export class MessageBox implements IMessageBox {
         const delta: Delta = this.quill_object.getContents(0, this.quill_object.getLength() - 1);
         let submission_string = "";
         let index = 0;
-        console.log(delta);
         delta.ops.forEach(insertion => {
             if ('attributes' in insertion) {
                 // references
@@ -107,8 +106,8 @@ export class MessageBox implements IMessageBox {
         quill_div.addEventListener('click', this.handleCaretMove);
         quill_div.addEventListener('keyup', this.handleCaretMove);
 
-        quill_div.setAttribute('style', 'height: 44px; width: 220px;');
-        this.el.setAttribute('style', 'height: 44px; width: 220px;');
+        quill_div.setAttribute('style', 'height: 44px; width: 240px;');
+        this.el.setAttribute('style', 'height: 44px; width: 240px;');
     }
 
 

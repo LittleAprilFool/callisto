@@ -25,6 +25,18 @@ export class ChangelogWidget implements IChangelogWidget {
         this.doc.unsubscribe(this.onSDBDocEvent);
     }
 
+    public reload = (): void => {
+        if((window as any).study_condition === 'experiment') {
+            this.initContainer();
+            setTimeout(this.loadHistory, 300);
+            this.doc.subscribe(this.onSDBDocEvent);
+        }
+        else {
+            this.container.parentNode.removeChild(this.container);
+            this.doc.unsubscribe(this.onSDBDocEvent);
+        }
+    }
+
     private initContainer = (): void => {
         this.container = document.createElement('div');
         // this.container.classList.add('left-toolbox');

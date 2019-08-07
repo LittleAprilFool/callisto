@@ -10,6 +10,7 @@ import { ChatWidget } from './chatWidget';
 import { CursorWidget } from "./cursorWidget";
 import { DiffTabWidget } from './diffTabWidget';
 import { overwritePrototype } from './notebookPrototype';
+import { StudyWidget } from './studyWidget';
 import { UserListWidget } from './userListWidget';
 
 const Jupyter = require('base/js/namespace');
@@ -72,6 +73,7 @@ export class NotebookBinding implements INotebookBinding {
     private cellChangeBuffer: string[] = [];
     private cellExecutionBuffer: string[] = [];
     private diffTabWidget: IDiffTabWidget;
+    private studyWidget: any;
 
     constructor(private sdbDoc: SDBDoc<SharedDoc>, private client: any, private ws: WebSocket, private option: SharedDocOption = {
         annotation: true,
@@ -84,6 +86,7 @@ export class NotebookBinding implements INotebookBinding {
         this.initStyle();
         this.sdbDoc.subscribe(this.onSDBDocEvent);
         this.eventsOn();
+        this.studyWidget = new StudyWidget(this.reload);
         
         const newUser: User = {
             user_id: generateUUID(),
@@ -173,6 +176,11 @@ export class NotebookBinding implements INotebookBinding {
         if(this.userListWidget) this.userListWidget.destroy();
         if(this.cursorWidget) this.cursorWidget.destroy();
         if(this.diffTabWidget) this.diffTabWidget.destroy();
+    }
+    public reload = (): void => {
+        this.chatWidget.reload();
+        this.changelogWidget.reload();
+        this.diffTabWidget.reload();
     }
 
     private eventsOn = (): void => {

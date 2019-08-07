@@ -68,6 +68,16 @@ export class ChatWidget implements IChatWidget {
         this.doc.unsubscribe(this.onSDBDocEvent);
     }
 
+    public reload = (): void => {
+        // reload chat
+        this.container.parentNode.removeChild(this.container);
+        this.initContainer();
+        this.initMessageList();
+        Jupyter.keyboard_manager.register_events(this.container);        
+        this.initMouseListener();
+        this.initKeyboardListener();
+    }
+
     public broadcastMessage = (message: string): void => {
         const broadcastMessageEL = document.createElement('div');
         broadcastMessageEL.innerText = message;
@@ -418,6 +428,7 @@ export class ChatWidget implements IChatWidget {
     }
 
     private handleMessageSelect = (e): void => {
+        if ((window as any).study_condition === 'control') return;
         // change UI
         this.tabWidget.checkTab('version-current');
         e.currentTarget.classList.toggle('select');
@@ -582,9 +593,10 @@ export class ChatWidget implements IChatWidget {
             }
         }
         refEl.setAttribute('ref_type', ref_type);
-        refEl.classList.add(ref_type);
-
-        refEl.classList.add('line_ref');
+        if((window as any).study_condition === 'experiment') {
+            refEl.classList.add(ref_type);
+            refEl.classList.add('line_ref');    
+        }
         return refEl.outerHTML;
     }
 
@@ -667,6 +679,7 @@ export class ChatWidget implements IChatWidget {
     }
 
     private initMouseListener = (): void => {
+        if ((window as any).study_condition === 'control') return;
         document.body.onmousedown = ()=> {
             this.cursorCallback(false);
             if(this.currentAnnotationHighlight) {
@@ -835,7 +848,7 @@ export class ChatWidget implements IChatWidget {
         tool_filter.id = 'tool-filter';
         tool_filter.addEventListener('click', this.handleFiltering);
         tool_container.appendChild(tool_search);
-        tool_container.appendChild(tool_filter);
+        if ((window as any).study_condition === 'experiment') tool_container.appendChild(tool_filter);
 
         head_container.appendChild(tool_container);
 
@@ -854,7 +867,7 @@ export class ChatWidget implements IChatWidget {
 
         const message_tick = document.createElement('i');
         message_tick.innerHTML = '<i class="fa fa-check-circle tick"></i>';
-        message_item.appendChild(message_tick);
+        if ((window as any).study_condition === 'experiment') message_item.appendChild(message_tick);
 
         const message_content = document.createElement('div');
         message_content.classList.add('message-content');
@@ -908,14 +921,14 @@ export class ChatWidget implements IChatWidget {
         magic_button.id = 'magic-button';
         magic_button.classList.add('input-button');
         const button_group = document.createElement('div');
-        button_group.appendChild(magic_button);
-        button_group.appendChild(input_button);
+        if ((window as any).study_condition === 'experiment') button_group.appendChild(magic_button);
+        // button_group.appendChild(input_button);
 
         const input_and_button_div = document.createElement('div');
         input_and_button_div.appendChild(this.messageBox.el);
         
         input_button.addEventListener('click', this.handleSubmitting);
-        magic_button.addEventListener('click', this.handleMagicToggle);
+        if ((window as any).study_condition === 'experiment') magic_button.addEventListener('click', this.handleMagicToggle);
        
         input_container.appendChild(input_and_button_div);
         input_container.appendChild(button_group);
@@ -1034,7 +1047,7 @@ export class ChatWidget implements IChatWidget {
         sheet.innerHTML += '#notebook.select * {cursor: crosshair}\n';
         sheet.innerHTML += '#chat-container { height: 500px; width: 300px; float:right; margin-right: 50px; position: fixed; bottom: -460px; right: 0px; z-index:100; border-radius:10px; box-shadow: 0px 0px 12px 0px rgba(87, 87, 87, 0.2); background: white;  transition: bottom .5s; } \n';
         sheet.innerHTML += '#head-container { color: #516766; font-weight: bold; text-align: center; background-color: #9dc5a7; border-radius: 10px 10px 0px 0px; } \n';
-        sheet.innerHTML += '#tool-container { text-align: right; margin-top: 5px; padding: 5px; background: white; border-bottom: 1px solid #eee}\n';
+        sheet.innerHTML += '#tool-container { text-align: center; margin-top: 5px; padding: 5px; background: white; border-bottom: 1px solid #eee}\n';
         sheet.innerHTML += '.tool-button {font-size:10px; margin-left: 10px; display: inline-block; padding: 5px 10px; background: #709578;color: white; border-radius: 3px; cursor: pointer; }\n';
         sheet.innerHTML += '.tool-button i {margin-left: 1px; }\n';
 
