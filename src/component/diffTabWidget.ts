@@ -89,15 +89,17 @@ export class DiffTabWidget implements IDiffTabWidget {
             .then(notebook=> {
                 const new_notebook = notebook[0];
                 const old_notebook = notebook[1];
-                let diff_new;
-                let diff_old;
+                let diff_new = '';
+                let diff_old = '';
                 new_notebook.cells.forEach((cell, index) => {
                     const old_cell = old_notebook.cells[index];
-                    const new_source = cell.hasOwnProperty('source')? cell.source: '';
-                    const old_source = old_cell.hasOwnProperty('source')?old_cell.source : '';
-                    if(new_source !== old_source) {
-                        diff_new = new_source;
-                        diff_old = old_source;
+                    if (old_cell){
+                        const new_source = cell.hasOwnProperty('source')? cell.source: '';
+                        const old_source = old_cell.hasOwnProperty('source')?old_cell.source : '';
+                        if(new_source !== old_source) {
+                            diff_new = new_source;
+                            diff_old = old_source;
+                        }
                     }
                 });
                 resolve([diff_new, diff_old]);
