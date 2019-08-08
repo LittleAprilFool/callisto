@@ -253,6 +253,9 @@ export class DiffTabWidget implements IDiffTabWidget {
         notebook_container.classList.add('notebook-container-customized');
         sheet.innerHTML += '#notebook-container.notebook-container-customized { border-top: none; }\n';
 
+        const site = document.querySelector('#site') as HTMLDivElement ;
+        site.style.height = 'calc(100% - 150px)';
+        
         sheet.innerHTML += '.tab-container-wrapper { margin: 0; background-color: #eee;}\n';
         document.body.appendChild(sheet);
     }
