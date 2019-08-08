@@ -91,6 +91,7 @@ export class DiffTabWidget implements IDiffTabWidget {
                 const old_notebook = notebook[1];
                 let diff_new = '';
                 let diff_old = '';
+                // this is not a good way to catch diff, should compare cell.uid
                 new_notebook.cells.forEach((cell, index) => {
                     const old_cell = old_notebook.cells[index];
                     if (old_cell){
