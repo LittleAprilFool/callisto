@@ -46,6 +46,7 @@ export class MessageBox implements IMessageBox {
     }
 
     public appendRef(text: string, line_ref: LineRef): void {
+        text = text.replace(/\n/g,' ');
         const delta: Delta = {
             ops: [
                 { retain: this.quill_object.getLength() - 1 },
@@ -105,6 +106,7 @@ export class MessageBox implements IMessageBox {
 
         quill_div.addEventListener('click', this.handleCaretMove);
         quill_div.addEventListener('keyup', this.handleCaretMove);
+        quill_div.addEventListener('keydown', this.handleCaretMove);
 
         quill_div.setAttribute('style', 'height: 44px; width: 240px;');
         this.el.setAttribute('style', 'height: 44px; width: 240px;');

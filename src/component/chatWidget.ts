@@ -465,11 +465,11 @@ export class ChatWidget implements IChatWidget {
 
     private getMessageInfo = (message: Message, index: number): MessageItem => {
         const re = /\[(.*?)\]\((.*?)\)/g;
-        const url_re = /(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:/?#[\]@!\$&'\(\)\*\+,;=.]+/g;
+        const url_re = /(http(s)?:\/\/)?([a-zA-Z0-9\-]*\.)+([a-zA-Z]+[0-9]*[a-zA-Z]*|[a-zA-Z]*[0-9]*[a-zA-Z]+)(\/[\w\-_~:\/\?#[\]@!\$&'\(\)\*\+,;=]+)*/g;
         const line_break_re = /\n/g;
         this.sender = message.sender;
         const origin_text = message.content;    
-        const formated_text = origin_text.replace(re, this.replaceLR).replace(url_re, this.replaceURL).replace(line_break_re, '<br/>');
+        const formated_text = origin_text.replace(url_re, this.replaceURL).replace(re, this.replaceLR).replace(line_break_re, '<br/>');
     
         const message_info: MessageItem = {
             'message-sender': message.sender.username,
@@ -563,7 +563,7 @@ export class ChatWidget implements IChatWidget {
 
     private replaceLR = (p1: string, p2: string, p3: string): string => {
         const refEl = document.createElement('span');
-        refEl.innerText = p2;
+        refEl.innerText = p2.replace(/<a href=".*" target="_blank">/,'').replace(/<\/a>/,'');
         refEl.setAttribute('timestamp', getTimestamp().toString());
         refEl.setAttribute('source', this.sender.user_id);
         const tag = p3.replace(/, /g, '|');
@@ -600,9 +600,9 @@ export class ChatWidget implements IChatWidget {
         return refEl.outerHTML;
     }
 
-    private replaceURL = (p1: string, p2: string, p3: string): string => {
+    private replaceURL = (p1: string): string => {
         const URL_el = document.createElement('a');
-        URL_el.href = p1;
+        URL_el.href = p1.includes('//') ? p1 : ('//' + p1);
         URL_el.innerHTML = p1;
         URL_el.target = '_blank';
         return URL_el.outerHTML;
