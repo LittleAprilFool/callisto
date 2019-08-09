@@ -1080,7 +1080,7 @@ export class ChatWidget implements IChatWidget {
         sheet.innerHTML += '#message-container {padding: 0px 0px; margin: 0px 0px; }\n';
         sheet.innerHTML += '#message-box strong {font-weight: normal; font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}\n';
         sheet.innerHTML += '.message-sender { display:inline; font-size: 10px; font-weight: bold; } \n';
-        sheet.innerHTML += '.message-content { display: inline-block; background: whitesmoke; left: 5px; position: relative; padding: 10px; border-radius: 12px; min-width: 100px; font-size: 12px; } \n';
+        sheet.innerHTML += '.message-content { display: inline-block; background: whitesmoke; left: 5px; position: relative; padding: 10px; border-radius: 12px; min-width: 100px; font-size: 12px; word-break: break-word;} \n';
         sheet.innerHTML += '.message-time { float: right; font-size: 10px; display:inline; margin-left: 10px; color: #b7b7b7; } \n';
         sheet.innerHTML += '.broadcast-message { text-align: center; font-size: 12px; color: #b7b7b7; } \n';
         sheet.innerHTML += '.tick {float: left; position: relative; top: 3px; left: -12px; color: white; font-size: 15px;}\n';
