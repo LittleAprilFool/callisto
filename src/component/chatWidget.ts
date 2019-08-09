@@ -594,7 +594,11 @@ export class ChatWidget implements IChatWidget {
         }
         refEl.setAttribute('ref_type', ref_type);
         if((window as any).study_condition === 'experiment') {
-            refEl.classList.add(ref_type);
+            if (ref_type === 'diff') {
+                refEl.classList.add('ref_diff');
+            } else {
+                refEl.classList.add(ref_type);
+            }
             refEl.classList.add('line_ref');    
         }
         return refEl.outerHTML;
@@ -1091,7 +1095,7 @@ export class ChatWidget implements IChatWidget {
         sheet.innerHTML += '.line_ref.code { color: #aa1111; }\n';
         sheet.innerHTML += '.line_ref.marker { color: #9d00e8; }\n';
         sheet.innerHTML += '.line_ref.snapshot { color: #0e66dc; }\n';
-        sheet.innerHTML += '.line_ref.diff { color: #ff7a00; }\n';
+        sheet.innerHTML += '.line_ref.ref_diff { color: #ff7a00; }\n';
 
         sheet.innerHTML += '#message-box { float: left; } \n';
         sheet.innerHTML += '.ql-editor {padding: 2px 10px; font-size: 12px;}';
