@@ -83,6 +83,7 @@ export class ChatWidget implements IChatWidget {
         broadcastMessageEL.innerText = message;
         broadcastMessageEL.classList.add('broadcast-message');
         this.messageContainer.appendChild(broadcastMessageEL);
+        broadcastMessageEL.scrollIntoView();
     }
 
     public bindCursorAction = (callback): void => {
