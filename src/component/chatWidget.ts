@@ -83,6 +83,7 @@ export class ChatWidget implements IChatWidget {
         broadcastMessageEL.innerText = message;
         broadcastMessageEL.classList.add('broadcast-message');
         this.messageContainer.appendChild(broadcastMessageEL);
+        broadcastMessageEL.scrollIntoView();
     }
 
     public bindCursorAction = (callback): void => {
@@ -594,7 +595,11 @@ export class ChatWidget implements IChatWidget {
         }
         refEl.setAttribute('ref_type', ref_type);
         if((window as any).study_condition === 'experiment') {
-            refEl.classList.add(ref_type);
+            if (ref_type === 'diff') {
+                refEl.classList.add('ref_diff');
+            } else {
+                refEl.classList.add(ref_type);
+            }
             refEl.classList.add('line_ref');    
         }
         return refEl.outerHTML;
@@ -1076,7 +1081,7 @@ export class ChatWidget implements IChatWidget {
         sheet.innerHTML += '#message-container {padding: 0px 0px; margin: 0px 0px; }\n';
         sheet.innerHTML += '#message-box strong {font-weight: normal; font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}\n';
         sheet.innerHTML += '.message-sender { display:inline; font-size: 10px; font-weight: bold; } \n';
-        sheet.innerHTML += '.message-content { display: inline-block; background: whitesmoke; left: 5px; position: relative; padding: 10px; border-radius: 12px; min-width: 100px; font-size: 12px; } \n';
+        sheet.innerHTML += '.message-content { display: inline-block; background: whitesmoke; left: 5px; position: relative; padding: 10px; border-radius: 12px; min-width: 100px; font-size: 12px; word-break: break-word;} \n';
         sheet.innerHTML += '.message-time { float: right; font-size: 10px; display:inline; margin-left: 10px; color: #b7b7b7; } \n';
         sheet.innerHTML += '.broadcast-message { text-align: center; font-size: 12px; color: #b7b7b7; } \n';
         sheet.innerHTML += '.tick {float: left; position: relative; top: 3px; left: -12px; color: white; font-size: 15px;}\n';
@@ -1091,7 +1096,7 @@ export class ChatWidget implements IChatWidget {
         sheet.innerHTML += '.line_ref.code { color: #aa1111; }\n';
         sheet.innerHTML += '.line_ref.marker { color: #9d00e8; }\n';
         sheet.innerHTML += '.line_ref.snapshot { color: #0e66dc; }\n';
-        sheet.innerHTML += '.line_ref.diff { color: #ff7a00; }\n';
+        sheet.innerHTML += '.line_ref.ref_diff { color: #ff7a00; }\n';
 
         sheet.innerHTML += '#message-box { float: left; } \n';
         sheet.innerHTML += '.ql-editor {padding: 2px 10px; font-size: 12px;}';

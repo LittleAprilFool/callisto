@@ -131,20 +131,38 @@ export class ChangelogWidget implements IChangelogWidget {
     }
 
     private createNewLog = (log: Changelog, index: number, container): void => {
+        if (log.event === 'join') {
+            if (container.childElementCount === 0) {
+                const open_channel_log_el = document.createElement('div');
+                open_channel_log_el.classList.add('log-item');
+                container.appendChild(open_channel_log_el);
+                open_channel_log_el.setAttribute('timestamp', log.timestamp.toString());
+                open_channel_log_el.classList.add('disable');
+                const message = document.createElement('div');
+                message.classList.add('log-disable-message');
+                message.innerText = 'The channel is opened';
+                open_channel_log_el.appendChild(message);
+            }
+            return;
+        }
+        if (log.event === 'leave') {
+            // to be compatible with data generated in previous versions.
+            return;
+        }
         const logEL = document.createElement('div');
         logEL.classList.add('log-item');
         container.appendChild(logEL);
         logEL.setAttribute('timestamp', log.timestamp.toString());
         logEL.setAttribute('username', log.user.username);
         logEL.setAttribute('event', log.event);
-        if(log.event === 'join' || log.event === 'leave') {
-            logEL.classList.add('disable');
-            const message = document.createElement('div');
-            message.classList.add('log-disable-message');
-            message.innerText = log.user.username + ' ' + log.eventName + ' ' + log.time;
-            logEL.appendChild(message);
-            return;
-        }
+        // if(log.event === 'join' || log.event === 'leave') {
+        //     logEL.classList.add('disable');
+        //     const message = document.createElement('div');
+        //     message.classList.add('log-disable-message');
+        //     message.innerText = log.user.username + ' ' + log.eventName + ' ' + log.time;
+        //     logEL.appendChild(message);
+        //     return;
+        // }
         logEL.style.borderLeft = "5px solid " + log.user.color;
         const username = document.createElement('div');
         username.innerText = log.user.username;
