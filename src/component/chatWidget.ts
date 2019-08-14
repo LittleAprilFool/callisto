@@ -466,7 +466,7 @@ export class ChatWidget implements IChatWidget {
 
     private getMessageInfo = (message: Message, index: number): MessageItem => {
         const re = /\[(.*?)\]\((.*?)\)/g;
-        const url_re = /(http(s)?:\/\/)?([a-zA-Z0-9\-]*\.)+([a-zA-Z]+[0-9]*[a-zA-Z]*|[a-zA-Z]*[0-9]*[a-zA-Z]+)(\/[\w\-_~:\/\?#[\]@!\$&'\(\)\*\+,;=]+)*/g;
+        const url_re = /((http[s]?):\/)?\/?([a-zA-Z0-9\-]*\.)+([a-zA-Z]+[0-9]*[a-zA-Z]*|[a-zA-Z]*[0-9]*[a-zA-Z]+)(\/[\w\-_~:\/\?#[\]@!\$&'\(\)\*\+,;=]+)(.*)?/g;
         const line_break_re = /\n/g;
         this.sender = message.sender;
         const origin_text = message.content;    

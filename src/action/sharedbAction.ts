@@ -8,6 +8,7 @@ export const joinDoc = (doc_name: string): Promise<{doc: SDBDoc<SharedDoc>, clie
     const ws = openWS(5555);
     const sdbClient = new window['SDB'].SDBClient(ws);
     return new Promise<{doc: SDBDoc<SharedDoc>, client: any, ws: WebSocket}>((resolve, reject) => {
+        // change the doc name here
         const sdbDoc = sdbClient.get('doc', doc_name);
         sdbDoc.fetch().then(res=> {
             if (res.type == null) {
@@ -32,6 +33,7 @@ export const createDoc = (doc_name: string): Promise<{doc: SDBDoc<SharedDoc>, cl
     const ws = openWS(5555);
     const sdbClient = new window['SDB'].SDBClient(ws);
     return new Promise<{doc: SDBDoc<SharedDoc>, client: any, ws: WebSocket}>(resolve=> {
+        // change the doc name here
         const sdbDoc = sdbClient.get('doc', doc_name);
         const notebook = JSON.parse(JSON.stringify(Jupyter.notebook));
         const cells = Jupyter.notebook.get_cells();
