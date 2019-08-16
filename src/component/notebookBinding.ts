@@ -1,5 +1,5 @@
 import { SDBDoc } from "sdb-ts";
-import { Changelog, ICellBinding, IChangelogWidget, IChatWidget, ICursorWidget, IDiffTabWidget, INotebookBinding, IUserListWidget, SharedDoc, SharedDocOption, User} from "types";
+import { Changelog, ICellBinding, IChangelogWidget, IChatWidget, ICursorWidget, IDiffTabWidget, INotebookBinding, IUserListWidget, SharedDoc, SharedDocOption, User, MessageLineRef} from "types";
 import { getNotebookMirror, getSafeIndex} from '../action/notebookAction';
 import { getUserName } from '../action/userAction';
 import { generateUUID, getRandomColor, getTime, getTimestamp} from '../action/utils';
@@ -101,7 +101,7 @@ export class NotebookBinding implements INotebookBinding {
 
         if(option.chat) {
             const chatDoc = this.sdbDoc.subDoc(['chat']);
-            this.chatWidget = new ChatWidget(this.user, chatDoc, this.diffTabWidget);
+            this.chatWidget = new ChatWidget(this.user, chatDoc, this.diffTabWidget, this);
         }
         this.diffTabWidget.bindChatAction(this.chatWidget.onSelectDiff.bind(this.chatWidget));
 
@@ -181,6 +181,21 @@ export class NotebookBinding implements INotebookBinding {
         this.chatWidget.reload();
         this.changelogWidget.reload();
         this.diffTabWidget.reload();
+    }
+
+    public sendMessageLog(message: string, ref_list: MessageLineRef[]): void {
+        const log = {
+            'type': 'send_message',
+            'message': message, 
+            'user': this.user 
+        };
+        if (ref_list.length !== 0) {
+            log['ref'] = new Array();
+            ref_list.forEach(ref => {
+                log['ref'].push({'type': ref.line_ref.type});
+            });
+        }
+        this.ws.send(JSON.stringify(log));
     }
 
     private eventsOn = (): void => {

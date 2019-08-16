@@ -3,6 +3,7 @@ import { getSafeIndex } from '../action/notebookAction';
 import { getTime, getTimestamp, timeAgo } from '../action/utils';
 
 import { MessageBox } from './messageBox';
+import { NotebookBinding } from './notebookBinding';
 const Jupyter = require('base/js/namespace');
 
 const checkOpType = (op): string => {
@@ -47,7 +48,7 @@ export class ChatWidget implements IChatWidget {
     private sender: User;
     private messageList: any;
 
-    constructor(private user: User, private doc: any, private tabWidget: IDiffTabWidget) {
+    constructor(private user: User, private doc: any, private tabWidget: IDiffTabWidget, private notebook: NotebookBinding) {
         this.messageBox = new MessageBox();
         this.initContainer();
         this.initStyle();
@@ -223,6 +224,7 @@ export class ChatWidget implements IChatWidget {
 
     private handleLineRef = (e): void => {
         e.stopPropagation();
+        (e.target as HTMLElement).dispatchEvent(new Event('line_ref_clicked'));
         const line_refs = e.currentTarget.getAttribute('ref');
         const line_ref = line_refs.split('|');
         const ref1 = line_ref[0];
@@ -423,7 +425,12 @@ export class ChatWidget implements IChatWidget {
                 li: newMessage
             };
     
-            if (this.messageBox.getSubmissionValue()) this.doc.submitOp([op], this);
+            if (this.messageBox.getSubmissionValue()) {
+                this.doc.submitOp([op], this);
+                // sending logs
+                this.notebook.sendMessageLog(this.messageBox.getSubmissionValue(), this.messageBox.ref_list);
+            } 
+
             this.messageBox.clear();
         });
     }
