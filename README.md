@@ -16,4 +16,4 @@ This is a Jupyter notebook extension for data scientists to better collaborate w
 
 ## System Architecture
 
-[!System Architecture](doc/system_diagram.png)
+![System Architecture](doc/system_diagram.png)
