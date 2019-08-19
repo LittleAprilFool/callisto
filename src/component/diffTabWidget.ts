@@ -94,7 +94,7 @@ export class DiffTabWidget implements IDiffTabWidget {
                 // this is not a good way to catch diff, should compare cell.uid
                 new_notebook.cells.forEach((cell, index) => {
                     const old_cell = old_notebook.cells[index];
-                    if (old_cell){
+                    if (old_cell) {
                         const new_source = cell.hasOwnProperty('source')? cell.source: '';
                         const old_source = old_cell.hasOwnProperty('source')?old_cell.source : '';
                         if(new_source !== old_source) {
