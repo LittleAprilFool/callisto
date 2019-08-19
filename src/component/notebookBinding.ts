@@ -108,7 +108,7 @@ export class NotebookBinding implements INotebookBinding {
 
         if(option.changelog) {
             const changelogDoc = this.sdbDoc.subDoc(['changelog']);
-            this.changelogWidget = new ChangelogWidget(changelogDoc, this.diffTabWidget);
+            this.changelogWidget = new ChangelogWidget(changelogDoc, this.diffTabWidget, this);
         } 
 
         this.sharedCells = [];

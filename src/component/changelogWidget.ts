@@ -1,4 +1,5 @@
 import { Changelog, IChangelogWidget, IDiffTabWidget } from 'types';
+import { NotebookBinding } from './notebookBinding';
 
 const Jupyter = require('base/js/namespace');
 
@@ -12,7 +13,7 @@ export class ChangelogWidget implements IChangelogWidget {
     private logContainer: HTMLElement;
     private isFold: boolean = true;
 
-    constructor(private doc: any, private tabWidget: IDiffTabWidget) {
+    constructor(private doc: any, private tabWidget: IDiffTabWidget, private notebook: NotebookBinding) {
         this.initContainer();
         this.initStyle();
         setTimeout(this.loadHistory, 300);
@@ -198,6 +199,15 @@ export class ChangelogWidget implements IChangelogWidget {
 
         this.tabWidget.addTab(label, 'diff', new_timestamp);
         this.tabWidget.addDiff(new_timestamp, old_timestamp, title);
+
+        // send log
+        const log = {
+            'log_type': 'open_diff',
+            'source': 'changelog',
+            'new_timestamp': new_timestamp,
+            'old_timestamp': old_timestamp
+        };
+        this.notebook.sendLog(log);
     }
 
     private applyOp = (op): void => {

@@ -228,6 +228,7 @@ export class ChatWidget implements IChatWidget {
         const line_refs = e.currentTarget.getAttribute('ref');
         const line_ref = line_refs.split('|');
         const ref1 = line_ref[0];
+        let ref_type = '';
         if(line_ref.length === 1) {
             if(ref1[0] === 'C') {
                 const cuid = ref1.slice(1);
@@ -239,6 +240,7 @@ export class ChatWidget implements IChatWidget {
                     Jupyter.notebook.select(cell_index);
                     this.updateCellHighlight(true);    
                 }
+                ref_type = 'CELL';
             }
             if(ref1[0] === 'V') {
                 const timestamp = parseInt(ref1.slice(1), 0);
@@ -248,6 +250,7 @@ export class ChatWidget implements IChatWidget {
                 this.tabWidget.addTab(label, 'version', timestamp);
                 const title = timeAgo(timestamp);
                 this.tabWidget.addVersion(timestamp, title);
+                ref_type = 'SNAPSHOT';
             }
         }
         if(line_ref.length === 2) {
@@ -262,6 +265,7 @@ export class ChatWidget implements IChatWidget {
                     this.annotationCallback(true, cell_index, object_index);
                 }
                 // const cell_index = parseInt(ref1.slice(1), 0);
+                ref_type = 'MARKER';
             }
             if(ref1[0] === 'V') {
                 const new_timestamp = parseInt(ref1.slice(1), 0);
@@ -272,6 +276,7 @@ export class ChatWidget implements IChatWidget {
 
                 this.tabWidget.addTab(label, 'diff', new_timestamp);
                 this.tabWidget.addDiff(new_timestamp, old_timestamp, new_timestamp.toString());
+                ref_type = 'DIFF';
             }
         }
         if(line_ref.length === 3) {
@@ -287,8 +292,15 @@ export class ChatWidget implements IChatWidget {
                     const to = parseInt(ref3.slice(1), 0);
                     this.cursorCallback(true, cell_index, from, to);
                 }
+                ref_type = 'CODE';
             }
         }
+        // send log
+        const log = {
+            'log_type': 'click_ref',
+            'ref_type': ref_type,
+        };
+        this.notebook.sendLog(log);
     }
 
     private uidToId = (uid: string): number => {
@@ -315,6 +327,13 @@ export class ChatWidget implements IChatWidget {
 
         this.tabWidget.addTab(label, 'version', timestamp);
         this.tabWidget.addVersion(timestamp, timestamp.toString());
+
+        // send log
+        const log = {
+            'log_type': 'open_snapshot',
+            'version_timestamp': timestamp
+        };
+        this.notebook.sendLog(log);
     }
 
     private handleDiff = (e): void => {
@@ -340,6 +359,15 @@ export class ChatWidget implements IChatWidget {
 
         this.tabWidget.addTab(label, 'diff', new_timestamp);
         this.tabWidget.addDiff(new_timestamp, old_timestamp, new_timestamp.toString());
+
+        // send log
+        const log = {
+            'log_type': 'open_diff',
+            'source': 'message',
+            'new_timestamp': new_timestamp,
+            'old_timestamp': old_timestamp
+        };
+        this.notebook.sendLog(log);
     }
 
     private handleFolding = (): void => {
@@ -487,6 +515,13 @@ export class ChatWidget implements IChatWidget {
             if(!flag) {
                 this.broadcastMessage('No relevant chat messages');
             }
+
+            // logging filter
+            const log = {
+                'log_type': 'filter_message',
+                'cell_id': cell_index
+            };
+            this.notebook.sendLog(log);
         }
     }
 
@@ -585,6 +620,13 @@ export class ChatWidget implements IChatWidget {
                 other.setAttribute('style', 'display: block');
                 this.handleLinkingDisplay();
                 break;
+        }
+        if (selected_messages.length > 0) {
+            const log = {
+                'log_type': 'select_messages',
+                'selected_count': selected_messages.length
+            };
+            this.notebook.sendLog(log);
         }
     }
 
