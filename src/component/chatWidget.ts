@@ -428,11 +428,30 @@ export class ChatWidget implements IChatWidget {
             if (this.messageBox.getSubmissionValue()) {
                 this.doc.submitOp([op], this);
                 // sending logs
-                this.notebook.sendMessageLog(this.messageBox.getSubmissionValue(), this.messageBox.ref_list);
+                this.sendMessageLog();
             } 
 
             this.messageBox.clear();
         });
+    }
+
+    private sendMessageLog(): void {
+        const log = {
+            'log_type': 'send_message',
+            'ref_cnt': {
+                "URL": 0,
+                "CODE": 0,
+                "CELL": 0,
+                "MARKER": 0,
+                "SNAPSHOT": 0, 
+                "DIFF": 0
+            }
+            // 'message': this.messageBox.getSubmissionValue()
+        };
+        this.messageBox.ref_list.forEach(ref => {
+            log['ref_cnt'][ref.line_ref.type] += 1;
+        });
+        this.notebook.sendLog(log);
     }
 
     private handleMessageSelect = (e): void => {

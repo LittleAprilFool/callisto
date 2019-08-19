@@ -183,19 +183,14 @@ export class NotebookBinding implements INotebookBinding {
         this.diffTabWidget.reload();
     }
 
-    public sendMessageLog(message: string, ref_list: MessageLineRef[]): void {
-        const log = {
-            'type': 'send_message',
-            'message': message, 
-            'user': this.user 
+    public sendLog(data: object): void {
+        data['type'] = 'log';
+        data['doc_id'] = this.sdbDoc.getIdentifier()[1]; 
+        data['user'] = {
+            'user_id': this.user.user_id,
+            'username': this.user.username
         };
-        if (ref_list.length !== 0) {
-            log['ref'] = new Array();
-            ref_list.forEach(ref => {
-                log['ref'].push({'type': ref.line_ref.type});
-            });
-        }
-        this.ws.send(JSON.stringify(log));
+        this.ws.send(JSON.stringify(data));
     }
 
     private eventsOn = (): void => {
