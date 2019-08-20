@@ -285,15 +285,24 @@ export class ChatWidget implements IChatWidget {
         if(line_ref.length === 2) {
             if(ref1[0] === 'C') {
                 const cuid = ref1.slice(1);
-                const cell_index = this.uidToId(cuid);
-                if (cell_index !== -1) {
-                    const ref2 = line_ref[1];
-                    const object_index = parseInt(ref2.slice(1), 0);
-                    this.currentAnnotationHighlight = {cell_index, object_index};
-                    this.tabWidget.checkTab('version-current');
-                    this.annotationCallback(true, cell_index, object_index);
-                }
-                // const cell_index = parseInt(ref1.slice(1), 0);
+                const timestamp = parseInt(e.target.parentNode.getAttribute('timestamp'), 0);
+                const label = 'version-'+timestamp.toString();
+                if(this.tabWidget.checkTab(label)) return;
+    
+                const message = e.target.parentNode;
+                const scrollMessage = () => {
+                    message.scrollIntoView();
+                };
+                const unhighlightMessage = () => {
+                    message.classList.remove('highlight');
+                };
+                const highlightMessage = () => {
+                    message.classList.add('highlight');
+                };
+
+                const cell_list = [cuid];
+                this.tabWidget.addTab(label, 'version', timestamp);
+                this.tabWidget.addVersion(timestamp, timestamp.toString(), {scrollMessage, unhighlightMessage, highlightMessage}, {cell_list});
                 ref_type = 'MARKER';
             }
             if(ref1[0] === 'V') {
