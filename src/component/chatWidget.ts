@@ -241,15 +241,34 @@ export class ChatWidget implements IChatWidget {
         let ref_type = '';
         if(line_ref.length === 1) {
             if(ref1[0] === 'C') {
-                const cuid = ref1.slice(1);
-                const cell_index = this.uidToId(cuid);
-                // console.log(cuid);
-                // const cell_index = parseInt(ref1.slice(1), 0);
-                this.tabWidget.checkTab('version-current');
-                if(cell_index !== -1) {
-                    Jupyter.notebook.select(cell_index);
-                    this.updateCellHighlight(true);    
-                }
+                // cell
+                // const cuid = ref1.slice(1);
+                // const cell_index = this.uidToId(cuid);
+                // // console.log(cuid);
+                // // const cell_index = parseInt(ref1.slice(1), 0);
+                // this.tabWidget.checkTab('version-current');
+                // if(cell_index !== -1) {
+                //     Jupyter.notebook.select(cell_index);
+                //     this.updateCellHighlight(true);    
+                // }
+                const timestamp = parseInt(e.target.parentNode.getAttribute('timestamp'), 0);
+                const label = 'version-'+timestamp.toString();
+                if(this.tabWidget.checkTab(label)) return;
+    
+                const message = e.target.parentNode;
+                const scrollMessage = () => {
+                    message.scrollIntoView();
+                };
+                const unhighlightMessage = () => {
+                    message.classList.remove('highlight');
+                };
+                const highlightMessage = () => {
+                    message.classList.add('highlight');
+                };
+
+                const cell_list = [ref1.slice(1)];
+                this.tabWidget.addTab(label, 'version', timestamp);
+                this.tabWidget.addVersion(timestamp, timestamp.toString(), {scrollMessage, unhighlightMessage, highlightMessage}, {cell_list});
                 ref_type = 'CELL';
             }
             if(ref1[0] === 'V') {
@@ -266,15 +285,24 @@ export class ChatWidget implements IChatWidget {
         if(line_ref.length === 2) {
             if(ref1[0] === 'C') {
                 const cuid = ref1.slice(1);
-                const cell_index = this.uidToId(cuid);
-                if (cell_index !== -1) {
-                    const ref2 = line_ref[1];
-                    const object_index = parseInt(ref2.slice(1), 0);
-                    this.currentAnnotationHighlight = {cell_index, object_index};
-                    this.tabWidget.checkTab('version-current');
-                    this.annotationCallback(true, cell_index, object_index);
-                }
-                // const cell_index = parseInt(ref1.slice(1), 0);
+                const timestamp = parseInt(e.target.parentNode.getAttribute('timestamp'), 0);
+                const label = 'version-'+timestamp.toString();
+                if(this.tabWidget.checkTab(label)) return;
+    
+                const message = e.target.parentNode;
+                const scrollMessage = () => {
+                    message.scrollIntoView();
+                };
+                const unhighlightMessage = () => {
+                    message.classList.remove('highlight');
+                };
+                const highlightMessage = () => {
+                    message.classList.add('highlight');
+                };
+
+                const cell_list = [cuid];
+                this.tabWidget.addTab(label, 'version', timestamp);
+                this.tabWidget.addVersion(timestamp, timestamp.toString(), {scrollMessage, unhighlightMessage, highlightMessage}, {cell_list});
                 ref_type = 'MARKER';
             }
             if(ref1[0] === 'V') {
@@ -291,17 +319,39 @@ export class ChatWidget implements IChatWidget {
         }
         if(line_ref.length === 3) {
             if(ref1[0] === 'C') {
-                this.tabWidget.checkTab('version-current');
-                const cuid = ref1.slice(1);
-                const cell_index = this.uidToId(cuid);
-                // const cell_index = parseInt(ref1.slice(1), 0);
-                if(cell_index!== -1) {
-                    const ref2 = line_ref[1]; 
-                    const ref3 = line_ref[2];
-                    const from = parseInt(ref2.slice(1), 0);
-                    const to = parseInt(ref3.slice(1), 0);
-                    this.cursorCallback(true, cell_index, from, to);
-                }
+                // code
+                const timestamp = parseInt(e.target.parentNode.getAttribute('timestamp'), 0);
+                const label = 'version-'+timestamp.toString();
+                if(this.tabWidget.checkTab(label)) return;
+    
+                this.tabWidget.addTab(label, 'version', timestamp);
+                const title = timeAgo(timestamp);
+                this.tabWidget.addVersion(timestamp, title);
+                // this.tabWidget.checkTab('version-current');
+                // const cuid = ref1.slice(1);
+                // const cell_index = this.uidToId(cuid);
+                // // const cell_index = parseInt(ref1.slice(1), 0);
+                // if(cell_index!== -1) {
+                //     const ref2 = line_ref[1]; 
+                //     const ref3 = line_ref[2];
+                //     const from = parseInt(ref2.slice(1), 0);
+                //     const to = parseInt(ref3.slice(1), 0);
+                //     this.cursorCallback(true, cell_index, from, to);
+                // }
+                const message = e.target.parentNode;
+                const scrollMessage = () => {
+                    message.scrollIntoView();
+                };
+                const unhighlightMessage = () => {
+                    message.classList.remove('highlight');
+                };
+                const highlightMessage = () => {
+                    message.classList.add('highlight');
+                };
+
+                const cell_list = [ref1.slice(1)];
+                this.tabWidget.addTab(label, 'version', timestamp);
+                this.tabWidget.addVersion(timestamp, timestamp.toString(), {scrollMessage, unhighlightMessage, highlightMessage}, {cell_list});
                 ref_type = 'CODE';
             }
         }
@@ -641,6 +691,12 @@ export class ChatWidget implements IChatWidget {
         }
 
         const selected_messages = document.querySelectorAll('.message-wrapper.select');
+        if (selected_messages.length > 0) {
+            document.querySelectorAll('.cancel-selection').forEach((cancel_button: HTMLButtonElement) => {
+                cancel_button.innerText = 'CANCEL(' + selected_messages.length.toString() + ')';
+            });
+        }
+
         switch(selected_messages.length) {
             case 0:
                 input.setAttribute('style', 'display: block');
@@ -1186,7 +1242,7 @@ export class ChatWidget implements IChatWidget {
         sheet.innerHTML += '#chat-container { height: 500px; width: 300px; float:right; margin-right: 50px; position: fixed; bottom: -460px; right: 0px; z-index:100; border-radius:10px; box-shadow: 0px 0px 12px 0px rgba(87, 87, 87, 0.2); background: white;  transition: bottom .5s; } \n';
         sheet.innerHTML += '#head-container { color: #516766; font-weight: bold; text-align: center; background-color: #9dc5a7; border-radius: 10px 10px 0px 0px; } \n';
         sheet.innerHTML += '#tool-container { text-align: center; margin-top: 5px; padding: 5px; background: white; border-bottom: 1px solid #eee}\n';
-        sheet.innerHTML += '.tool-button {font-size:10px; margin-left: 10px; display: inline-block; padding: 5px 10px; background: #709578;color: white; border-radius: 3px; cursor: pointer; }\n';
+        sheet.innerHTML += '.tool-button {font-size:10px; margin-left: 8px; display: inline-block; padding: 5px 7px; background: #709578;color: white; border-radius: 3px; cursor: pointer; }\n';
         sheet.innerHTML += '.tool-button i {margin-left: 1px; }\n';
 
         sheet.innerHTML += '.head-tool { height: 22px; margin-right: 10px; border: 1px solid #eee; padding: 0px 10px; display: inline-block}\n';
@@ -1198,8 +1254,8 @@ export class ChatWidget implements IChatWidget {
         sheet.innerHTML += '#message-container.filtermode::before {content: "Filter Mode"; display: block; font-weight: bold; color: #bbb; padding-top: 5px; text-align: center;}\n';
         sheet.innerHTML += '#message-container.filtermode > li > .message-content {background: #fff6dc}\n';
         sheet.innerHTML += '.select.message-content {cursor: pointer; transition: .4s}\n';
+        sheet.innerHTML += '.cancel-selection {background: none; border: none; color: #155725ab; float: right; padding: 5px 0; }\n';
         sheet.innerHTML += '.highlight.message-content {background:#fff6dc; }\n';
-        sheet.innerHTML += '.cancel-selection {background: none; border: none; color: #155725ab; float: right; }\n';
 
         sheet.innerHTML += '.select.message-content:hover {background:#dae5dd; }\n';
         sheet.innerHTML += '#input-container { height: 50px; width: 280px; background-color: white; border: solid 2px #ececec; border-radius: 10px; margin:auto;} \n';
