@@ -255,9 +255,20 @@ export class ChatWidget implements IChatWidget {
                 const label = 'version-'+timestamp.toString();
                 if(this.tabWidget.checkTab(label)) return;
     
+                const message = e.target.parentNode;
+                const scrollMessage = () => {
+                    message.scrollIntoView();
+                };
+                const unhighlightMessage = () => {
+                    message.classList.remove('highlight');
+                };
+                const highlightMessage = () => {
+                    message.classList.add('highlight');
+                };
+
+                const cell_list = [ref1.slice(1)];
                 this.tabWidget.addTab(label, 'version', timestamp);
-                const title = timeAgo(timestamp);
-                this.tabWidget.addVersion(timestamp, title);
+                this.tabWidget.addVersion(timestamp, timestamp.toString(), {scrollMessage, unhighlightMessage, highlightMessage}, {cell_list});
                 ref_type = 'CELL';
             }
             if(ref1[0] === 'V') {
@@ -318,6 +329,20 @@ export class ChatWidget implements IChatWidget {
                 //     const to = parseInt(ref3.slice(1), 0);
                 //     this.cursorCallback(true, cell_index, from, to);
                 // }
+                const message = e.target.parentNode;
+                const scrollMessage = () => {
+                    message.scrollIntoView();
+                };
+                const unhighlightMessage = () => {
+                    message.classList.remove('highlight');
+                };
+                const highlightMessage = () => {
+                    message.classList.add('highlight');
+                };
+
+                const cell_list = [ref1.slice(1)];
+                this.tabWidget.addTab(label, 'version', timestamp);
+                this.tabWidget.addVersion(timestamp, timestamp.toString(), {scrollMessage, unhighlightMessage, highlightMessage}, {cell_list});
                 ref_type = 'CODE';
             }
         }
