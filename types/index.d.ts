@@ -166,6 +166,7 @@ interface ICellBinding {
 interface IAnnotationWidget {
     reloadCanvas(any): void;
     highlight(flag: boolean, to: number): void;
+    reload(): void;
 }
 
 interface IUserListWidget {

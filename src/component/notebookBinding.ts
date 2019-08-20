@@ -185,6 +185,9 @@ export class NotebookBinding implements INotebookBinding {
         this.chatWidget.reload();
         this.changelogWidget.reload();
         this.diffTabWidget.reload();
+        this.sharedCells.forEach(cell => {
+            cell.annotationWidget.reload();
+        })
     }
 
     public sendLog(data: object): void {

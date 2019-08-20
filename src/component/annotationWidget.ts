@@ -24,6 +24,20 @@ export class AnnotationWidget implements IAnnotationWidget {
         }
     }
 
+    public reload = (): void => {
+        if((window as any).study_condition === 'experiment') {
+            this.initView();
+        }
+        else {
+            if(this.container) {
+                if(this.container.childNodes.length > 1){
+                    this.container.removeChild(this.container.childNodes[2])
+                    this.container.removeChild(this.container.childNodes[1])
+                }
+            }
+        }
+    }
+
     public bindChatAction = (callback): void => {
         this.chatCallback = callback;
     }
@@ -50,7 +64,7 @@ export class AnnotationWidget implements IAnnotationWidget {
     private initStaticView = (): void => {
         this.container.setAttribute('style', 'position: relative; padding:unset');
         const canvasContainer = document.createElement('div');
-        this.container.appendChild(canvasContainer);
+        // this.container.appendChild(canvasContainer);
         canvasContainer.setAttribute('style', 'position:absolute; width: 100%; height:100%; top:0');
         canvasContainer.setAttribute('id', 'annotation-container');        
         
@@ -107,11 +121,13 @@ export class AnnotationWidget implements IAnnotationWidget {
         canvasEl.setAttribute('id', 'annotation-canvas');
         canvasContainer.appendChild(canvasEl);
 
+        this.container = subArea;
+
         return [canvasEl, canvasContainer];
     }
 
     private initToolContainer = (): void => {
-        const subArea = this.getLastSubArea();
+        // const subArea = this.getLastSubArea();
         this.paintTool = document.createElement('button');
         this.paintTool.setAttribute('class', 'btn btn-default');
 
@@ -128,7 +144,7 @@ export class AnnotationWidget implements IAnnotationWidget {
         toolContainer.append(this.paintTool);
         toolContainer.append(this.clearTool);
 
-        subArea.appendChild(toolContainer);
+        this.container.appendChild(toolContainer);
         toolContainer.setAttribute('style', 'position:absolute; top:10px; right:0');
 
         this.paintTool.addEventListener('click', this.handlePaint);
