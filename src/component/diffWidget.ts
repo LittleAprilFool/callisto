@@ -1,4 +1,5 @@
 import { Cell, IDiffWidget, Notebook } from "types";
+import Convert = require("../external/ansi_to_html");
 import * as resemble from "../external/resemble";
 import { AnnotationWidget } from "./annotationWidget";
 
@@ -236,13 +237,32 @@ export class DiffWidget implements IDiffWidget {
                         }
                         break;
                     case 'error':
+                        const convert = new Convert();
                         output_subarea.classList.add('output_text', 'output_error');
-                        console.log(output);
                         const pre2 = document.createElement('pre');
                         output.traceback.forEach(item => {
-                            pre2.innerText += item;
+                            pre2.innerHTML += convert.toHtml(item) + '<br/>';
+                            // naive codes to extract "span" out.. but doesn't work because there's other tags like <b>
+                            //
+                            // const re_g = /(<span style=".*?">.*?<\/span>)/g;
+                            // const splits = convert.toHtml(item).split(re_g);
+                            // const matches = convert.toHtml(item).match(re_g);
+                            // console.log(splits);
+                            // console.log(matches);
+                            // const re = /<span style="(.*?)">(.*?)<\/span>/;
+                            // for (let index = 0; index < matches.length; ++index) {
+                            //     pre2.append(splits[2 * index]);
+                            //     const match = matches[index].match(re);
+                            //     const span = document.createElement('span');
+                            //     span.setAttribute('style', match[1]);
+                            //     span.textContent = match[2];
+                            //     pre2.append(span);
+                            // }
+                            // pre2.append(splits[splits.length - 1]);
+                            // const br = document.createElement('br');
+                            // pre2.append('<br/>');
                         });
-                        output_subarea.appendChild(pre2);
+                        output_subarea.append(pre2);
                         break;
                     default:
                         console.log('unrecognized output');
