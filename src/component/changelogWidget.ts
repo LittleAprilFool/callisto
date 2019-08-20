@@ -126,8 +126,11 @@ export class ChangelogWidget implements IChangelogWidget {
         const history = this.doc.getData();
         history.forEach((log, index)=> {
             this.createNewLog(log, index, this.logContainer);
-            // this.logContainer.appendChild(newLogEL);
         });
+
+        // issue: this is not working
+        const last = this.logContainer.lastChild as HTMLElement;
+        if(last) last.scrollIntoView();
     }
 
     private createNewLog = (log: Changelog, index: number, container): void => {
@@ -152,6 +155,8 @@ export class ChangelogWidget implements IChangelogWidget {
         const logEL = document.createElement('div');
         logEL.classList.add('log-item');
         container.appendChild(logEL);
+
+        // container.appendChild(logEL);
         logEL.setAttribute('timestamp', log.timestamp.toString());
         logEL.setAttribute('username', log.user.username);
         logEL.setAttribute('event', log.event);
@@ -188,12 +193,13 @@ export class ChangelogWidget implements IChangelogWidget {
     }
 
     private displayChanges = (e): void => {
+        if(e.currentTarget.previousSibling==null) return;
         const new_timestamp = parseInt(e.currentTarget.getAttribute('timestamp'), 0);
         const old_timestamp = parseInt(e.currentTarget.previousSibling.getAttribute('timestamp'), 0);
 
         const label = 'diff-'+new_timestamp.toString() + '-'+old_timestamp.toString();
         if(this.tabWidget.checkTab(label)) return;
-        if(e.target.previousSibling==null) return;
+        
         const title = e.target.innerHTML;
 
         this.tabWidget.addTab(label, 'diff', new_timestamp);

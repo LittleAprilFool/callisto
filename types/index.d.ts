@@ -201,8 +201,8 @@ interface IDiffTabWidget {
     destroy(): void;
     checkTab(label: string): boolean;
     addTab(label: string, type: string, timestamp: number): void;
-    addDiff(new_timestamp: number, old_timestamp: number, title: string): void;
-    addVersion(timestamp: number, title: string): void;
+    addDiff(new_timestamp: number, old_timestamp: number, title: string, message?: any): void;
+    addVersion(timestamp: number, title: string, message?:any, ref?: any): void;
     bindChatAction(callback: any): void;
     reload(): void;
     diffThumb(new_timestamp: number, old_timestamp: number): Promise<string[]>;

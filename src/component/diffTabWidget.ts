@@ -108,23 +108,23 @@ export class DiffTabWidget implements IDiffTabWidget {
         });
     }
 
-    public addDiff = (new_timestamp: number, old_timestamp: number, title: string): void => {
+    public addDiff = (new_timestamp: number, old_timestamp: number, title: string, message?: any): void => {
         this.new_timestamp = new_timestamp;
         this.old_timestamp = old_timestamp;
         this.diff_title = 'Notebook diff between old-' + old_timestamp.toString() + ' (' + timeAgo(old_timestamp) + ') and new-' + new_timestamp.toString() + ' (' + timeAgo(new_timestamp) + ')';
         this.fetchTwoSnapShot(this.id[0], this.id[1], new_timestamp, old_timestamp)
         .then(notebook=> {
-            const diffWidget = new DiffWidget('diff', notebook, this.diff_title, [this.new_timestamp, this.old_timestamp]);
+            const diffWidget = new DiffWidget('diff', notebook, this.diff_title, [this.new_timestamp, this.old_timestamp], message);
             this.diffList.push(diffWidget);
         });
     }
 
-    public addVersion = (timestamp: number, title: string): void => {
+    public addVersion = (timestamp: number, title: string, message?: any, ref?: any): void => {
         const version_timestamp = timestamp;
         const version_title = 'Notebook snapshot-' + timestamp.toString() + ' (' + timeAgo(timestamp) + ')';
         this.fetchSnapShot(this.id[0], this.id[1], timestamp).then(snapshot => {
             const version_notebook = snapshot.data.notebook;
-            const versionWidget = new DiffWidget('version', [version_notebook], version_title, [version_timestamp]);
+            const versionWidget = new DiffWidget('version', [version_notebook], version_title, [version_timestamp], message, ref);
             this.diffList.push(versionWidget);
         });
     }
@@ -152,10 +152,23 @@ export class DiffTabWidget implements IDiffTabWidget {
     }
     private closeTabHandler = (e): void => {
         const label = e.currentTarget.getAttribute('label');
-        const related_eles = document.querySelectorAll('.'+ label);
+        const related_eles = document.querySelectorAll('.diff-tab.'+ label);
         related_eles.forEach(ele=> {
             ele.parentNode.removeChild(ele);
         });
+
+        let target_widget;
+        let target_index;
+        this.diffList.forEach((widget, index) => {
+            if (widget.label === label) {
+                target_widget = widget;
+                target_index = index;
+            }
+        });
+
+        target_widget.destroy();
+        this.diffList.splice(target_index, 1);
+
         const tab_list = document.querySelectorAll('.diff-tab');
         const last_tab = tab_list[tab_list.length-1];
         this.activeTab(last_tab as HTMLElement);
@@ -177,11 +190,15 @@ export class DiffTabWidget implements IDiffTabWidget {
         const label = ele.getAttribute('label');
 
         // show the related diff widget
-        const diffWidgets = document.querySelectorAll('.diffwidget-container');
-        diffWidgets.forEach(widget => {
-            if(widget.classList.contains(label)) widget.setAttribute('style', 'display: block');
-            else widget.setAttribute('style', 'display:none');
+        this.diffList.forEach(widget => {
+            if (widget.label === label) widget.show();
+            else widget.hide();
         });
+        // const diffWidgets = document.querySelectorAll('.diffwidget-container');
+        // diffWidgets.forEach(widget => {
+        //     if(widget.classList.contains(label)) widget.setAttribute('style', 'display: block');
+        //     else widget.setAttribute('style', 'display:none');
+        // });
 
         // show or hide current notebook
         const notebook_widget = document.querySelector('#notebook-container');
