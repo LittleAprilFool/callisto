@@ -228,15 +228,23 @@ export class ChatWidget implements IChatWidget {
         const ref1 = line_ref[0];
         if(line_ref.length === 1) {
             if(ref1[0] === 'C') {
-                const cuid = ref1.slice(1);
-                const cell_index = this.uidToId(cuid);
-                // console.log(cuid);
-                // const cell_index = parseInt(ref1.slice(1), 0);
-                this.tabWidget.checkTab('version-current');
-                if(cell_index !== -1) {
-                    Jupyter.notebook.select(cell_index);
-                    this.updateCellHighlight(true);    
-                }
+                // cell
+                // const cuid = ref1.slice(1);
+                // const cell_index = this.uidToId(cuid);
+                // // console.log(cuid);
+                // // const cell_index = parseInt(ref1.slice(1), 0);
+                // this.tabWidget.checkTab('version-current');
+                // if(cell_index !== -1) {
+                //     Jupyter.notebook.select(cell_index);
+                //     this.updateCellHighlight(true);    
+                // }
+                const timestamp = parseInt(e.target.parentNode.getAttribute('timestamp'), 0);
+                const label = 'version-'+timestamp.toString();
+                if(this.tabWidget.checkTab(label)) return;
+    
+                this.tabWidget.addTab(label, 'version', timestamp);
+                const title = timeAgo(timestamp);
+                this.tabWidget.addVersion(timestamp, title);
             }
             if(ref1[0] === 'V') {
                 const timestamp = parseInt(ref1.slice(1), 0);
@@ -274,17 +282,32 @@ export class ChatWidget implements IChatWidget {
         }
         if(line_ref.length === 3) {
             if(ref1[0] === 'C') {
-                this.tabWidget.checkTab('version-current');
-                const cuid = ref1.slice(1);
-                const cell_index = this.uidToId(cuid);
-                // const cell_index = parseInt(ref1.slice(1), 0);
-                if(cell_index!== -1) {
-                    const ref2 = line_ref[1]; 
-                    const ref3 = line_ref[2];
-                    const from = parseInt(ref2.slice(1), 0);
-                    const to = parseInt(ref3.slice(1), 0);
-                    this.cursorCallback(true, cell_index, from, to);
-                }
+                // code
+                // const timestamp = parseInt(e.target.parentNode.getAttribute('timestamp'), 0);
+                // const label = 'version-'+timestamp.toString();
+                // if(this.tabWidget.checkTab(label)) return;
+    
+                // this.tabWidget.addTab(label, 'version', timestamp);
+                // const title = timeAgo(timestamp);
+                // this.tabWidget.addVersion(timestamp, title);
+                // this.tabWidget.checkTab('version-current');
+                // const cuid = ref1.slice(1);
+                // const cell_index = this.uidToId(cuid);
+                // // const cell_index = parseInt(ref1.slice(1), 0);
+                // if(cell_index!== -1) {
+                //     const ref2 = line_ref[1]; 
+                //     const ref3 = line_ref[2];
+                //     const from = parseInt(ref2.slice(1), 0);
+                //     const to = parseInt(ref3.slice(1), 0);
+                //     this.cursorCallback(true, cell_index, from, to);
+                // }
+                const timestamp = parseInt(e.target.parentNode.getAttribute('timestamp'), 0);
+                const label = 'version-'+timestamp.toString();
+                if(this.tabWidget.checkTab(label)) return;
+    
+                this.tabWidget.addTab(label, 'version', timestamp);
+                const title = timeAgo(timestamp);
+                this.tabWidget.addVersion(timestamp, title);
             }
         }
     }
