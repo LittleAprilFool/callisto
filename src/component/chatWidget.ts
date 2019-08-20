@@ -1,4 +1,4 @@
-import { Cursor, IChatWidget, IDiffTabWidget, Message, MessageItem, User } from 'types';
+import { Cursor, IChatWidget, IDiffTabWidget, Message, MessageItem, User, Button } from 'types';
 import { getSafeIndex } from '../action/notebookAction';
 import { getTime, getTimestamp, timeAgo } from '../action/utils';
 
@@ -560,6 +560,12 @@ export class ChatWidget implements IChatWidget {
         }
 
         const selected_messages = document.querySelectorAll('.message-wrapper.select');
+        if (selected_messages.length > 0) {
+            document.querySelectorAll('.cancel-selection').forEach((cancel_button: HTMLButtonElement) => {
+                cancel_button.innerText = 'CANCEL(' + selected_messages.length.toString() + ')';
+            });
+        }
+
         switch(selected_messages.length) {
             case 0:
                 input.setAttribute('style', 'display: block');
@@ -1076,7 +1082,7 @@ export class ChatWidget implements IChatWidget {
         sheet.innerHTML += '#chat-container { height: 500px; width: 300px; float:right; margin-right: 50px; position: fixed; bottom: -460px; right: 0px; z-index:100; border-radius:10px; box-shadow: 0px 0px 12px 0px rgba(87, 87, 87, 0.2); background: white;  transition: bottom .5s; } \n';
         sheet.innerHTML += '#head-container { color: #516766; font-weight: bold; text-align: center; background-color: #9dc5a7; border-radius: 10px 10px 0px 0px; } \n';
         sheet.innerHTML += '#tool-container { text-align: center; margin-top: 5px; padding: 5px; background: white; border-bottom: 1px solid #eee}\n';
-        sheet.innerHTML += '.tool-button {font-size:10px; margin-left: 10px; display: inline-block; padding: 5px 10px; background: #709578;color: white; border-radius: 3px; cursor: pointer; }\n';
+        sheet.innerHTML += '.tool-button {font-size:10px; margin-left: 8px; display: inline-block; padding: 5px 7px; background: #709578;color: white; border-radius: 3px; cursor: pointer; }\n';
         sheet.innerHTML += '.tool-button i {margin-left: 1px; }\n';
 
         sheet.innerHTML += '.head-tool { height: 22px; margin-right: 10px; border: 1px solid #eee; padding: 0px 10px; display: inline-block}\n';
@@ -1088,7 +1094,7 @@ export class ChatWidget implements IChatWidget {
         sheet.innerHTML += '#message-container.filtermode::before {content: "Filter Mode"; display: block; font-weight: bold; color: #bbb; padding-top: 5px; text-align: center;}\n';
         sheet.innerHTML += '.select.message-content {cursor: pointer; transition: .4s}\n';
         sheet.innerHTML += '.selected.message-content {background:#dae5dd; }\n';
-        sheet.innerHTML += '.cancel-selection {background: none; border: none; color: #155725ab; float: right; }\n';
+        sheet.innerHTML += '.cancel-selection {background: none; border: none; color: #155725ab; float: right; padding: 5px 0; }\n';
 
         sheet.innerHTML += '.select.message-content:hover {background:#dae5dd; }\n';
         sheet.innerHTML += '#input-container { height: 50px; width: 280px; background-color: white; border: solid 2px #ececec; border-radius: 10px; margin:auto;} \n';
