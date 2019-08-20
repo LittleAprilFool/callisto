@@ -1,4 +1,5 @@
 import { Changelog, IChangelogWidget, IDiffTabWidget } from 'types';
+import { NotebookBinding } from './notebookBinding';
 
 const Jupyter = require('base/js/namespace');
 
@@ -12,7 +13,7 @@ export class ChangelogWidget implements IChangelogWidget {
     private logContainer: HTMLElement;
     private isFold: boolean = true;
 
-    constructor(private doc: any, private tabWidget: IDiffTabWidget) {
+    constructor(private doc: any, private tabWidget: IDiffTabWidget, private notebook: NotebookBinding) {
         this.initContainer();
         this.initStyle();
         setTimeout(this.loadHistory, 300);
@@ -35,6 +36,47 @@ export class ChangelogWidget implements IChangelogWidget {
             this.container.parentNode.removeChild(this.container);
             this.doc.unsubscribe(this.onSDBDocEvent);
         }
+    }
+
+    public scrollTo = (timestamp?: number, timestamp1?: number): void => {
+        let flag = false;
+        if(!timestamp && !timestamp1) {
+            this.logContainer.childNodes.forEach(node => {
+                const node_el = node as HTMLElement;
+                if (node_el.classList.contains('highlight')) node_el.classList.remove('highlight');
+            });
+        }
+        if(timestamp && !timestamp1) {
+            this.logContainer.childNodes.forEach(node => {
+                const node_el = node as HTMLElement;
+                if (node_el.classList.contains('highlight')) node_el.classList.remove('highlight');
+                const ts_str = node_el.getAttribute('timestamp');
+                const ts = parseInt(ts_str, 0);
+                if (ts >= timestamp) {
+                    node_el.classList.add('highlight');
+                    if (!flag) {
+                        node_el.scrollIntoView();
+                        flag = true;
+                    }
+                }
+            });
+        }
+        if(timestamp && timestamp1) {
+            this.logContainer.childNodes.forEach(node => {
+                const node_el = node as HTMLElement;
+                if (node_el.classList.contains('highlight')) node_el.classList.remove('highlight');
+                const ts_str = node_el.getAttribute('timestamp');
+                const ts = parseInt(ts_str, 0);
+                if (ts >= timestamp && ts <= timestamp1) {
+                    node_el.classList.add('highlight');
+                    if (!flag) {
+                        node_el.scrollIntoView();
+                        flag = true;
+                    }
+                }
+            });
+        }
+
     }
 
     private initContainer = (): void => {
@@ -116,6 +158,8 @@ export class ChangelogWidget implements IChangelogWidget {
         sheet.innerHTML += '.log-item:hover {background: #f5f5f5} \n';
         sheet.innerHTML += '.log-item.disable {color: #ccc; cursor: default; background: none; text-align: center; margin:0px 0px; padding: 2px 0px;} \n';
         sheet.innerHTML += '.log-item.disable:hover {background: none} \n';
+        sheet.innerHTML += '.log-item.highlight {background: #fff6dc} \n';
+
         sheet.innerHTML += '.log-user-name {font-size: 10px; font-weight: bold; display: inline-block}\n';
         sheet.innerHTML += '.log-time {font-size: 10px; display:inline-block; float: right; color: #ccc}\n';
 
@@ -126,8 +170,11 @@ export class ChangelogWidget implements IChangelogWidget {
         const history = this.doc.getData();
         history.forEach((log, index)=> {
             this.createNewLog(log, index, this.logContainer);
-            // this.logContainer.appendChild(newLogEL);
         });
+
+        // issue: this is not working
+        const last = this.logContainer.lastChild as HTMLElement;
+        if(last) last.scrollIntoView();
     }
 
     private createNewLog = (log: Changelog, index: number, container): void => {
@@ -152,6 +199,8 @@ export class ChangelogWidget implements IChangelogWidget {
         const logEL = document.createElement('div');
         logEL.classList.add('log-item');
         container.appendChild(logEL);
+
+        // container.appendChild(logEL);
         logEL.setAttribute('timestamp', log.timestamp.toString());
         logEL.setAttribute('username', log.user.username);
         logEL.setAttribute('event', log.event);
@@ -188,16 +237,35 @@ export class ChangelogWidget implements IChangelogWidget {
     }
 
     private displayChanges = (e): void => {
+        if(e.currentTarget.previousSibling==null) return;
         const new_timestamp = parseInt(e.currentTarget.getAttribute('timestamp'), 0);
         const old_timestamp = parseInt(e.currentTarget.previousSibling.getAttribute('timestamp'), 0);
 
         const label = 'diff-'+new_timestamp.toString() + '-'+old_timestamp.toString();
         if(this.tabWidget.checkTab(label)) return;
-        if(e.target.previousSibling==null) return;
-        const title = e.target.innerHTML;
+        
+        const title = e.currentTarget.innerHTML;
+        const logEl = e.currentTarget;
+
+        const highlightMessage = () => {
+            logEl.classList.add('highlight');
+        };
+
+        const unhighlightMessage = () => {
+            logEl.classList.remove('highlight');
+        };
 
         this.tabWidget.addTab(label, 'diff', new_timestamp);
-        this.tabWidget.addDiff(new_timestamp, old_timestamp, title);
+        this.tabWidget.addDiff(new_timestamp, old_timestamp, title, {highlightMessage, unhighlightMessage});
+
+        // send log
+        const log = {
+            'log_type': 'open_diff',
+            'source': 'changelog',
+            'new_timestamp': new_timestamp,
+            'old_timestamp': old_timestamp
+        };
+        this.notebook.sendLog(log);
     }
 
     private applyOp = (op): void => {

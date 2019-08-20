@@ -4,25 +4,79 @@ import * as resemble from "../external/resemble";
 
 export class DiffWidget implements IDiffWidget {
     public container: HTMLElement;
+    public label: string;
     
-    constructor(private type: string, private notebook: Notebook[], private title: string, private timestamp: number[]) {
+    constructor(private type: string, private notebook: Notebook[], private title: string, private timestamp: number[], private message?: any, private ref?: any) {
         this.initContainer();
         this.initStyle();
 
         this.displayDiff();
+        this.show();
     }
 
     public destroy = (): void => {
+        if(this.message) this.message.unhighlightMessage();
         this.container.parentNode.removeChild(this.container);
+    }
+
+    public show = (): void => {
+        this.container.setAttribute('style', 'display: block');
+        if(this.message) this.message.highlightMessage();
+        if(this.ref) {
+            // scroll to view
+            if(this.ref.cell_list) {
+                this.ref.cell_list.forEach(cell_id => {
+                    const cellEl = document.querySelector('#cell-' + cell_id);
+                    cellEl.scrollIntoView();
+                    cellEl.classList.add('highlight');
+                });
+            }
+        }
+    }
+
+    public hide = (): void => {
+        this.container.setAttribute('style', 'display:none');
+        if(this.message) this.message.unhighlightMessage();
+    }
+
+    private addMessage = (message): void => {
+        const message_container = document.createElement('div');
+        message_container.classList.add('message');
+
+        const message_link = document.createElement('button');
+        message_link.innerText = "Scroll to the Message";
+        message_link.onclick = message.scrollMessage;
+        
+        message_container.appendChild(message_link);
+        this.container.appendChild(message_container);
+    }
+
+    private addDiffMessage = (message): void => {
+        const message_container = document.createElement('div');
+        message_container.classList.add('message');
+
+        const old_message_link = document.createElement('button');
+        old_message_link.innerText = "Scroll to the Old Message";
+        old_message_link.onclick = message.scrollOldMessage;
+
+        const new_message_link = document.createElement('button');
+        new_message_link.innerText = "Scroll to the New Message";
+        new_message_link.onclick = message.scrollNewMessage;
+        
+        message_container.appendChild(old_message_link);
+        message_container.appendChild(new_message_link);
+        this.container.appendChild(message_container);
     }
 
     private displayDiff = (): void => {
         if(this.type === 'version') {
+            if(this.message.scrollMessage) this.addMessage(this.message);
             this.notebook[0].cells.forEach(cell=> {
                 this.addCell(cell, cell);
             });
         }
         else {
+            if(this.message.scrollOldMessage) this.addDiffMessage(this.message);
             const new_notebook = this.notebook[0];
             const old_notebook = this.notebook[1];
             const new_uids = [];
@@ -263,6 +317,9 @@ export class DiffWidget implements IDiffWidget {
     private addCell = (new_cell: Cell, old_cell: Cell): void => {
         const cell_container = document.createElement('div');
         cell_container.classList.add('cell');
+        // console.log(new_cell)
+
+        if (new_cell) cell_container.id = 'cell-'+new_cell.uid;
         this.container.appendChild(cell_container);
 
         this.addCode(new_cell, old_cell, cell_container);
@@ -442,8 +499,8 @@ export class DiffWidget implements IDiffWidget {
 
     private initContainer = (): void => {
         this.container = document.createElement('div');
-        const label = this.type === 'diff'? 'diff-'+this.timestamp[0]+'-'+this.timestamp[1]:'version-'+this.timestamp[0];  
-        this.container.classList.add('container', 'diffwidget-container', label);
+        this.label = this.type === 'diff'? 'diff-'+this.timestamp[0]+'-'+this.timestamp[1]:'version-'+this.timestamp[0];  
+        this.container.classList.add('container', 'diffwidget-container', this.label);
         const trigger = document.createElement('div');
         trigger.classList.add('diffwidget-trigger');
 
@@ -516,10 +573,13 @@ export class DiffWidget implements IDiffWidget {
         sheet.innerHTML += '#label-new { background:rgba(0, 200, 20, 0.3); } \n';
         sheet.innerHTML += '#label-old { background:rgba(255, 20, 0, 0.3); } \n';
         sheet.innerHTML += '#label-container {margin-top: 10px; margin-bottom: 10px;} \n';
+        sheet.innerHTML += '.diffwidget-container > .cell.highlight {background:#fff6dc} \n';
         sheet.innerHTML += '.diff-cell-container {background: #fff6dc; overflow:auto;} \n';
         sheet.innerHTML += '.diff { background: inherit; width: 50% !important; display: inline-block !important; float:left;} \n';
         sheet.innerHTML += 'span.diff-add {background: #c5e4bd}\n';
         sheet.innerHTML += 'span.diff-del {background: #e4cabd}\n';
+        sheet.innerHTML += '.diffwidget-container > .message > button {margin: 0px 180px; outline: none; background-color: #d4edda; color: #155724; border-color: #c3e6cb}\n';
+        sheet.innerHTML += '.diffwidget-container > .message {text-align: center; margin:10px 0px;}\n';
         sheet.innerHTML += '.diff-new .input_area {background: rgba(0, 200, 20, 0.1); }\n';
         sheet.innerHTML += '.diff-old .input_area {background: rgba(255, 20, 0, 0.1); }\n';
         sheet.innerHTML += '.diff-right {float: right}\n';

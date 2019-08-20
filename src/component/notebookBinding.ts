@@ -101,14 +101,14 @@ export class NotebookBinding implements INotebookBinding {
 
         if(option.chat) {
             const chatDoc = this.sdbDoc.subDoc(['chat']);
-            this.chatWidget = new ChatWidget(this.user, chatDoc, this.diffTabWidget);
+            this.chatWidget = new ChatWidget(this.user, chatDoc, this.diffTabWidget, this);
         }
         this.diffTabWidget.bindChatAction(this.chatWidget.onSelectDiff.bind(this.chatWidget));
 
 
         if(option.changelog) {
             const changelogDoc = this.sdbDoc.subDoc(['changelog']);
-            this.changelogWidget = new ChangelogWidget(changelogDoc, this.diffTabWidget);
+            this.changelogWidget = new ChangelogWidget(changelogDoc, this.diffTabWidget, this);
         } 
 
         this.sharedCells = [];
@@ -162,6 +162,10 @@ export class NotebookBinding implements INotebookBinding {
         if(option.chat && option.annotation) {
             this.chatWidget.bindAnnotationAction(this.annotationHighlight);
         }
+
+        if(option.chat && option.changelog) {
+            this.chatWidget.bindChangelogAction(this.changelogWidget.scrollTo);
+        }
     }
 
     public destroy = (): void => {
@@ -181,6 +185,16 @@ export class NotebookBinding implements INotebookBinding {
         this.chatWidget.reload();
         this.changelogWidget.reload();
         this.diffTabWidget.reload();
+    }
+
+    public sendLog(data: object): void {
+        data['type'] = 'log';
+        data['doc_id'] = this.sdbDoc.getIdentifier()[1]; 
+        data['user'] = {
+            'user_id': this.user.user_id,
+            'username': this.user.username
+        };
+        this.ws.send(JSON.stringify(data));
     }
 
     private eventsOn = (): void => {

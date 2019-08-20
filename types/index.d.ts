@@ -182,6 +182,7 @@ interface IChatWidget {
     onSelectDiff(label: string): void;
     bindCursorAction(callback: any): void;
     bindAnnotationAction(callback: any): void;
+    bindChangelogAction(callback: any): void;
 }
 
 interface ICursorWidget {
@@ -201,8 +202,8 @@ interface IDiffTabWidget {
     destroy(): void;
     checkTab(label: string): boolean;
     addTab(label: string, type: string, timestamp: number): void;
-    addDiff(new_timestamp: number, old_timestamp: number, title: string): void;
-    addVersion(timestamp: number, title: string): void;
+    addDiff(new_timestamp: number, old_timestamp: number, title: string, message?: any): void;
+    addVersion(timestamp: number, title: string, message?:any, ref?: any): void;
     bindChatAction(callback: any): void;
     reload(): void;
     diffThumb(new_timestamp: number, old_timestamp: number): Promise<string[]>;
@@ -211,6 +212,7 @@ interface IDiffTabWidget {
 interface IChangelogWidget {
     reload(): void;
     destroy(): void;
+    scrollTo(timestamp?: number, timestamp1?: number): void;
 }
 
 interface IDiffWidget {

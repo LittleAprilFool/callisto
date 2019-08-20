@@ -1,8 +1,9 @@
-import { Cursor, IChatWidget, IDiffTabWidget, Message, MessageItem, User, Button } from 'types';
+import { Cursor, IChatWidget, IDiffTabWidget, Message, MessageItem, User } from 'types';
 import { getSafeIndex } from '../action/notebookAction';
 import { getTime, getTimestamp, timeAgo } from '../action/utils';
 
 import { MessageBox } from './messageBox';
+import { NotebookBinding } from './notebookBinding';
 const Jupyter = require('base/js/namespace');
 
 const checkOpType = (op): string => {
@@ -43,11 +44,12 @@ export class ChatWidget implements IChatWidget {
     private lastCursor: Cursor;
     private cursorCallback: any;
     private annotationCallback: any;
+    private changelogCallback: any;
     private currentAnnotationHighlight: any;
     private sender: User;
     private messageList: any;
 
-    constructor(private user: User, private doc: any, private tabWidget: IDiffTabWidget) {
+    constructor(private user: User, private doc: any, private tabWidget: IDiffTabWidget, private notebook: NotebookBinding) {
         this.messageBox = new MessageBox();
         this.initContainer();
         this.initStyle();
@@ -92,6 +94,10 @@ export class ChatWidget implements IChatWidget {
 
     public bindAnnotationAction = (callback): void => {
         this.annotationCallback = callback;
+    }
+
+    public bindChangelogAction = (callback): void => {
+        this.changelogCallback = callback;
     }
 
     public onSelectAnnotation = (cell_index: number, object_index: number): void => {
@@ -161,6 +167,9 @@ export class ChatWidget implements IChatWidget {
         const cell = info.cell;
         const id = getSafeIndex(cell);
 
+        const cellEl_list = document.querySelectorAll('.cell');
+        const cellEl_select = cellEl_list[id];
+
         if(this.isFold) return;
         if(this.isSelect) {
             const cuid = info.cell.uid;
@@ -171,8 +180,6 @@ export class ChatWidget implements IChatWidget {
             this.handleMagicToggle();
         }
         if(this.isEditLinking) {
-            const cellEl_list = document.querySelectorAll('.cell');
-            const cellEl_select = cellEl_list[id];
             const flag = cellEl_select.classList.contains('highlight');
             if(flag) {
                 cellEl_select.classList.remove('highlight');
@@ -193,18 +200,22 @@ export class ChatWidget implements IChatWidget {
             // display filter
             if(this.isFilter) {
                 this.loadFilteredMessages();
-                this.updateCellHighlight(true);
+                cellEl_list.forEach(cell_el => {
+                    if (cell_el.classList.contains('highlight')) cell_el.classList.remove('highlight');
+                });
+                cellEl_select.classList.add('highlight');
+                // this.updateCellHighlight(true);
             }
-            else {
-                const selected_cells = Jupyter.notebook.get_selected_cells();
-                if (selected_cells.length > 1) {
-                    selected_cells.forEach(c => {
-                        c.unselect();
-                    });
-                    cell.select();
-                }
-                this.updateCellHighlight(false);
-            }
+            // else {
+            //     const selected_cells = Jupyter.notebook.get_selected_cells();
+            //     if (selected_cells.length > 1) {
+            //         selected_cells.forEach(c => {
+            //             c.unselect();
+            //         });
+            //         cell.select();
+            //     }
+            //     this.updateCellHighlight(false);
+            // }
         }
     }
 
@@ -223,9 +234,11 @@ export class ChatWidget implements IChatWidget {
 
     private handleLineRef = (e): void => {
         e.stopPropagation();
+        (e.target as HTMLElement).dispatchEvent(new Event('line_ref_clicked'));
         const line_refs = e.currentTarget.getAttribute('ref');
         const line_ref = line_refs.split('|');
         const ref1 = line_ref[0];
+        let ref_type = '';
         if(line_ref.length === 1) {
             if(ref1[0] === 'C') {
                 // cell
@@ -245,6 +258,7 @@ export class ChatWidget implements IChatWidget {
                 this.tabWidget.addTab(label, 'version', timestamp);
                 const title = timeAgo(timestamp);
                 this.tabWidget.addVersion(timestamp, title);
+                ref_type = 'CELL';
             }
             if(ref1[0] === 'V') {
                 const timestamp = parseInt(ref1.slice(1), 0);
@@ -254,6 +268,7 @@ export class ChatWidget implements IChatWidget {
                 this.tabWidget.addTab(label, 'version', timestamp);
                 const title = timeAgo(timestamp);
                 this.tabWidget.addVersion(timestamp, title);
+                ref_type = 'SNAPSHOT';
             }
         }
         if(line_ref.length === 2) {
@@ -268,6 +283,7 @@ export class ChatWidget implements IChatWidget {
                     this.annotationCallback(true, cell_index, object_index);
                 }
                 // const cell_index = parseInt(ref1.slice(1), 0);
+                ref_type = 'MARKER';
             }
             if(ref1[0] === 'V') {
                 const new_timestamp = parseInt(ref1.slice(1), 0);
@@ -278,18 +294,19 @@ export class ChatWidget implements IChatWidget {
 
                 this.tabWidget.addTab(label, 'diff', new_timestamp);
                 this.tabWidget.addDiff(new_timestamp, old_timestamp, new_timestamp.toString());
+                ref_type = 'DIFF';
             }
         }
         if(line_ref.length === 3) {
             if(ref1[0] === 'C') {
                 // code
-                // const timestamp = parseInt(e.target.parentNode.getAttribute('timestamp'), 0);
-                // const label = 'version-'+timestamp.toString();
-                // if(this.tabWidget.checkTab(label)) return;
+                const timestamp = parseInt(e.target.parentNode.getAttribute('timestamp'), 0);
+                const label = 'version-'+timestamp.toString();
+                if(this.tabWidget.checkTab(label)) return;
     
-                // this.tabWidget.addTab(label, 'version', timestamp);
-                // const title = timeAgo(timestamp);
-                // this.tabWidget.addVersion(timestamp, title);
+                this.tabWidget.addTab(label, 'version', timestamp);
+                const title = timeAgo(timestamp);
+                this.tabWidget.addVersion(timestamp, title);
                 // this.tabWidget.checkTab('version-current');
                 // const cuid = ref1.slice(1);
                 // const cell_index = this.uidToId(cuid);
@@ -301,15 +318,15 @@ export class ChatWidget implements IChatWidget {
                 //     const to = parseInt(ref3.slice(1), 0);
                 //     this.cursorCallback(true, cell_index, from, to);
                 // }
-                const timestamp = parseInt(e.target.parentNode.getAttribute('timestamp'), 0);
-                const label = 'version-'+timestamp.toString();
-                if(this.tabWidget.checkTab(label)) return;
-    
-                this.tabWidget.addTab(label, 'version', timestamp);
-                const title = timeAgo(timestamp);
-                this.tabWidget.addVersion(timestamp, title);
+                ref_type = 'CODE';
             }
         }
+        // send log
+        const log = {
+            'log_type': 'click_ref',
+            'ref_type': ref_type,
+        };
+        this.notebook.sendLog(log);
     }
 
     private uidToId = (uid: string): number => {
@@ -322,6 +339,7 @@ export class ChatWidget implements IChatWidget {
     }
 
     private handleSnapshot = (e): void => {
+        const cell_list = this.getCurrentList();
         const selected_messages = document.querySelectorAll('.message-wrapper.select');
         selected_messages.forEach(message => {
             message.classList.remove('select');
@@ -331,11 +349,29 @@ export class ChatWidget implements IChatWidget {
         const selected_message = selected_messages[0];
         const selected_message_child = selected_message.lastChild as HTMLElement;
         const timestamp = parseInt(selected_message_child.getAttribute('timestamp'), 0);
+
         const label = 'version-'+timestamp.toString();
         if(this.tabWidget.checkTab(label)) return;
 
+        const scrollMessage = () => {
+            selected_message.scrollIntoView();
+        };
+        const unhighlightMessage = () => {
+            selected_message_child.classList.remove('highlight');
+        };
+        const highlightMessage = () => {
+            selected_message_child.classList.add('highlight');
+        };
+
         this.tabWidget.addTab(label, 'version', timestamp);
-        this.tabWidget.addVersion(timestamp, timestamp.toString());
+        this.tabWidget.addVersion(timestamp, timestamp.toString(), {scrollMessage, unhighlightMessage, highlightMessage}, {cell_list});
+
+        // send log
+        const log = {
+            'log_type': 'open_snapshot',
+            'version_timestamp': timestamp
+        };
+        this.notebook.sendLog(log);
     }
 
     private handleDiff = (e): void => {
@@ -359,8 +395,36 @@ export class ChatWidget implements IChatWidget {
         const label = 'diff-'+new_timestamp.toString()+ '-' + old_timestamp.toString();
         if(this.tabWidget.checkTab(label)) return;
 
+        const scrollOldMessage = () => {
+            selected_message1.scrollIntoView();
+        };
+
+        const scrollNewMessage = () => {
+            selected_message2.scrollIntoView();
+        };
+
+        const highlightMessage = () => {
+            selected_message_child1.classList.add('highlight');
+            selected_message_child2.classList.add('highlight');
+        };
+
+        const unhighlightMessage = () => {
+            selected_message_child1.classList.remove('highlight');
+            selected_message_child2.classList.remove('highlight');
+        };
+
         this.tabWidget.addTab(label, 'diff', new_timestamp);
-        this.tabWidget.addDiff(new_timestamp, old_timestamp, new_timestamp.toString());
+
+        this.tabWidget.addDiff(new_timestamp, old_timestamp, new_timestamp.toString(), {scrollOldMessage, scrollNewMessage, highlightMessage, unhighlightMessage});
+        
+        // send log
+        const log = {
+            'log_type': 'open_diff',
+            'source': 'message',
+            'new_timestamp': new_timestamp,
+            'old_timestamp': old_timestamp
+        };
+        this.notebook.sendLog(log);
     }
 
     private handleFolding = (): void => {
@@ -446,9 +510,33 @@ export class ChatWidget implements IChatWidget {
                 li: newMessage
             };
     
-            if (this.messageBox.getSubmissionValue()) this.doc.submitOp([op], this);
+            if (this.messageBox.getSubmissionValue()) {
+                this.doc.submitOp([op], this);
+                // sending logs
+                this.sendMessageLog();
+            } 
+
             this.messageBox.clear();
         });
+    }
+
+    private sendMessageLog(): void {
+        const log = {
+            'log_type': 'send_message',
+            'ref_cnt': {
+                "URL": 0,
+                "CODE": 0,
+                "CELL": 0,
+                "MARKER": 0,
+                "SNAPSHOT": 0, 
+                "DIFF": 0
+            }
+            // 'message': this.messageBox.getSubmissionValue()
+        };
+        this.messageBox.ref_list.forEach(ref => {
+            log['ref_cnt'][ref.line_ref.type] += 1;
+        });
+        this.notebook.sendLog(log);
     }
 
     private handleMessageSelect = (e): void => {
@@ -456,6 +544,8 @@ export class ChatWidget implements IChatWidget {
         // change UI
         this.tabWidget.checkTab('version-current');
         e.currentTarget.classList.toggle('select');
+        // const timestamp_str = e.currentTarget.lastChild.getAttribute('timestamp');
+        // this.changelogCallback(parseInt(timestamp_str, 0));
         this.updateInputStatus();
     }
 
@@ -484,6 +574,13 @@ export class ChatWidget implements IChatWidget {
             if(!flag) {
                 this.broadcastMessage('No relevant chat messages');
             }
+
+            // logging filter
+            const log = {
+                'log_type': 'filter_message',
+                'cell_id': cell_index
+            };
+            this.notebook.sendLog(log);
         }
     }
 
@@ -569,25 +666,48 @@ export class ChatWidget implements IChatWidget {
         switch(selected_messages.length) {
             case 0:
                 input.setAttribute('style', 'display: block');
-                const selected_cells = Jupyter.notebook.get_selected_cells();
-                if (selected_cells.length > 1) {
-                    selected_cells.forEach(c => { c.unselect();});
-                }
                 const highlighted_cells = document.querySelectorAll('.cell.highlight');
-                highlighted_cells.forEach(c => { c.classList.remove('highlight'); });
+
+                if(!this.isFilter) {
+                    const selected_cells = Jupyter.notebook.get_selected_cells();
+                    if (selected_cells.length > 1) {
+                        selected_cells.forEach(c => { c.unselect();});
+                    }
+                    highlighted_cells.forEach(c => { c.classList.remove('highlight'); });
+                }
+                else {
+                    highlighted_cells.forEach(c => {
+                        if (!c.classList.contains('selected')) c.classList.remove('highlight');
+                    });
+                }
+                this.changelogCallback();
                 break;
             case 1:
+                const timestamp_str = ((selected_messages[0] as HTMLElement).lastChild as HTMLElement).getAttribute('timestamp');
+                this.changelogCallback(parseInt(timestamp_str, 0));
                 snapshot.setAttribute('style', 'display: block');
                 this.handleLinkingDisplay();
                 break;
             case 2:
+                const timestamp_str0 = ((selected_messages[0] as HTMLElement).lastChild as HTMLElement).getAttribute('timestamp');
+                const timestamp_str1 = ((selected_messages[1] as HTMLElement).lastChild as HTMLElement).getAttribute('timestamp');
+
+                this.changelogCallback(parseInt(timestamp_str0, 0), parseInt(timestamp_str1, 0));
                 diff.setAttribute('style', 'display: block');
                 this.handleLinkingDisplay();
                 break;
             default:
+                this.changelogCallback();
                 other.setAttribute('style', 'display: block');
                 this.handleLinkingDisplay();
                 break;
+        }
+        if (selected_messages.length > 0) {
+            const log = {
+                'log_type': 'select_messages',
+                'selected_count': selected_messages.length
+            };
+            this.notebook.sendLog(log);
         }
     }
 
@@ -643,24 +763,22 @@ export class ChatWidget implements IChatWidget {
     }
 
     private updateCellHighlight = (flag: boolean): void => {
-        const old_cells = document.querySelectorAll('.cell.highlight');
-        old_cells.forEach(cell => {
-            cell.classList.remove('highlight');
-        });
         
+        const cells = document.querySelectorAll('.cell.highlight');
+
         if(flag) {
-            const cells = document.querySelectorAll('.cell.selected');
             if (cells[0] && !this.isEditLinking) {
                 cells[0].scrollIntoView();
             }
+        }
+        else {
             cells.forEach(cell => {
-                cell.classList.add('highlight');
+                cell.classList.remove('highlight');
             });
         }
 
-        const highlighted_cells = document.querySelectorAll('.cell.highlight');
         const tool_linking = document.getElementById('tool-linking');
-        tool_linking.childNodes[0].nodeValue = 'EDIT LINK (' + highlighted_cells.length.toString() + ')';
+        tool_linking.childNodes[0].nodeValue = 'EDIT LINK (' + cells.length.toString() + ')';
     }
 
     private updateFilter = (flag: boolean): void => {
@@ -761,6 +879,13 @@ export class ChatWidget implements IChatWidget {
 
     private handleLinking = (e): void => {
         this.updateInputStatus('save');
+        const cellEl_list = document.querySelectorAll('.cell');
+        cellEl_list.forEach((cellEl, index) => {
+            if(cellEl.classList.contains('highlight')) {
+                const cell_mr = Jupyter.notebook.get_cell(index);
+                cell_mr.select();
+            }
+        });
     }
 
     private handleMagicToggle = (e?): void => {
@@ -812,14 +937,12 @@ export class ChatWidget implements IChatWidget {
         const cell_list = this.getCurrentList();
 
         this.tabWidget.checkTab('version-current');
-        const old_cells = Jupyter.notebook.get_selected_cells();
-        old_cells.forEach(cell => {
-            cell.unselect();
-        });
+
+        const cell_el = document.querySelectorAll('.cell');
         cell_list.forEach(uid => {
             const index = this.uidToId(uid);
-            const cell = Jupyter.notebook.get_cell(index);
-            cell.select();
+            const cell = cell_el[index];
+            cell.classList.add('highlight');
         });
         this.updateCellHighlight(true);
     }
@@ -1092,9 +1215,10 @@ export class ChatWidget implements IChatWidget {
         sheet.innerHTML += '#message-container { height: 370px; background-color: white; overflow:scroll; } \n';
         sheet.innerHTML += '#message-container.searchmode::before {content: "Search Mode"; display: block; font-weight: bold; color: #bbb; padding-top: 5px; text-align: center;}\n';
         sheet.innerHTML += '#message-container.filtermode::before {content: "Filter Mode"; display: block; font-weight: bold; color: #bbb; padding-top: 5px; text-align: center;}\n';
+        sheet.innerHTML += '#message-container.filtermode > li > .message-content {background: #fff6dc}\n';
         sheet.innerHTML += '.select.message-content {cursor: pointer; transition: .4s}\n';
-        sheet.innerHTML += '.selected.message-content {background:#dae5dd; }\n';
         sheet.innerHTML += '.cancel-selection {background: none; border: none; color: #155725ab; float: right; padding: 5px 0; }\n';
+        sheet.innerHTML += '.highlight.message-content {background:#fff6dc; }\n';
 
         sheet.innerHTML += '.select.message-content:hover {background:#dae5dd; }\n';
         sheet.innerHTML += '#input-container { height: 50px; width: 280px; background-color: white; border: solid 2px #ececec; border-radius: 10px; margin:auto;} \n';
@@ -1137,7 +1261,8 @@ export class ChatWidget implements IChatWidget {
         sheet.innerHTML += 'input:checked + #slider { background-color: #dae4dd; } \n';
         sheet.innerHTML += 'input:focus + #slider { box-shadow: 0 0 1px #dae4dd; } \n';
         sheet.innerHTML += 'input:checked + #slider:before { transform: translateX(20px); } \n';
-        sheet.innerHTML += '.cell.highlight {background: #e8f1eb;} \n';
+        sheet.innerHTML += '.cell.highlight {background: #fff6dc;} \n';
+        sheet.innerHTML += '.cell.highlight.selected {background: #e8f1eb}\n';
 
         sheet.innerHTML += '[data-title] {position: relative;}\n';
         sheet.innerHTML += '[data-title]:hover::before {content: attr(data-title);position: absolute;bottom: -30px;display: inline-block;padding: 3px 6px;border-radius: 2px;background: #000;color: #fff;font-size: 10px;font-family: sans-serif;white-space: nowrap;}\n';
