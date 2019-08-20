@@ -1,5 +1,6 @@
 import { Cell, IDiffWidget, Notebook } from "types";
 import * as resemble from "../external/resemble";
+import { AnnotationWidget } from "./annotationWidget";
 
 export class DiffWidget implements IDiffWidget {
     public container: HTMLElement;
@@ -190,6 +191,8 @@ export class DiffWidget implements IDiffWidget {
     private createOutputUnit = (cell, cell_container, has_image_diff: boolean = false) => {
         const output_wrapper = document.createElement('div');
         output_wrapper.classList.add('output_wrapper');
+        cell_container.appendChild(output_wrapper);
+    
         if (cell.outputs) {
             cell.outputs.forEach((output, output_index) => {
                 const outputEl = document.createElement('div');
@@ -248,9 +251,13 @@ export class DiffWidget implements IDiffWidget {
                 }
                 outputEl.appendChild(output_area);
                 output_wrapper.appendChild(outputEl);
+                if(output.hasOwnProperty('metadata')) {
+                    if(output.metadata.hasOwnProperty('annotation')) {
+                        new AnnotationWidget(null, null, output.metadata, output_subarea);
+                    }
+                }
             });
         }
-        cell_container.appendChild(output_wrapper);
     }
 
     private isImageDiff = (new_cell: Cell, old_cell: Cell): boolean => {

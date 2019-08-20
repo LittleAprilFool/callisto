@@ -8,13 +8,20 @@ export class AnnotationWidget implements IAnnotationWidget {
     private clearTool: HTMLButtonElement;
     private chatCallback: any;
 
-    constructor(private cell: any, private updateFunc: (recall: any)=> void, private init_data: any) {
+    constructor(private cell: any, private updateFunc: (recall: any)=> void, private init_data: any, private container?: any) {
+        if(this.container) {
+            this.initStaticView();
+            return;
+        }
+        
         if(!this.checkValid()) return null;
         this.initView();
     }
 
     public reloadCanvas = (data): void => {
-        if(data) this.canvas.loadFromJSON(data.annotation, this.canvas.renderAll.bind(this.canvas));
+        if(data) {
+            this.canvas.loadFromJSON(data.annotation, this.canvas.renderAll.bind(this.canvas));
+        }
     }
 
     public bindChatAction = (callback): void => {
@@ -40,36 +47,65 @@ export class AnnotationWidget implements IAnnotationWidget {
         }
     }
 
+    private initStaticView = (): void => {
+        this.container.setAttribute('style', 'position: relative; padding:unset');
+        const canvasContainer = document.createElement('div');
+        this.container.appendChild(canvasContainer);
+        canvasContainer.setAttribute('style', 'position:absolute; width: 100%; height:100%; top:0');
+        canvasContainer.setAttribute('id', 'annotation-container');        
+        
+        const canvasEl = document.createElement('canvas');
+        canvasEl.setAttribute('id', 'annotation-canvas');
+        canvasContainer.appendChild(canvasEl);
+
+        this.canvas = new (fabric as any).Canvas(canvasEl, {
+            width: this.container.offsetWidth,
+            height: this.container.offsetHeight,
+        });
+
+        this.reloadCanvas(this.init_data);
+        this.canvas.selection = false;
+        this.canvas.hoverCursor = 'arrow';
+        this.canvas.forEachObject(o => {
+            o.selectable = false;
+        });
+    }
+
     private initView = (): void => {
         // init canvas container
         const [canvasEl, canvasContainer] = this.initCanvasContainer();
 
         // init fabric canvas
-        this.canvas = new (fabric as any).Canvas(canvasEl, {
-            width: canvasContainer.offsetWidth,
-            height: canvasContainer.offsetHeight,
-        });
-        if(this.cell.metadata.annotation) {
-            this.canvas.loadFromJSON(this.cell.metadata.annotation, this.canvas.renderAll.bind(this.canvas));
-        }
-        this.canvas.freeDrawingBrush.width = 4;
-        this.canvas.on('mouse:up', this.handleMouseUp);
-
-        // init paint tool
-        this.initToolContainer();
-        this.reloadCanvas(this.init_data);
+        // issue - canvasContainer.offsetHeight is not updated
+        
+        setTimeout(()=> {
+            if(canvasContainer.offsetHeight === 20) {
+                console.log('canvasContainer.offsetHeight is not updated, please refresh the page');
+            }
+            this.canvas = new (fabric as any).Canvas(canvasEl, {
+                width: canvasContainer.offsetWidth,
+                height: canvasContainer.offsetHeight,
+            });
+    
+            this.canvas.freeDrawingBrush.width = 4;
+            this.canvas.on('mouse:up', this.handleMouseUp);
+    
+            // init paint tool
+            this.initToolContainer();
+            this.reloadCanvas(this.init_data);
+        }, 300);
     }
 
     private initCanvasContainer = (): [HTMLElement, HTMLElement] => {
         const subArea = this.getLastSubArea();
+        subArea.setAttribute('style', 'position: relative; padding:unset');
         const canvasContainer = document.createElement('div');
-        const canvasEl = document.createElement('canvas');
-        canvasContainer.setAttribute('id', 'annotation-container');
-        canvasEl.setAttribute('id', 'annotation-canvas');
-        canvasContainer.appendChild(canvasEl);
         subArea.appendChild(canvasContainer);
         canvasContainer.setAttribute('style', 'position:absolute; width: 100%; height:100%; top:0');
-        subArea.setAttribute('style', 'position: relative; padding:unset');
+        canvasContainer.setAttribute('id', 'annotation-container');
+        const canvasEl = document.createElement('canvas');
+        canvasEl.setAttribute('id', 'annotation-canvas');
+        canvasContainer.appendChild(canvasEl);
 
         return [canvasEl, canvasContainer];
     }

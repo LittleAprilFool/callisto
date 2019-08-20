@@ -20,6 +20,7 @@
       "semicolon": [true, "always"],
       "object-literal-sort-keys": false,
       "no-console": false,
+      "no-unused-expressions": false,
       "prefer-object-spread": false,
       "prefer-conditional-expression": false,
       "curly": [true, "ignore-same-line"],
