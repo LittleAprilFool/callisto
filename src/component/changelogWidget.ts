@@ -39,7 +39,6 @@ export class ChangelogWidget implements IChangelogWidget {
     }
 
     public scrollTo = (timestamp?: number, timestamp1?: number): void => {
-        console.log(timestamp, timestamp1);
         let flag = false;
         if(!timestamp && !timestamp1) {
             this.logContainer.childNodes.forEach(node => {
