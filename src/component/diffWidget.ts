@@ -69,13 +69,13 @@ export class DiffWidget implements IDiffWidget {
 
     private displayDiff = (): void => {
         if(this.type === 'version') {
-            if(this.message) this.addMessage(this.message);
+            if(this.message.scrollMessage) this.addMessage(this.message);
             this.notebook[0].cells.forEach(cell=> {
                 this.addCell(cell, cell);
             });
         }
         else {
-            if(this.message) this.addDiffMessage(this.message);
+            if(this.message.scrollOldMessage) this.addDiffMessage(this.message);
             const new_notebook = this.notebook[0];
             const old_notebook = this.notebook[1];
             const new_uids = [];
@@ -297,7 +297,9 @@ export class DiffWidget implements IDiffWidget {
     private addCell = (new_cell: Cell, old_cell: Cell): void => {
         const cell_container = document.createElement('div');
         cell_container.classList.add('cell');
-        cell_container.id = 'cell-'+new_cell.uid;
+        // console.log(new_cell)
+
+        if (new_cell) cell_container.id = 'cell-'+new_cell.uid;
         this.container.appendChild(cell_container);
 
         this.addCode(new_cell, old_cell, cell_container);

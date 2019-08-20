@@ -1,5 +1,5 @@
 import { SDBDoc } from "sdb-ts";
-import { Changelog, ICellBinding, IChangelogWidget, IChatWidget, ICursorWidget, IDiffTabWidget, INotebookBinding, IUserListWidget, SharedDoc, SharedDocOption, User, MessageLineRef} from "types";
+import { Changelog, ICellBinding, IChangelogWidget, IChatWidget, ICursorWidget, IDiffTabWidget, INotebookBinding, IUserListWidget, SharedDoc, SharedDocOption, User} from "types";
 import { getNotebookMirror, getSafeIndex} from '../action/notebookAction';
 import { getUserName } from '../action/userAction';
 import { generateUUID, getRandomColor, getTime, getTimestamp} from '../action/utils';
@@ -161,6 +161,10 @@ export class NotebookBinding implements INotebookBinding {
 
         if(option.chat && option.annotation) {
             this.chatWidget.bindAnnotationAction(this.annotationHighlight);
+        }
+
+        if(option.chat && option.changelog) {
+            this.chatWidget.bindChangelogAction(this.changelogWidget.scrollTo);
         }
     }
 

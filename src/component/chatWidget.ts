@@ -44,6 +44,7 @@ export class ChatWidget implements IChatWidget {
     private lastCursor: Cursor;
     private cursorCallback: any;
     private annotationCallback: any;
+    private changelogCallback: any;
     private currentAnnotationHighlight: any;
     private sender: User;
     private messageList: any;
@@ -93,6 +94,10 @@ export class ChatWidget implements IChatWidget {
 
     public bindAnnotationAction = (callback): void => {
         this.annotationCallback = callback;
+    }
+
+    public bindChangelogAction = (callback): void => {
+        this.changelogCallback = callback;
     }
 
     public onSelectAnnotation = (cell_index: number, object_index: number): void => {
@@ -523,6 +528,8 @@ export class ChatWidget implements IChatWidget {
         // change UI
         this.tabWidget.checkTab('version-current');
         e.currentTarget.classList.toggle('select');
+        // const timestamp_str = e.currentTarget.lastChild.getAttribute('timestamp');
+        // this.changelogCallback(parseInt(timestamp_str, 0));
         this.updateInputStatus();
     }
 
@@ -651,16 +658,24 @@ export class ChatWidget implements IChatWidget {
                         if (!c.classList.contains('selected')) c.classList.remove('highlight');
                     });
                 }
+                this.changelogCallback();
                 break;
             case 1:
+                const timestamp_str = ((selected_messages[0] as HTMLElement).lastChild as HTMLElement).getAttribute('timestamp');
+                this.changelogCallback(parseInt(timestamp_str, 0));
                 snapshot.setAttribute('style', 'display: block');
                 this.handleLinkingDisplay();
                 break;
             case 2:
+                const timestamp_str0 = ((selected_messages[0] as HTMLElement).lastChild as HTMLElement).getAttribute('timestamp');
+                const timestamp_str1 = ((selected_messages[1] as HTMLElement).lastChild as HTMLElement).getAttribute('timestamp');
+
+                this.changelogCallback(parseInt(timestamp_str0, 0), parseInt(timestamp_str1, 0));
                 diff.setAttribute('style', 'display: block');
                 this.handleLinkingDisplay();
                 break;
             default:
+                this.changelogCallback();
                 other.setAttribute('style', 'display: block');
                 this.handleLinkingDisplay();
                 break;

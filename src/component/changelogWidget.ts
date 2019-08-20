@@ -38,6 +38,48 @@ export class ChangelogWidget implements IChangelogWidget {
         }
     }
 
+    public scrollTo = (timestamp?: number, timestamp1?: number): void => {
+        console.log(timestamp, timestamp1);
+        let flag = false;
+        if(!timestamp && !timestamp1) {
+            this.logContainer.childNodes.forEach(node => {
+                const node_el = node as HTMLElement;
+                if (node_el.classList.contains('highlight')) node_el.classList.remove('highlight');
+            });
+        }
+        if(timestamp && !timestamp1) {
+            this.logContainer.childNodes.forEach(node => {
+                const node_el = node as HTMLElement;
+                if (node_el.classList.contains('highlight')) node_el.classList.remove('highlight');
+                const ts_str = node_el.getAttribute('timestamp');
+                const ts = parseInt(ts_str, 0);
+                if (ts >= timestamp) {
+                    node_el.classList.add('highlight');
+                    if (!flag) {
+                        node_el.scrollIntoView();
+                        flag = true;
+                    }
+                }
+            });
+        }
+        if(timestamp && timestamp1) {
+            this.logContainer.childNodes.forEach(node => {
+                const node_el = node as HTMLElement;
+                if (node_el.classList.contains('highlight')) node_el.classList.remove('highlight');
+                const ts_str = node_el.getAttribute('timestamp');
+                const ts = parseInt(ts_str, 0);
+                if (ts >= timestamp && ts <= timestamp1) {
+                    node_el.classList.add('highlight');
+                    if (!flag) {
+                        node_el.scrollIntoView();
+                        flag = true;
+                    }
+                }
+            });
+        }
+
+    }
+
     private initContainer = (): void => {
         this.container = document.createElement('div');
         // this.container.classList.add('left-toolbox');
@@ -117,6 +159,8 @@ export class ChangelogWidget implements IChangelogWidget {
         sheet.innerHTML += '.log-item:hover {background: #f5f5f5} \n';
         sheet.innerHTML += '.log-item.disable {color: #ccc; cursor: default; background: none; text-align: center; margin:0px 0px; padding: 2px 0px;} \n';
         sheet.innerHTML += '.log-item.disable:hover {background: none} \n';
+        sheet.innerHTML += '.log-item.highlight {background: #fff6dc} \n';
+
         sheet.innerHTML += '.log-user-name {font-size: 10px; font-weight: bold; display: inline-block}\n';
         sheet.innerHTML += '.log-time {font-size: 10px; display:inline-block; float: right; color: #ccc}\n';
 
@@ -201,10 +245,19 @@ export class ChangelogWidget implements IChangelogWidget {
         const label = 'diff-'+new_timestamp.toString() + '-'+old_timestamp.toString();
         if(this.tabWidget.checkTab(label)) return;
         
-        const title = e.target.innerHTML;
+        const title = e.currentTarget.innerHTML;
+        const logEl = e.currentTarget;
+
+        const highlightMessage = () => {
+            logEl.classList.add('highlight');
+        };
+
+        const unhighlightMessage = () => {
+            logEl.classList.remove('highlight');
+        };
 
         this.tabWidget.addTab(label, 'diff', new_timestamp);
-        this.tabWidget.addDiff(new_timestamp, old_timestamp, title);
+        this.tabWidget.addDiff(new_timestamp, old_timestamp, title, {highlightMessage, unhighlightMessage});
 
         // send log
         const log = {

@@ -182,6 +182,7 @@ interface IChatWidget {
     onSelectDiff(label: string): void;
     bindCursorAction(callback: any): void;
     bindAnnotationAction(callback: any): void;
+    bindChangelogAction(callback: any): void;
 }
 
 interface ICursorWidget {
@@ -211,6 +212,7 @@ interface IDiffTabWidget {
 interface IChangelogWidget {
     reload(): void;
     destroy(): void;
+    scrollTo(timestamp?: number, timestamp1?: number): void;
 }
 
 interface IDiffWidget {
