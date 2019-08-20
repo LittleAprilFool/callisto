@@ -739,8 +739,11 @@ export class ChatWidget implements IChatWidget {
         if (selected_messages.length > 0) {
             const log = {
                 'log_type': 'select_messages',
-                'selected_count': selected_messages.length
+                'message_ids': []
             };
+            selected_messages.forEach(message => {
+                log['message_ids'].push((message.lastChild as HTMLDivElement).getAttribute('message-id'));
+            });
             this.notebook.sendLog(log);
         }
     }
