@@ -9,6 +9,10 @@ export class AnnotationWidget implements IAnnotationWidget {
     private chatCallback: any;
 
     constructor(private cell: any, private updateFunc: (recall: any)=> void, private init_data: any, private container?: any) {
+        if ((window as any).study_condition === 'control') {
+            return;
+        }
+        
         if(this.container) {
             this.initStaticView();
             return;

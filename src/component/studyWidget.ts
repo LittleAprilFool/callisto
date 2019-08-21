@@ -34,10 +34,10 @@ export class StudyWidget {
         conditions.style.display = 'inline-block';
         const condition_experiment = document.createElement('option');
         condition_experiment.value = 'experiment';
-        condition_experiment.innerText = 'experiment';
+        condition_experiment.innerText = 'A';
         const condition_control = document.createElement('option');
         condition_control.value = 'control';
-        condition_control.innerText = 'control';
+        condition_control.innerText = 'B';
         conditions.appendChild(condition_experiment);
         conditions.appendChild(condition_control);
         conditions.value = (window as any).study_condition;
