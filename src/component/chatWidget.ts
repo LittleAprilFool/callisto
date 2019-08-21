@@ -15,6 +15,7 @@ const options = {
     item: 'message-item',
     valueNames: [ 
         'message-sender', 
+        // { name: 'message-sender', attr: 'message-sender'},
         'message-time', 
         'message-content',
         { name: 'message-id', attr: 'message-id' },

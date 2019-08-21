@@ -36,6 +36,8 @@ export class DiffTabWidget implements IDiffTabWidget {
             });
             this.diffList = [];
             this.initContainer();
+            const notebook_widget = document.querySelector('#notebook-container');
+            notebook_widget.setAttribute('style', 'display:block');
         }
     }
     public checkTab = (label: string): boolean => {

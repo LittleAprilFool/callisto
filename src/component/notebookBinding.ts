@@ -187,7 +187,7 @@ export class NotebookBinding implements INotebookBinding {
         this.diffTabWidget.reload();
         this.sharedCells.forEach(cell => {
             cell.annotationWidget.reload();
-        })
+        });
     }
 
     public sendLog(data: object): void {
@@ -312,7 +312,7 @@ export class NotebookBinding implements INotebookBinding {
     private applyOp = (op): void => {
         this.suppressChanges = true;
         const opType = checkOpType(op);
-        // if(opType!=='Else' && opType!=='EditCell') console.log(opType, op);
+        if(opType!=='Else' && opType!=='EditCell') console.log(opType, op);
         switch(opType) {
             case 'InsertCell': {
                 const {p, li} = op;

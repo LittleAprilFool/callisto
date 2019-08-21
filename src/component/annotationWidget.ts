@@ -30,9 +30,9 @@ export class AnnotationWidget implements IAnnotationWidget {
         }
         else {
             if(this.container) {
-                if(this.container.childNodes.length > 1){
-                    this.container.removeChild(this.container.childNodes[2])
-                    this.container.removeChild(this.container.childNodes[1])
+                if(this.container.childNodes.length > 1) {
+                    this.container.removeChild(this.container.childNodes[2]);
+                    this.container.removeChild(this.container.childNodes[1]);
                 }
             }
         }
