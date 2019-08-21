@@ -91,6 +91,7 @@ interface Message {
 
 interface MessageItem {
     'message-sender': string,
+    'message-color': string,
     'message-content': string,
     'message-time': string,
     'message-id': string,

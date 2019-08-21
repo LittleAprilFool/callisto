@@ -15,6 +15,7 @@ const options = {
     item: 'message-item',
     valueNames: [ 
         'message-sender', 
+        { name: 'message-color', attr:'message-color'},
         // { name: 'message-sender', attr: 'message-sender'},
         'message-time', 
         'message-content',
@@ -373,6 +374,16 @@ export class ChatWidget implements IChatWidget {
         return id;
     }
 
+    private refreshColor = (): void => {
+        const message_sender_list = document.querySelectorAll('.message-color');
+        message_sender_list.forEach(sender => {
+            const senderEl = sender as HTMLElement;
+            if(senderEl.style.color === '') {
+                senderEl.style.color = senderEl.getAttribute('message-color');
+            }
+        });
+    }
+
     private handleSnapshot = (e): void => {
         const cell_list = this.getCurrentList();
         const selected_messages = document.querySelectorAll('.message-wrapper.select');
@@ -629,6 +640,7 @@ export class ChatWidget implements IChatWidget {
     
         const message_info: MessageItem = {
             'message-sender': message.sender.username,
+            'message-color': message.sender.color,
             'message-content': formated_text,
             'message-time': message.time,
             'message-id': index.toString(),
@@ -648,6 +660,7 @@ export class ChatWidget implements IChatWidget {
         const last = this.messageContainer.lastChild as HTMLElement;
         if(last) last.scrollIntoView();
         this.updateListener();
+        this.refreshColor();
     }
 
     private updateMessageList = (message: Message, id: number): void => {
@@ -656,6 +669,7 @@ export class ChatWidget implements IChatWidget {
         const last = this.messageContainer.lastChild as HTMLElement;
         if(last) last.scrollIntoView();
         this.updateListener();
+        this.refreshColor();
     }
 
     private notifyNewMessage = (flag: boolean): void => {
@@ -1072,6 +1086,8 @@ export class ChatWidget implements IChatWidget {
 
         const message_sender = document.createElement('div');
         message_sender.classList.add('message-sender');
+        message_sender.classList.add('message-color');
+
         
         const message_time = document.createElement('div');
         message_time.classList.add('message-time');
