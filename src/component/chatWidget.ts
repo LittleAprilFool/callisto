@@ -328,9 +328,9 @@ export class ChatWidget implements IChatWidget {
                 const label = 'version-'+timestamp.toString();
                 if(this.tabWidget.checkTab(label)) return;
     
-                this.tabWidget.addTab(label, 'version', timestamp);
-                const title = timeAgo(timestamp);
-                this.tabWidget.addVersion(timestamp, title);
+                // this.tabWidget.addTab(label, 'version', timestamp);
+                // const title = timeAgo(timestamp);
+                // this.tabWidget.addVersion(timestamp, title);
                 // this.tabWidget.checkTab('version-current');
                 // const cuid = ref1.slice(1);
                 // const cell_index = this.uidToId(cuid);
