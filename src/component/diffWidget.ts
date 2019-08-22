@@ -33,6 +33,8 @@ export class DiffWidget implements IDiffWidget {
                 });
             }
         }
+        const diff = document.querySelector('.diff-cell-container');
+        diff.scrollIntoView();
     }
 
     public hide = (): void => {

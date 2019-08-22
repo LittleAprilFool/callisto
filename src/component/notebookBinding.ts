@@ -565,6 +565,7 @@ export class NotebookBinding implements INotebookBinding {
             cellEl_select.classList.add('filtermode');
         }
         this.chatWidget.onSelectCell(info.cell);
+        this.changelogWidget.onSelectCell(info.cell);
     }
 
     private setHost = (): void => {

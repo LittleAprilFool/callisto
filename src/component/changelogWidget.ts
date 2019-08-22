@@ -80,7 +80,16 @@ export class ChangelogWidget implements IChangelogWidget {
         }
     }
 
-    public toggleFilter = (flag): void => {
+    public onSelectCell = (cell): void => {
+        if ((window as any).study_condition === 'control') return;
+        if (this.isFilter) return;
+
+        this.cleanHighlight(false);
+        this.addHighlight();
+
+    }
+
+    public toggleFilter = (flag: boolean): void => {
 
         const log_thumbnail = document.querySelectorAll('.log-thumbnail');
         const log_item = document.querySelectorAll('.log-item');
@@ -100,14 +109,14 @@ export class ChangelogWidget implements IChangelogWidget {
             log_thumbnail.forEach(item => {
                 const i = item as HTMLElement;
                 i.style.display = 'block';
-
-                // if (i.classList.contains('highlight')) i.classList.remove('highlight');
             });
+
             changelog_container.classList.remove('filtermode');
             changelog_trigger.classList.remove('filtermode');
 
             const old_message = document.querySelector('#nolog');
             if(old_message) old_message.parentElement.removeChild(old_message);
+            this.addHighlight();
         }
         else {
             changelog_trigger.classList.add('filtermode');
@@ -118,42 +127,70 @@ export class ChangelogWidget implements IChangelogWidget {
     }
 
     public onFilter = (cell?): void => {
+        this.addHighlight();
+    }
+
+    private addHighlight = (): void => {
+        const cell = Jupyter.notebook.get_selected_cell();
+        const uid = cell.uid;
         const log_thumbnail = document.querySelectorAll('.log-thumbnail');
         const log_item = document.querySelectorAll('.log-item');
         const changelog_container = document.querySelector('#changelog-container') as HTMLElement;
         const old_message = document.querySelector('#nolog');
         if(old_message) old_message.parentElement.removeChild(old_message);
-        const uid = cell.uid;
-        let flag = false;
+        
+        if(this.isFilter) {
+            let flag = false;
 
+            log_item.forEach(item => {
+                const i = item as HTMLElement;
+                i.style.display = 'none';
+                if(i.classList.contains('highlight')) i.classList.remove('highlight');
+            });
+            log_thumbnail.forEach(item => {
+                const i = item as HTMLElement;
+                i.style.display = 'none';
+                // if (i.classList.contains('highlight')) i.classList.remove('highlight');
+                if (i.getAttribute('cell-uid') === uid) {
+                    // i.classList.add('highlight');
+                    i.style.display = 'block';
+                    i.parentElement.style.display = 'block';
+                    i.parentElement.classList.add('highlight');
+                    flag = true;
+                }
+            });
+            changelog_container.classList.add('filtermode');
+            if(!flag) {
+                const message = document.createElement('div');
+                message.innerText = 'No relevant changelog items';
+                message.id = 'nolog';
+                const log_container = document.querySelector('#log-container');
+                log_container.appendChild(message);
+            }
+        }
+        else {
+            log_thumbnail.forEach(item => {
+                const i = item as HTMLElement;
+                if (i.getAttribute('cell-uid') === uid) {
+                    i.parentElement.classList.add('highlight');
+                }
+            });
+        }
+    }
+
+    private cleanHighlight = (flag: boolean): void => {
+        const log_item = document.querySelectorAll('.log-item');
         log_item.forEach(item => {
             const i = item as HTMLElement;
-            i.style.display = 'none';
             if(i.classList.contains('highlight')) i.classList.remove('highlight');
         });
+        if(flag) {
+            const messageEl_list = document.querySelectorAll('.message-content');
 
-        // add highlight
-        log_thumbnail.forEach(item => {
-            const i = item as HTMLElement;
-            i.style.display = 'none';
-            // if (i.classList.contains('highlight')) i.classList.remove('highlight');
-            if (i.getAttribute('cell-uid') === uid) {
-                // i.classList.add('highlight');
-                i.style.display = 'block';
-                i.parentElement.style.display = 'block';
-                i.parentElement.classList.add('highlight');
-                flag = true;
-            }
-        });
-        changelog_container.classList.add('filtermode');
-        if(!flag) {
-            const message = document.createElement('div');
-            message.innerText = 'No relevant changelog items';
-            message.id = 'nolog';
-            const log_container = document.querySelector('#log-container');
-            log_container.appendChild(message);
+            messageEl_list.forEach(messageEl => {
+                messageEl.classList.remove('highlight');
+            });
         }
-
     }
 
     private initContainer = (): void => {
@@ -330,6 +367,7 @@ export class ChangelogWidget implements IChangelogWidget {
         const logEl = e.currentTarget;
 
         const highlightMessage = () => {
+            this.cleanHighlight(true);
             logEl.classList.add('highlight');
         };
 

@@ -219,6 +219,7 @@ interface IChangelogWidget {
     destroy(): void;
     scrollTo(timestamp?: number, timestamp1?: number): void;
     onFilter(cell?:Cell): void;
+    onSelectCell(cell: any): void;
     toggleFilter(flag: boolean): void;
 }
 

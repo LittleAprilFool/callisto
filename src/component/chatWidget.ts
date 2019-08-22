@@ -58,7 +58,6 @@ export class ChatWidget implements IChatWidget {
 
         // disable Jupyter notebook shortcuts while in the Chat
         Jupyter.keyboard_manager.register_events(this.container);
-        // Jupyter.notebook.events.on('select.Cell', this.onSelectCell);
         this.doc.subscribe(this.onSDBDocEvent);
         this.initMouseListener();
         this.messageBox.initQuill();
@@ -67,7 +66,6 @@ export class ChatWidget implements IChatWidget {
 
     public destroy = (): void => {
         this.container.parentNode.removeChild(this.container);
-        // Jupyter.notebook.events.off('select.Cell', this.onSelectCell);
         this.doc.unsubscribe(this.onSDBDocEvent);
     }
 
@@ -169,9 +167,12 @@ export class ChatWidget implements IChatWidget {
     }
 
     public onSelectCell = (cell): void => {
+        if ((window as any).study_condition === 'control') return;
+
         const id = getSafeIndex(cell);
         const cellEl_list = document.querySelectorAll('.cell');
         const cellEl_select = cellEl_list[id];
+
         if(this.isFold) return;
         if(this.isSelect) {
             this.messageBox.appendRef("cell", {
@@ -197,6 +198,10 @@ export class ChatWidget implements IChatWidget {
                 }
             });
         }
+
+        if(!this.isFilter && !this.isSelect && !this.isEditLinking ) {
+            this.unfilterHighlight();
+        }
     }
 
     public toggleFilter = (flag: boolean): void => {
@@ -215,12 +220,49 @@ export class ChatWidget implements IChatWidget {
                 const new_focus = message_all[parseInt(focused_id, 0) + 1 ];
                 new_focus.scrollIntoView();
             }
+            this.unfilterHighlight();
         }
         else {
             this.loadFilteredMessages();
             this.updateCellHighlight(true);
             this.container.classList.add('filtermode');
         }
+    }
+
+    private cleanHighlight = (flag: boolean): void => { 
+        const messageEl_list = document.querySelectorAll('.message-content');
+
+        messageEl_list.forEach(messageEl => {
+            messageEl.classList.remove('highlight');
+        });
+        if(flag) {
+            const log_item = document.querySelectorAll('.log-item');
+            log_item.forEach(item => {
+                const i = item as HTMLElement;
+                if(i.classList.contains('highlight')) i.classList.remove('highlight');
+            });
+        }
+    }
+
+    private unfilterHighlight = (): void => {
+        const cell = Jupyter.notebook.get_selected_cell();
+        const cell_index = cell.uid;
+        const chat_data = this.doc.getData();
+        const filter_list = [];
+        const messageEl_list = document.querySelectorAll('.message-content');
+
+        this.cleanHighlight(false);
+
+        chat_data.forEach((element, index) => {
+            const message: Message = element;
+            if(message.cells.includes(cell_index)) {
+                filter_list.push(index);
+            }
+        });
+
+        filter_list.forEach(message_id => {
+            messageEl_list[message_id + 1].classList.add('highlight');
+        });
     }
 
     private onSDBDocEvent = (type, ops, source): void => {
@@ -350,6 +392,7 @@ export class ChatWidget implements IChatWidget {
                     message.classList.remove('highlight');
                 };
                 const highlightMessage = () => {
+                    this.cleanHighlight(true);
                     message.classList.add('highlight');
                 };
 
@@ -408,6 +451,7 @@ export class ChatWidget implements IChatWidget {
             selected_message_child.classList.remove('highlight');
         };
         const highlightMessage = () => {
+            this.cleanHighlight(true);
             selected_message_child.classList.add('highlight');
         };
 
@@ -452,6 +496,7 @@ export class ChatWidget implements IChatWidget {
         };
 
         const highlightMessage = () => {
+            this.cleanHighlight(true);
             selected_message_child1.classList.add('highlight');
             selected_message_child2.classList.add('highlight');
         };
@@ -1235,7 +1280,7 @@ export class ChatWidget implements IChatWidget {
         sheet.innerHTML += '.select.message-content {cursor: pointer; transition: .4s}\n';
         sheet.innerHTML += '.cancel-selection {background: none; border: none; color: #155725ab; float: right; padding: 5px 0; }\n';
         sheet.innerHTML += '.highlight.message-content {background:#e7f1e9; }\n';
-        sheet.innerHTML += '.filtermode .highlight.message-content {background: #fada83}\n';
+        sheet.innerHTML += '.filtermode .highlight.message-content {background: #fff6dc}\n';
 
         sheet.innerHTML += '.select.message-content:hover {background:#dae5dd; }\n';
         sheet.innerHTML += '#input-container { height: 50px; width: 280px; background-color: white; border: solid 2px #ececec; border-radius: 10px; margin:auto;} \n';
