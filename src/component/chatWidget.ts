@@ -35,7 +35,6 @@ export class ChatWidget implements IChatWidget {
     private container: HTMLElement;
     private messageBox: MessageBox;
     private inputButton: HTMLButtonElement;
-    private filterContainer: HTMLElement;
     private isFold: boolean = true;
     private isRead: boolean = true;
     private isEditLinking: boolean = false;
@@ -59,7 +58,7 @@ export class ChatWidget implements IChatWidget {
 
         // disable Jupyter notebook shortcuts while in the Chat
         Jupyter.keyboard_manager.register_events(this.container);
-        Jupyter.notebook.events.on('select.Cell', this.onSelectCell);
+        // Jupyter.notebook.events.on('select.Cell', this.onSelectCell);
         this.doc.subscribe(this.onSDBDocEvent);
         this.initMouseListener();
         this.messageBox.initQuill();
@@ -68,7 +67,7 @@ export class ChatWidget implements IChatWidget {
 
     public destroy = (): void => {
         this.container.parentNode.removeChild(this.container);
-        Jupyter.notebook.events.off('select.Cell', this.onSelectCell);
+        // Jupyter.notebook.events.off('select.Cell', this.onSelectCell);
         this.doc.unsubscribe(this.onSDBDocEvent);
     }
 
@@ -165,16 +164,16 @@ export class ChatWidget implements IChatWidget {
         }
     }
 
-    private onSelectCell = (evt, info): void => {
-        const cell = info.cell;
-        const id = getSafeIndex(cell);
+    public onFilter = (cell): void => {
+        this.loadFilteredMessages();
+    }
 
+    public onSelectCell = (cell): void => {
+        const id = getSafeIndex(cell);
         const cellEl_list = document.querySelectorAll('.cell');
         const cellEl_select = cellEl_list[id];
-
         if(this.isFold) return;
         if(this.isSelect) {
-            const cuid = info.cell.uid;
             this.messageBox.appendRef("cell", {
                 type: "CELL",
                 cell_index: id
@@ -198,26 +197,24 @@ export class ChatWidget implements IChatWidget {
                 }
             });
         }
+    }
+
+    public toggleFilter = (flag: boolean): void => {
+        this.isFilter = flag;
+        // const head_container = document.querySelector('#head-container') as HTMLElement;
+        this.tabWidget.checkTab('version-current');
+
+        if(!this.isFilter) {
+            this.messageList.filter();
+            this.updateCellHighlight(false);
+            // head_container.classList.remove('filtermode');
+            this.container.classList.remove('filtermode');
+        }
         else {
-            // display filter
-            if(this.isFilter) {
-                this.loadFilteredMessages();
-                cellEl_list.forEach(cell_el => {
-                    if (cell_el.classList.contains('highlight')) cell_el.classList.remove('highlight');
-                });
-                cellEl_select.classList.add('highlight');
-                // this.updateCellHighlight(true);
-            }
-            // else {
-            //     const selected_cells = Jupyter.notebook.get_selected_cells();
-            //     if (selected_cells.length > 1) {
-            //         selected_cells.forEach(c => {
-            //             c.unselect();
-            //         });
-            //         cell.select();
-            //     }
-            //     this.updateCellHighlight(false);
-            // }
+            this.loadFilteredMessages();
+            this.updateCellHighlight(true);
+            // head_container.classList.add('filtermode');
+            this.container.classList.add('filtermode');
         }
     }
 
@@ -476,41 +473,13 @@ export class ChatWidget implements IChatWidget {
     private handleFolding = (): void => {
         this.isFold = !this.isFold;
         if(this.isFold) {
-            // fold container, turn off filter
+            // fold container
             this.container.style.bottom = '-460px';
-            this.filterContainer.style.display = 'none';
-            if(this.isFilter) {
-                // turn off filter
-                this.updateFilter(false);
-                this.updateTitle('chat');
-                this.updateCellHighlight(false);
-            }
         }
         else {
             this.container.style.bottom = '20px';
             if(!this.isRead) this.notifyNewMessage(false);
-            this.filterContainer.style.display = 'inline-block';
         }
-    }
-
-    private handleFiltering = (e): void => {
-        
-        this.isFilter = !this.isFilter;
-        const filter_button = document.querySelector('#tool-filter');
-        filter_button.classList.toggle('active');
-        const message_container = document.querySelector('#message-container') as HTMLElement;
-
-        if(this.isFilter) {
-            this.loadFilteredMessages();
-            this.updateCellHighlight(true);
-            message_container.classList.add('filtermode');
-        }
-        else {
-            this.messageList.filter();
-            this.updateCellHighlight(false);
-            message_container.classList.remove('filtermode');
-        }
-        this.tabWidget.checkTab('version-current');
     }
 
     private handleSubmitting = (): void => {
@@ -590,8 +559,6 @@ export class ChatWidget implements IChatWidget {
         // change UI
         this.tabWidget.checkTab('version-current');
         e.currentTarget.classList.toggle('select');
-        // const timestamp_str = e.currentTarget.lastChild.getAttribute('timestamp');
-        // this.changelogCallback(parseInt(timestamp_str, 0));
         this.updateInputStatus();
     }
 
@@ -833,12 +800,6 @@ export class ChatWidget implements IChatWidget {
         tool_linking.childNodes[0].nodeValue = 'EDIT LINK (' + cells.length.toString() + ')';
     }
 
-    private updateFilter = (flag: boolean): void => {
-        this.isFilter = flag;
-        const input = this.filterContainer.firstChild as HTMLInputElement;
-        input.checked = flag;
-    }
-
     private updateListener = (): void => {
         this.updateLineRefListener();
         this.updateSelectionListener();
@@ -899,13 +860,16 @@ export class ChatWidget implements IChatWidget {
         selected_messages.forEach(message => {
             message.classList.remove('select');
         });
+        this.updateInputStatus();
+
+        if(this.isFilter) return;
+
         const old_cells = Jupyter.notebook.get_selected_cells();
         old_cells.forEach(cell => {
             cell.unselect();
         });
 
-        if(!this.isFilter) this.updateCellHighlight(false);
-        this.updateInputStatus();
+        this.updateCellHighlight(false);
     }
 
     private getCurrentList = (): string[] => {
@@ -989,6 +953,7 @@ export class ChatWidget implements IChatWidget {
         const cell_list = this.getCurrentList();
 
         this.tabWidget.checkTab('version-current');
+        if(this.isFilter) return;
 
         const cell_el = document.querySelectorAll('.cell');
         cell_list.forEach(uid => {
@@ -1002,15 +967,15 @@ export class ChatWidget implements IChatWidget {
     private handleSearch = (): void => {
         const input = document.querySelector('#search-input') as HTMLInputElement;
         const keyword = input.value;
-        const message_container = document.querySelector('#message-container') as HTMLElement;
+        // const message_container = document.querySelector('#message-container') as HTMLElement;
         
         if(keyword === '') {
             this.messageList.search();
-            message_container.classList.remove('searchmode');
+            this.messageContainer.classList.remove('searchmode');
         }
         else {
             this.messageList.search(keyword, ['message-content']);
-            message_container.classList.add('searchmode');
+            this.messageContainer.classList.add('searchmode');
         }
     }
 
@@ -1050,14 +1015,7 @@ export class ChatWidget implements IChatWidget {
         search_input.addEventListener('input', this.handleSearch);
         tool_search.appendChild(search_input);
         tool_search.appendChild(search_icon);
-
-        const tool_filter = document.createElement('div');
-        tool_filter.innerHTML = '<i class="fa fa-filter">';
-        tool_filter.classList.add('head-tool');
-        tool_filter.id = 'tool-filter';
-        tool_filter.addEventListener('click', this.handleFiltering);
         tool_container.appendChild(tool_search);
-        if ((window as any).study_condition === 'experiment') tool_container.appendChild(tool_filter);
 
         head_container.appendChild(tool_container);
 
@@ -1249,7 +1207,6 @@ export class ChatWidget implements IChatWidget {
         this.titleContainer = title_container;
         this.inputButton = input_button;
         this.messageContainer = message_container;
-        this.filterContainer = tool_filter;
     }
 
     private initStyle = (): void => {
@@ -1258,21 +1215,22 @@ export class ChatWidget implements IChatWidget {
         sheet.innerHTML += '#notebook.select * {cursor: crosshair}\n';
         sheet.innerHTML += '#chat-container { height: 500px; width: 300px; float:right; margin-right: 50px; position: fixed; bottom: -460px; right: 0px; z-index:100; border-radius:10px; box-shadow: 0px 0px 12px 0px rgba(87, 87, 87, 0.2); background: white;  transition: bottom .5s; } \n';
         sheet.innerHTML += '#head-container { color: #516766; font-weight: bold; text-align: center; background-color: #9dc5a7; border-radius: 10px 10px 0px 0px; } \n';
+        sheet.innerHTML += '.filtermode > #head-container { color: #a78628; background-color: #f9da83}\n';
         sheet.innerHTML += '#tool-container { text-align: center; margin-top: 5px; padding: 5px; background: white; border-bottom: 1px solid #eee}\n';
         sheet.innerHTML += '.tool-button {font-size:10px; margin-left: 8px; display: inline-block; padding: 5px 7px; background: #709578;color: white; border-radius: 3px; cursor: pointer; }\n';
         sheet.innerHTML += '.tool-button i {margin-left: 1px; }\n';
 
         sheet.innerHTML += '.head-tool { height: 22px; margin-right: 10px; border: 1px solid #eee; padding: 0px 10px; display: inline-block}\n';
-        sheet.innerHTML += '#tool-filter.active {background: #dae4dd; color: #516766}\n';
         sheet.innerHTML += '#tool-search input { font-weight: normal; color: #aaa; outline: none; border: none; width: 185px; font-size: 10px; margin-right: 5px;}\n';
         sheet.innerHTML += '#title-container {padding: 8px; cursor: pointer; }\n';
         sheet.innerHTML += '#message-container { height: 370px; background-color: white; overflow:scroll; } \n';
         sheet.innerHTML += '#message-container.searchmode::before {content: "Search Mode"; display: block; font-weight: bold; color: #bbb; padding-top: 5px; text-align: center;}\n';
-        sheet.innerHTML += '#message-container.filtermode::before {content: "Filter Mode"; display: block; font-weight: bold; color: #bbb; padding-top: 5px; text-align: center;}\n';
-        sheet.innerHTML += '#message-container.filtermode > li > .message-content {background: #fff6dc}\n';
+        sheet.innerHTML += '.filtermode #message-container::before {content: "Filter Mode"; display: block; font-weight: bold; color: #bbb; padding-top: 5px; text-align: center;}\n';
+        sheet.innerHTML += '.filtermode .message-content {background: #fff6dc}\n';
         sheet.innerHTML += '.select.message-content {cursor: pointer; transition: .4s}\n';
         sheet.innerHTML += '.cancel-selection {background: none; border: none; color: #155725ab; float: right; padding: 5px 0; }\n';
-        sheet.innerHTML += '.highlight.message-content {background:#fff6dc; }\n';
+        sheet.innerHTML += '.highlight.message-content {background:#e7f1e9; }\n';
+        sheet.innerHTML += '.filtermode .highlight.message-content {background: #fada83}\n';
 
         sheet.innerHTML += '.select.message-content:hover {background:#dae5dd; }\n';
         sheet.innerHTML += '#input-container { height: 50px; width: 280px; background-color: white; border: solid 2px #ececec; border-radius: 10px; margin:auto;} \n';
@@ -1282,9 +1240,13 @@ export class ChatWidget implements IChatWidget {
         sheet.innerHTML += '.input-button.active {color: #9dc5a7;}\n';
         sheet.innerHTML += '.input-button:focus {outline:none}\n';
         sheet.innerHTML += '#chat-title { display: inline; margin-left: 8px; } \n';
+        sheet.innerHTML += '.filtermode .tool-button {background: #a78529;}\n';
+        sheet.innerHTML += '.filtermode .cancel-selection {color: #a78529;}\n';
+        sheet.innerHTML += '.filtermode .tool-linking {display: none}\n';
 
         sheet.innerHTML += '.message-wrapper { list-style: none; padding: 8px 20px; margin: 4px 0px;} \n';
         sheet.innerHTML += '.message-wrapper.select {background: #9dc5a73d;}\n';
+        sheet.innerHTML += '.filtermode .message-wrapper.select {background-color:#ffebb6;}\n';
         sheet.innerHTML += '#message-container {padding: 0px 0px; margin: 0px 0px; }\n';
         sheet.innerHTML += '#message-box strong {font-weight: normal; font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}\n';
         sheet.innerHTML += '.message-sender { display:inline; font-size: 10px; font-weight: bold; } \n';
@@ -1294,6 +1256,10 @@ export class ChatWidget implements IChatWidget {
         sheet.innerHTML += '.tick {float: left; position: relative; top: 3px; left: -12px; color: white; font-size: 15px;}\n';
         sheet.innerHTML += '.message-wrapper:hover .tick {color: #9dc5a73d;}\n';
         sheet.innerHTML += '.message-wrapper.select .tick {color: #9dc5a7;}\n';
+        sheet.innerHTML += '.filtermode .message-wrapper:hover .tick {color:#fff6dc;}\n';
+        sheet.innerHTML += '.filtermode .message-wrapper.select .tick {color:#a78529;}\n';
+
+
 
         sheet.innerHTML += '.line_highlight { background-color: yellow; } \n';
 
@@ -1315,9 +1281,6 @@ export class ChatWidget implements IChatWidget {
         sheet.innerHTML += 'input:checked + #slider { background-color: #dae4dd; } \n';
         sheet.innerHTML += 'input:focus + #slider { box-shadow: 0 0 1px #dae4dd; } \n';
         sheet.innerHTML += 'input:checked + #slider:before { transform: translateX(20px); } \n';
-        sheet.innerHTML += '.cell.highlight {background: #fff6dc;} \n';
-        sheet.innerHTML += '.cell.highlight.selected {background: #e8f1eb}\n';
-
         sheet.innerHTML += '[data-title] {position: relative;}\n';
         sheet.innerHTML += '[data-title]:hover::before {content: attr(data-title);position: absolute;bottom: -30px;display: inline-block;padding: 3px 6px;border-radius: 2px;background: #000;color: #fff;font-size: 10px;font-family: sans-serif;white-space: nowrap;}\n';
         sheet.innerHTML += '[data-title]:hover::after {content: "";position: absolute;bottom: -10px;left: 17px;display: inline-block;color: #fff;border: 8px solid transparent;	border-bottom: 8px solid #000;}\n';

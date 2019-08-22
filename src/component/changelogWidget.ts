@@ -12,6 +12,7 @@ export class ChangelogWidget implements IChangelogWidget {
     private container: HTMLElement;
     private logContainer: HTMLElement;
     private isFold: boolean = true;
+    private isFilter: boolean = false;
 
     constructor(private doc: any, private tabWidget: IDiffTabWidget, private notebook: NotebookBinding) {
         this.initContainer();
@@ -39,6 +40,7 @@ export class ChangelogWidget implements IChangelogWidget {
     }
 
     public scrollTo = (timestamp?: number, timestamp1?: number): void => {
+        if(this.isFilter) return;
         let flag = false;
         if(!timestamp && !timestamp1) {
             this.logContainer.childNodes.forEach(node => {
@@ -76,6 +78,81 @@ export class ChangelogWidget implements IChangelogWidget {
                 }
             });
         }
+    }
+
+    public toggleFilter = (flag): void => {
+
+        const log_thumbnail = document.querySelectorAll('.log-thumbnail');
+        const log_item = document.querySelectorAll('.log-item');
+        const changelog_container = document.querySelector('#changelog-container') as HTMLElement;
+        const changelog_trigger = document.querySelector('#changelog-trigger') as HTMLElement;
+    
+        this.isFilter = flag;
+
+        if(!this.isFilter) {
+            log_item.forEach(item => {
+                const i = item as HTMLElement;
+                i.style.display = 'block';
+                if(i.classList.contains('highlight')) i.classList.remove('highlight');
+            });
+
+            // disable highlight
+            log_thumbnail.forEach(item => {
+                const i = item as HTMLElement;
+                i.style.display = 'block';
+
+                // if (i.classList.contains('highlight')) i.classList.remove('highlight');
+            });
+            changelog_container.classList.remove('filtermode');
+            changelog_trigger.classList.remove('filtermode');
+
+            const old_message = document.querySelector('#nolog');
+            if(old_message) old_message.parentElement.removeChild(old_message);
+        }
+        else {
+            changelog_trigger.classList.add('filtermode');
+            changelog_container.classList.add('filtermode');
+            const cell = Jupyter.notebook.get_selected_cell();
+            if(cell) this.onFilter(cell);
+        }
+    }
+
+    public onFilter = (cell?): void => {
+        const log_thumbnail = document.querySelectorAll('.log-thumbnail');
+        const log_item = document.querySelectorAll('.log-item');
+        const changelog_container = document.querySelector('#changelog-container') as HTMLElement;
+        const old_message = document.querySelector('#nolog');
+        if(old_message) old_message.parentElement.removeChild(old_message);
+        const uid = cell.uid;
+        let flag = false;
+
+        log_item.forEach(item => {
+            const i = item as HTMLElement;
+            i.style.display = 'none';
+            if(i.classList.contains('highlight')) i.classList.remove('highlight');
+        });
+
+        // add highlight
+        log_thumbnail.forEach(item => {
+            const i = item as HTMLElement;
+            i.style.display = 'none';
+            // if (i.classList.contains('highlight')) i.classList.remove('highlight');
+            if (i.getAttribute('cell-uid') === uid) {
+                // i.classList.add('highlight');
+                i.style.display = 'block';
+                i.parentElement.style.display = 'block';
+                i.parentElement.classList.add('highlight');
+                flag = true;
+            }
+        });
+        changelog_container.classList.add('filtermode');
+        if(!flag) {
+            const message = document.createElement('div');
+            message.innerText = 'No relevant changelog items';
+            message.id = 'nolog';
+            const log_container = document.querySelector('#log-container');
+            log_container.appendChild(message);
+        }
 
     }
 
@@ -110,35 +187,38 @@ export class ChangelogWidget implements IChangelogWidget {
         if(!container.previousSibling) return;
         const old_timestamp = parseInt(container.previousSibling.getAttribute('timestamp'), 0);
 
-        this.tabWidget.diffThumb(new_timestamp, old_timestamp).then(data => {
-            if(!data[0]) return;
+        this.tabWidget.diffThumb(new_timestamp, old_timestamp).then(data_list => {
+
             const option = {
                 fromfile: 'Original',
                 tofile: 'Current',
                 fromfiledate: '2005-01-26 23:30:50',
                 tofiledate: '2010-04-02 10:20:52'
             };
-      
-            const diff_content = window['difflib'].unifiedDiff(data[1].split('\n'), data[0].split('\n'), option);
-            let diff_test_string = '';
-            diff_content.forEach(diff=> {
-                if(diff.endsWith('\n')) {
-                    diff_test_string+=diff;
-                }
-                else {
-                    diff_test_string= diff_test_string + diff + '\n'; 
-                }
+
+            data_list.forEach((data, data_index) => {
+                const diff_content = window['difflib'].unifiedDiff(data['old'].split('\n'), data['new'].split('\n'), option);
+                let diff_test_string = '';
+                diff_content.forEach(diff=> {
+                    if(diff.endsWith('\n')) {
+                        diff_test_string+=diff;
+                    }
+                    else {
+                        diff_test_string= diff_test_string + diff + '\n'; 
+                    }
+                });
+        
+                const diff_El = document.createElement('div');
+                const id = 'log-thumbnail-' + index.toString() + '-' + data_index.toString();
+                diff_El.id = id;
+                diff_El.classList.add('log-thumbnail');
+                diff_El.setAttribute('cell-uid', data['uid']);
+                container.appendChild(diff_El);
+        
+                const diff2htmlUi = new window['Diff2HtmlUI']({diff: diff_test_string});
+                diff2htmlUi.draw('#'+id, {inputFormat: 'diff', showFiles: false, matching: 'lines', outputFormat: 'line-by-line'});
+                diff2htmlUi.highlightCode('#'+id);
             });
-    
-            const diff_El = document.createElement('div');
-            const id = 'log-thumbnail-' + index.toString();
-            diff_El.id = id;
-            diff_El.classList.add('log-thumbnail');
-            container.appendChild(diff_El);
-    
-            const diff2htmlUi = new window['Diff2HtmlUI']({diff: diff_test_string});
-            diff2htmlUi.draw('#'+id, {inputFormat: 'diff', showFiles: false, matching: 'lines', outputFormat: 'line-by-line'});
-            diff2htmlUi.highlightCode('#'+id);
         });
     }
 
@@ -147,6 +227,8 @@ export class ChangelogWidget implements IChangelogWidget {
         sheet.innerHTML += '#changelog-container { height: calc(100% - 110px); width: 300px; margin-right: 50px; position: fixed; bottom: 0px; left: -300px; z-index:100; border-top: 1px solid #e2e2e2; border-right:1px solid #e2e2e2; background: white;  transition: left .5s; } \n';
         // sheet.innerHTML += '.left-toolbox { height: 100%; width: 400px; position: fixed; bottom: 0px; background: white; border-right: 1px solid #ddd;}\n';
         sheet.innerHTML += '#changelog-trigger { height: 60px; width: 50px; font-size: 20px; text-align: center; color: #516766; font-weight: bold; position: relative; padding-top: 16px; bottom: -200px; left: 300px; z-index:2; box-shadow: 0px 0px 12px 0px rgba(87, 87, 87, 0.2); background: #9dc5a7; border-radius: 0px 10px 10px 0px;} \n';
+        sheet.innerHTML += '#changelog-trigger.filtermode { color: #a78628; background-color: #f9da83}\n';
+        sheet.innerHTML += '#changelog-container.filtermode > #log-container > .highlight {background-color: #fff6dc}\n';
         sheet.innerHTML += '#log-container { position: relative; top: -40px; padding-left:10px; padding-right:10px; height: calc(100% - 40px); overflow: scroll;}\n';
         sheet.innerHTML += '.log-thumbnail > .d2h-wrapper > .d2h-file-wrapper > .d2h-file-header {display: none}\n';
         sheet.innerHTML += '.log-thumbnail > .d2h-wrapper > .d2h-file-wrapper > .d2h-file-diff > .d2h-code-wrapper > .d2h-diff-table {font-size: 12px; }\n';
@@ -157,12 +239,12 @@ export class ChangelogWidget implements IChangelogWidget {
         sheet.innerHTML += '.log-item {color:#888; font-size:12px; background: #fbfbfb; padding: 5px 10px; cursor: pointer; margin: 10px 0px;}\n';
         sheet.innerHTML += '.log-item:hover {background: #f5f5f5} \n';
         sheet.innerHTML += '.log-item.disable {color: #ccc; cursor: default; background: none; text-align: center; margin:0px 0px; padding: 2px 0px;} \n';
-        sheet.innerHTML += '.log-item.disable:hover {background: none} \n';
-        sheet.innerHTML += '.log-item.highlight {background: #fff6dc} \n';
-
+        sheet.innerHTML += '.log-item.disable:hover {background: none;} \n';
+        sheet.innerHTML += '.log-item.highlight {background: #e7f1e9;} \n';
+        sheet.innerHTML += '#changelog-container.filtermode::before {content: "Filter Mode"; display: block; font-weight: bold; color: #bbb; padding-top: 5px; text-align: center;}\n';
         sheet.innerHTML += '.log-user-name {font-size: 10px; font-weight: bold; display: inline-block}\n';
         sheet.innerHTML += '.log-time {font-size: 10px; display:inline-block; float: right; color: #ccc}\n';
-
+        sheet.innerHTML += '#nolog {text-align: center; font-size: 12px; color:#b7b7b7}\n';
         document.body.appendChild(sheet);
     }
 

@@ -83,7 +83,7 @@ export class DiffTabWidget implements IDiffTabWidget {
         this.activeTab(new_tab);
     }
 
-    public diffThumb = (new_timestamp: number, old_timestamp: number): Promise<string[]> => {
+    public diffThumb = (new_timestamp: number, old_timestamp: number): Promise<any[]> => {
         this.new_timestamp = new_timestamp;
         this.old_timestamp = old_timestamp;
         return new Promise((resolve, reject) => {
@@ -91,21 +91,63 @@ export class DiffTabWidget implements IDiffTabWidget {
             .then(notebook=> {
                 const new_notebook = notebook[0];
                 const old_notebook = notebook[1];
-                let diff_new = '';
-                let diff_old = '';
-                // this is not a good way to catch diff, should compare cell.uid
-                new_notebook.cells.forEach((cell, index) => {
-                    const old_cell = old_notebook.cells[index];
-                    if (old_cell) {
-                        const new_source = cell.hasOwnProperty('source')? cell.source: '';
-                        const old_source = old_cell.hasOwnProperty('source')?old_cell.source : '';
-                        if(new_source !== old_source) {
-                            diff_new = new_source;
-                            diff_old = old_source;
-                        }
-                    }
+                const new_uids = [];
+                const old_uids = [];
+                const diff = [];
+                let oindex = 0;
+                let nindex = 0;
+
+                new_notebook.cells.forEach(cell => {
+                    new_uids.push(cell.uid);
                 });
-                resolve([diff_new, diff_old]);
+                old_notebook.cells.forEach(cell => {
+                    old_uids.push(cell.uid);
+                });
+
+                while(new_uids.length > 0 && old_uids.length > 0) {
+                    const current_uid = new_uids[0];
+                    const index = old_uids.indexOf(current_uid);
+                    switch (index) {
+                        case -1:
+                            // if the current cell is not in the old version
+                            const diff_item1 = {
+                                new: new_notebook.cells[nindex].source,
+                                old: '',
+                                uid: current_uid
+                            };
+                            diff.push(diff_item1);
+                            new_uids.shift();
+                            nindex ++;
+                            break;
+                        case 0:
+                            // if the current cell is not the corresponding cell in the old version
+                            if(new_notebook.cells[nindex].source !== old_notebook.cells[oindex].source) {
+                                const diff_item2 = {
+                                    new: new_notebook.cells[nindex].source,
+                                    old: old_notebook.cells[oindex].source,
+                                    uid: current_uid
+                                };
+                                diff.push(diff_item2);
+                            }
+                            new_uids.shift();
+                            nindex ++;
+                            old_uids.shift();
+                            oindex ++;
+                            break;
+                        default:
+                            // if the current cell is in the old version, but not the corresponding cell
+                            const diff_item3 = {
+                                new: '',
+                                old: old_notebook.cells[oindex].source,
+                                uid: current_uid
+                            };
+                            diff.push(diff_item3);
+                            old_uids.shift();
+                            oindex ++;
+                            break;
+                    }
+                }
+                resolve(diff);
             });
         });
     }

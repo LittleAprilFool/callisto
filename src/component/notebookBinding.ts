@@ -9,6 +9,7 @@ import { ChangelogWidget } from './changelogWidget';
 import { ChatWidget } from './chatWidget';
 import { CursorWidget } from "./cursorWidget";
 import { DiffTabWidget } from './diffTabWidget';
+import { FilterWidget } from './filterWidget';
 import { overwritePrototype } from './notebookPrototype';
 import { StudyWidget } from './studyWidget';
 import { UserListWidget } from './userListWidget';
@@ -74,6 +75,7 @@ export class NotebookBinding implements INotebookBinding {
     private cellExecutionBuffer: string[] = [];
     private diffTabWidget: IDiffTabWidget;
     private studyWidget: any;
+    private filterWidget: any;
 
     constructor(private sdbDoc: SDBDoc<SharedDoc>, private client: any, private ws: WebSocket, private option: SharedDocOption = {
         annotation: true,
@@ -141,6 +143,7 @@ export class NotebookBinding implements INotebookBinding {
 
         this.onJoinChannel();
         this.bindCellID();
+        this.filterWidget = new FilterWidget();
 
         // pull initial user list
         if(option.userlist) {
@@ -166,6 +169,9 @@ export class NotebookBinding implements INotebookBinding {
         if(option.chat && option.changelog) {
             this.chatWidget.bindChangelogAction(this.changelogWidget.scrollTo);
         }
+
+        this.filterWidget.bindChangelogCallback(this.changelogWidget.toggleFilter);
+        this.filterWidget.bindChatCallback(this.chatWidget.toggleFilter);
     }
 
     public destroy = (): void => {
@@ -188,6 +194,7 @@ export class NotebookBinding implements INotebookBinding {
         this.sharedCells.forEach(cell => {
             cell.annotationWidget.reload();
         });
+        this.filterWidget.reload();
     }
 
     public sendLog(data: object): void {
@@ -206,6 +213,7 @@ export class NotebookBinding implements INotebookBinding {
         Jupyter.notebook.events.on('create.Cell', this.onInsertCell);
         // https://github.com/jupyter/notebook/blob/master/notebook/static/notebook/js/notebook.js#L1184
         Jupyter.notebook.events.on('delete.Cell', this.onDeleteCell);
+        Jupyter.notebook.events.on('select.Cell', this.onSelectCell);
         Jupyter.notebook.events.on('execute.CodeCell', this.onExecuteCodeCell);
         Jupyter.notebook.events.on('finished_execute.CodeCell', this.onFinishedExecuteCodeCell);
         Jupyter.notebook.events.on('rendered.MarkdownCell', this.onRenderedMarkdownCell);
@@ -216,6 +224,7 @@ export class NotebookBinding implements INotebookBinding {
     private eventsOff = (): void => {
         Jupyter.notebook.events.off('create.Cell', this.onInsertCell);
         Jupyter.notebook.events.off('delete.Cell', this.onDeleteCell);
+        Jupyter.notebook.events.off('select.Cell', this.onSelectCell);
         Jupyter.notebook.events.off('execute.CodeCell', this.onExecuteCodeCell);
         Jupyter.notebook.events.off('finished_execute.CodeCell', this.onFinishedExecuteCodeCell);
         Jupyter.notebook.events.off('rendered.MarkdownCell', this.onRenderedMarkdownCell);
@@ -540,6 +549,22 @@ export class NotebookBinding implements INotebookBinding {
                 'user': this.user 
             }));
         }
+    }
+
+    private onSelectCell = (evt, info): void => {
+        if(this.filterWidget.isFilter) {
+            this.chatWidget.onFilter(info.cell);
+            this.changelogWidget.onFilter(info.cell);
+            const id = getSafeIndex(info.cell);
+            const cellEl_list = document.querySelectorAll('.cell');
+            const cellEl_select = cellEl_list[id];
+
+            cellEl_list.forEach(cell_el => {
+                if (cell_el.classList.contains('filtermode')) cell_el.classList.remove('filtermode');
+            });
+            cellEl_select.classList.add('filtermode');
+        }
+        this.chatWidget.onSelectCell(info.cell);
     }
 
     private setHost = (): void => {
@@ -895,6 +920,9 @@ export class NotebookBinding implements INotebookBinding {
         sheet.innerHTML += '#notebook-container {box-shadow: none !important; border: 1px solid #ddd;}\n';
         sheet.innerHTML += '.notebook_app > #header {box-shadow: none !important; border-bottom: 1px solid #ddd;}\n';
         sheet.innerHTML += '.cell-users {display:inline-block; width: 20px; text-align: center; font-weight: bold; z-index:2;}\n'; 
+        sheet.innerHTML += '.cell.highlight {background: #e7f1e9;} \n';
+        sheet.innerHTML += '.cell.highlight.selected {background: #e8f1eb}\n';
+        sheet.innerHTML += '.cell.filtermode.selected {background: #ffeebc}\n';
         sheet.innerHTML += '#cell-users-container {position:absolute; right: 8px; top: 10px; z-index: 10}\n';
         sheet.innerHTML += '.cursor {border-right: 2px solid;}\n';
         sheet.innerHTML += '#header {left: 0px}\n';

@@ -182,6 +182,9 @@ interface IChatWidget {
     onSelectCursor(cursor: Cursor): void;
     onSelectAnnotation(cell_index: number, object_index: number): void;
     onSelectDiff(label: string): void;
+    onSelectCell(cell: Cell): void;
+    onFilter(cell: Cell): void;
+    toggleFilter(flag: boolean): void;
     bindCursorAction(callback: any): void;
     bindAnnotationAction(callback: any): void;
     bindChangelogAction(callback: any): void;
@@ -215,9 +218,19 @@ interface IChangelogWidget {
     reload(): void;
     destroy(): void;
     scrollTo(timestamp?: number, timestamp1?: number): void;
+    onFilter(cell?:Cell): void;
+    toggleFilter(flag: boolean): void;
 }
 
 interface IDiffWidget {
     destroy(): void;
+}
+
+interface IFilterWidget {
+    isFilter: boolean;
+    destroy(): void;
+    reload(): void;
+    bindChangelogCallback(callback: any): void;
+    bindChatCallback(callback: any): void;
 }
 

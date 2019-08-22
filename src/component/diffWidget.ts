@@ -574,14 +574,15 @@ export class DiffWidget implements IDiffWidget {
 
     private initStyle = (): void => {
         const sheet = document.createElement('style');
-        sheet.innerHTML += '.diffwidget-container { padding: 15px; background-color: #fff; box-shadow: 0px 0px 12px 0px rgba(87, 87, 87, 0.2); margin-bottom: 20px } \n';
+        sheet.innerHTML += '.diffwidget-container { padding: 15px; background-color: #f3f3f3; box-shadow: 0px 0px 12px 0px rgba(87, 87, 87, 0.2); margin-bottom: 20px } \n';
         sheet.innerHTML += '.diffwidget-trigger { font-size: 15px; text-align: center; position: relative; font-weight: bold;} \n';
         sheet.innerHTML += '.version-label { font-size: 12px; text-align: center; display: inline-block; width: 50%; font-weight: bold;} \n';
         sheet.innerHTML += '#label-new { background:rgba(0, 200, 20, 0.3); } \n';
         sheet.innerHTML += '#label-old { background:rgba(255, 20, 0, 0.3); } \n';
         sheet.innerHTML += '#label-container {margin-top: 10px; margin-bottom: 10px;} \n';
-        sheet.innerHTML += '.diffwidget-container > .cell.highlight {background:#fff6dc} \n';
+        // sheet.innerHTML += '.diffwidget-container > .cell.highlight {background:#fff6dc} \n';
         sheet.innerHTML += '.diff-cell-container {background: #fff6dc; overflow:auto;} \n';
+        sheet.innerHTML += '.diffwidget-container > .cell.highlight {background:#e7f1e9} \n';
         sheet.innerHTML += '.diff { background: inherit; width: 50% !important; display: inline-block !important; float:left;} \n';
         sheet.innerHTML += 'span.diff-add {background: #c5e4bd}\n';
         sheet.innerHTML += 'span.diff-del {background: #e4cabd}\n';
