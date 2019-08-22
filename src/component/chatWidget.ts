@@ -201,19 +201,24 @@ export class ChatWidget implements IChatWidget {
 
     public toggleFilter = (flag: boolean): void => {
         this.isFilter = flag;
-        // const head_container = document.querySelector('#head-container') as HTMLElement;
         this.tabWidget.checkTab('version-current');
 
         if(!this.isFilter) {
+            const focused_message = document.querySelectorAll('.message-content');
             this.messageList.filter();
             this.updateCellHighlight(false);
-            // head_container.classList.remove('filtermode');
             this.container.classList.remove('filtermode');
+
+            if(focused_message.length > 1) {
+                const focused_id = focused_message[1].getAttribute('message-id');
+                const message_all = document.querySelectorAll('.message-content');
+                const new_focus = message_all[parseInt(focused_id, 0) + 1 ];
+                new_focus.scrollIntoView();
+            }
         }
         else {
             this.loadFilteredMessages();
             this.updateCellHighlight(true);
-            // head_container.classList.add('filtermode');
             this.container.classList.add('filtermode');
         }
     }
