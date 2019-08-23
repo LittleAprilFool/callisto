@@ -6,6 +6,8 @@ import { AnnotationWidget } from "./annotationWidget";
 export class DiffWidget implements IDiffWidget {
     public container: HTMLElement;
     public label: string;
+    private annotation_list: any[] = [];
+    private codemirror_list: any[] = [];
     
     constructor(private type: string, private notebook: Notebook[], private title: string, private timestamp: number[], private message?: any, private ref?: any) {
         this.initContainer();
@@ -32,9 +34,33 @@ export class DiffWidget implements IDiffWidget {
                     cellEl.classList.add('highlight');
                 });
             }
+            if(this.ref.line_ref) {
+                if(this.ref.line_ref.length === 2) {
+                    const cell_id = this.ref.line_ref[0].slice(1);
+                    const marker_id = this.ref.line_ref[1].slice(1);
+                    this.annotation_list.forEach(item => {
+                        if(item.uid === cell_id) {
+                            item.annotation.highlight(true, marker_id);
+                        }
+                    });
+                }
+                if(this.ref.line_ref.length === 3) {
+                    const cell_id = this.ref.line_ref[0].slice(1);
+                    const from = this.ref.line_ref[1].slice(1);
+                    const to = this.ref.line_ref[2].slice(1);
+                    this.codemirror_list.forEach(item=> {
+                        if(item.uid === cell_id) {
+                            const stPos = item.cm.posFromIndex(from);
+                            const edPos = item.cm.posFromIndex(to);
+                            const cursor_type = 'line_highlight';
+                            item.cm.markText(stPos, edPos, {className: cursor_type});
+                        }
+                    });
+                }
+            }
         }
         const diff = document.querySelector('.diff-cell-container');
-        diff.scrollIntoView();
+        if(diff) diff.scrollIntoView();
     }
 
     public hide = (): void => {
@@ -275,7 +301,9 @@ export class DiffWidget implements IDiffWidget {
                 output_wrapper.appendChild(outputEl);
                 if(output.hasOwnProperty('metadata')) {
                     if(output.metadata.hasOwnProperty('annotation')) {
-                        new AnnotationWidget(null, null, output.metadata, output_subarea);
+                        const annotation = new AnnotationWidget(null, null, output.metadata, output_subarea);
+                        const uid = cell.uid;
+                        this.annotation_list.push({uid, annotation});
                     }
                 }
             });
@@ -417,7 +445,7 @@ export class DiffWidget implements IDiffWidget {
         
         cell_container.appendChild(input_container);
 
-        (window as any).CodeMirror(input_area, {
+        const cm = (window as any).CodeMirror(input_area, {
             value: cell ==null? '': cell.source,
             mode:  'python',
             lineNumbers: true,
@@ -425,6 +453,8 @@ export class DiffWidget implements IDiffWidget {
             showCursorWhenSelecting: false,
             theme: 'ipython'
         });
+        const uid = cell.uid;
+        this.codemirror_list.push({uid, cm});
     }
 
     private renderImageDiff = (new_cell, old_cell, diff_container): void => {

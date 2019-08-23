@@ -2,6 +2,9 @@ import { IAnnotationWidget } from 'types';
 import { getSafeIndex } from '../action/notebookAction';
 import * as fabric from '../external/fabric';
 
+const Jupyter = require('base/js/namespace');
+
+
 export class AnnotationWidget implements IAnnotationWidget {
     private canvas: any;
     private paintTool: HTMLButtonElement;
@@ -12,7 +15,7 @@ export class AnnotationWidget implements IAnnotationWidget {
         if ((window as any).study_condition === 'control') {
             return;
         }
-        
+
         if(this.container) {
             this.initStaticView();
             return;
@@ -20,6 +23,10 @@ export class AnnotationWidget implements IAnnotationWidget {
         
         if(!this.checkValid()) return null;
         this.initView();
+        // setTimeout(()=> {
+        //     Jupyter.keyboard_manager.register_events(this.container);
+        //     this.initKeyboardListener();
+        // }, 500)
     }
 
     public reloadCanvas = (data): void => {
@@ -68,10 +75,10 @@ export class AnnotationWidget implements IAnnotationWidget {
     private initStaticView = (): void => {
         this.container.setAttribute('style', 'position: relative; padding:unset');
         const canvasContainer = document.createElement('div');
-        // this.container.appendChild(canvasContainer);
         canvasContainer.setAttribute('style', 'position:absolute; width: 100%; height:100%; top:0');
-        canvasContainer.setAttribute('id', 'annotation-container');        
-        
+        canvasContainer.setAttribute('id', 'annotation-container');     
+        this.container.appendChild(canvasContainer);
+           
         const canvasEl = document.createElement('canvas');
         canvasEl.setAttribute('id', 'annotation-canvas');
         canvasContainer.appendChild(canvasEl);
@@ -203,7 +210,7 @@ export class AnnotationWidget implements IAnnotationWidget {
         this.paintTool.blur();
     }
 
-    private handlePaint = (event): void => {
+    private handlePaint = (event?): void => {
         this.canvas.isDrawingMode = !this.canvas.isDrawingMode;
         this.changePaintColor(this.canvas.isDrawingMode);
     }
@@ -217,11 +224,22 @@ export class AnnotationWidget implements IAnnotationWidget {
         }
     }
 
-    private saveDrawing(): void {
+    private saveDrawing = (): void => {
         const canvas_json = this.canvas.toJSON();
         const newMeta = this.cell.metadata;
         newMeta.annotation = canvas_json;
         this.cell.metadata = newMeta;
         this.updateFunc(this.cell);
+    }
+
+    private handleKeyEvent = (e: KeyboardEvent): void => {
+        if(e.which === 27) {
+            this.handlePaint();
+        }
+    }
+
+    private initKeyboardListener = (): void => {
+        // this is not working
+        this.paintTool.addEventListener('keyup', this.handleKeyEvent);
     }
 }

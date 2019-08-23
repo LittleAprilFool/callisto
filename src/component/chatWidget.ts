@@ -102,7 +102,6 @@ export class ChatWidget implements IChatWidget {
     public onSelectAnnotation = (cell_index: number, object_index: number): void => {
         if(!this.isFold && this.isSelect) {
             this.handleMagicToggle();
-            const cuid = Jupyter.notebook.get_cell(cell_index).uid;
             this.messageBox.appendRef('marker', {
                 type: "MARKER",
                 cell_index,
@@ -348,7 +347,7 @@ export class ChatWidget implements IChatWidget {
 
                 const cell_list = [cuid];
                 this.tabWidget.addTab(label, 'version', timestamp);
-                this.tabWidget.addVersion(timestamp, timestamp.toString(), {scrollMessage, unhighlightMessage, highlightMessage}, {cell_list});
+                this.tabWidget.addVersion(timestamp, timestamp.toString(), {scrollMessage, unhighlightMessage, highlightMessage}, {cell_list, line_ref});
                 ref_type = 'MARKER';
             }
             if(ref1[0] === 'V') {
@@ -369,7 +368,6 @@ export class ChatWidget implements IChatWidget {
                 const timestamp = parseInt(e.target.parentNode.getAttribute('timestamp'), 0);
                 const label = 'version-'+timestamp.toString();
                 if(this.tabWidget.checkTab(label)) return;
-    
                 // this.tabWidget.addTab(label, 'version', timestamp);
                 // const title = timeAgo(timestamp);
                 // this.tabWidget.addVersion(timestamp, title);
@@ -398,7 +396,7 @@ export class ChatWidget implements IChatWidget {
 
                 const cell_list = [ref1.slice(1)];
                 this.tabWidget.addTab(label, 'version', timestamp);
-                this.tabWidget.addVersion(timestamp, timestamp.toString(), {scrollMessage, unhighlightMessage, highlightMessage}, {cell_list});
+                this.tabWidget.addVersion(timestamp, timestamp.toString(), {scrollMessage, unhighlightMessage, highlightMessage}, {cell_list, line_ref});
                 ref_type = 'CODE';
             }
         }
@@ -1029,10 +1027,13 @@ export class ChatWidget implements IChatWidget {
         }
     }
 
-    private handleEnterKey = (e: KeyboardEvent): void => {
+    private handleKeyEvent = (e: KeyboardEvent): void => {
         if(e.which === 13 && !e.shiftKey) {
             this.handleSubmitting();
             e.preventDefault();
+        }
+        if(e.which === 27) {
+            this.handleMagicToggle();
         }
     }
 
@@ -1338,7 +1339,7 @@ export class ChatWidget implements IChatWidget {
     }
 
     private initKeyboardListener = () => {
-        const message_box = document.querySelector('#editor');
-        message_box.addEventListener('keydown', this.handleEnterKey);
+        const message_box = document.querySelector('#input-container');
+        message_box.addEventListener('keydown', this.handleKeyEvent);
     }
 }
