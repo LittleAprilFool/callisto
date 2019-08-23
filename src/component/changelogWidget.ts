@@ -298,7 +298,7 @@ export class ChangelogWidget implements IChangelogWidget {
 
     private createNewLog = (log: Changelog, index: number, container): void => {
         if (log.event === 'join') {
-            if (container.childElementCount === 0) {
+            if (index === 0) {
                 const open_channel_log_el = document.createElement('div');
                 open_channel_log_el.classList.add('log-item');
                 container.appendChild(open_channel_log_el);
@@ -311,6 +311,7 @@ export class ChangelogWidget implements IChangelogWidget {
             }
             return;
         }
+
         if (log.event === 'leave') {
             // to be compatible with data generated in previous versions.
             return;
