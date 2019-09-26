@@ -5,9 +5,10 @@ import { generateUUID, openWS } from './utils';
 const Jupyter = require('base/js/namespace');
 // change the collection here
 const collection = 'doc';
+const port = 5555;
 
 export const joinDoc = (doc_name: string): Promise<{doc: SDBDoc<SharedDoc>, client: any, ws: WebSocket}> => {
-    const ws = openWS(5555);
+    const ws = openWS(port);
     const sdbClient = new window['SDB'].SDBClient(ws);
     return new Promise<{doc: SDBDoc<SharedDoc>, client: any, ws: WebSocket}>((resolve, reject) => {
         // change the doc name here
@@ -32,7 +33,7 @@ export const joinDoc = (doc_name: string): Promise<{doc: SDBDoc<SharedDoc>, clie
 };
 
 export const createDoc = (doc_name: string): Promise<{doc: SDBDoc<SharedDoc>, client: any, ws: WebSocket}> => {
-    const ws = openWS(5555);
+    const ws = openWS(port);
     const sdbClient = new window['SDB'].SDBClient(ws);
     return new Promise<{doc: SDBDoc<SharedDoc>, client: any, ws: WebSocket}>(resolve=> {
         // change the doc name here
