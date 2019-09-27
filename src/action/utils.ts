@@ -33,8 +33,9 @@ export const getRandomColor = (): string => {
 };
 
 export const getTimestamp = (): Promise<string> => {
-  const port = 5555;
-  const url = window.location.protocol + '//' + document.domain + ':' + port.toString();
+  // const port = 5555;
+  // const url = window.location.protocol + '//' + document.domain + ':' + port.toString();
+  const url = 'https://callisto.mentoracademy.org/api'
   return fetch(url + '/timestamp').then(res=> res.json());
 };
 
