@@ -4,7 +4,7 @@ import { generateUUID, openWS, openCallistoWS } from './utils';
 
 const Jupyter = require('base/js/namespace');
 // change the collection here
-const collection = 'doc';
+const collection = 'doc000';
 // const port = 5555;
 
 export const joinDoc = (doc_name: string): Promise<{doc: SDBDoc<SharedDoc>, client: any, ws: WebSocket}> => {
