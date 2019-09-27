@@ -17,6 +17,12 @@ export const openWS = (port: number): WebSocket => {
     return ws;
 };
 
+export const openCallistoWS = (): WebSocket => {
+  let url = 'wss://callisto.mentoracademy.org/api/'
+  const ws = new WebSocket(url);
+  return ws;
+};
+
 export const getRandomColor = (): string => {
     const letters = '579B'.split('');
     let color = '#';
