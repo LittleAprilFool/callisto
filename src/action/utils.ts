@@ -1,3 +1,5 @@
+const port = 5555;
+
 export const generateUUID = (): string => {
     let d = new Date().getTime();
     if (typeof performance !== 'undefined' && typeof performance.now === 'function') {
@@ -10,17 +12,12 @@ export const generateUUID = (): string => {
     });
 };
 
-export const openWS = (port: number): WebSocket => {
+export const openWS = (): WebSocket => {
     let url = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
     url += document.domain + ':' + port;
+    if(document.domain == 'callisto.mentoacademy.org') url = 'wss://callisto.mentoracademy.org/api/';
     const ws = new WebSocket(url);
     return ws;
-};
-
-export const openCallistoWS = (): WebSocket => {
-  let url = 'wss://callisto.mentoracademy.org/api/'
-  const ws = new WebSocket(url);
-  return ws;
 };
 
 export const getRandomColor = (): string => {
@@ -33,9 +30,8 @@ export const getRandomColor = (): string => {
 };
 
 export const getTimestamp = (): Promise<string> => {
-  // const port = 5555;
-  // const url = window.location.protocol + '//' + document.domain + ':' + port.toString();
-  const url = 'https://callisto.mentoracademy.org/api'
+  let url = window.location.protocol + '//' + document.domain + ':' + port.toString();
+  if(document.domain == 'callisto.mentoacademy.org') url = 'https://callisto.mentoracademy.org/api';
   return fetch(url + '/timestamp').then(res=> res.json());
 };
 
